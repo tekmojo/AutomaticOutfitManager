@@ -63,7 +63,7 @@ Use temporary neutral rule names such as `RC Apparel`, `RC Weapon`, `RC Combined
 
 - [ ] Verify rule pause/resume, per-worker Recall, and enable/disable behavior.
 - [ ] With work paused, verify jobs targeted beyond the area do not create a walk-to-boundary/cancel/reselect loop when their shortest route crosses it.
-- [ ] With colonist hauling allowed, pause a rule while a pawn is hauling into its area; the pawn must finish without repeatedly changing outfits or restarting the same haul.
+- [x] With colonist hauling allowed, pause a rule while a pawn is hauling into its area; the pawn finishes without repeatedly changing outfits or restarting the same haul. Verified in-game on 2026-08-23 with RC DLL `687AD839C5B766331FAB4C4D8B0D9CEA1E53490194CF02D5A85AE4ACBC203A81`.
 - [ ] Verify work, hauling, wandering, child-watching, and pawn-category permissions independently.
 - [ ] Confirm drafted and explicit player-forced behavior is respected.
 
