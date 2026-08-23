@@ -4,6 +4,7 @@
   <author>tekmojo</author>
   <url>https://github.com/tekmojo/AutomaticOutfitManager</url>
   <packageId>tekmojo.automaticoutfitmanager</packageId>
+  <modVersion>0.3.2</modVersion>
   <supportedVersions>
     <li>1.6</li>
   </supportedVersions>
@@ -17,5 +18,7 @@
   <loadAfter>
     <li>brrainz.harmony</li>
   </loadAfter>
-  <description>Create area-based outfit rules using apparel, personal protective equipment (PPE), and optional exact primary-weapon alternatives. Eligible humanlike workers equip all selected apparel and one acceptable selected primary weapon before qualifying work, use a configurable follow-up task buffer, return through an optional locker room, and restore the exact apparel and primary weapon they had beforehand. Includes skill-aware ranged/melee selection, save-safe exact job continuation, nested work areas and task buffers, live worker status, pause/resume and per-worker Recall controls, pawn-category work/hauling/wandering access, locker restocking, managed/non-managed apparel and weapon storage filters, protected saved-item ownership, and generic support for vanilla or modded content.</description>
+  <description>Create area-based outfit rules for apparel, personal protective equipment (PPE), and optional exact primary-weapon alternatives. Eligible humanlike workers prepare before qualifying work, retain managed gear through a configurable task buffer, return items through an optional locker room, and restore their exact previous apparel and primary weapon.
+
+Includes nested rules, pause and Recall controls, access permissions, live status, locker restocking, managed storage filters, and generic vanilla or modded gear support. Harmony is required.</description>
 </ModMetaData>

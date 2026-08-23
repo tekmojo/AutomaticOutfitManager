@@ -33,10 +33,16 @@ $outputDir = Join-Path $PSScriptRoot "1.6\Assemblies"
 $outputDll = Join-Path $outputDir "AutomaticOutfitManager.dll"
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 
-$sdkAvailable = dotnet --list-sdks
+$dotnetCommand = Get-Command dotnet -ErrorAction SilentlyContinue
+$sdkAvailable = if ($dotnetCommand) { dotnet --list-sdks } else { $null }
 if ($sdkAvailable) {
     dotnet build $project -c Release -p:RimWorldDir="$RimWorldDir" -p:HarmonyDll="$HarmonyDll"
-    exit $LASTEXITCODE
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet build failed with exit code $LASTEXITCODE."
+    }
+
+    Write-Host "Built: $outputDll"
+    return
 }
 
 $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
@@ -61,7 +67,7 @@ $references = @(
     $HarmonyDll
 ) | ForEach-Object { "/reference:$_" }
 
-& $compiler /nologo /target:library /langversion:latest /nullable:disable "/out:$outputDll" $references $sources
+& $compiler /nologo /target:library /optimize+ /deterministic+ /langversion:latest /nullable:disable "/out:$outputDll" $references $sources
 if ($LASTEXITCODE -ne 0) {
     throw "C# compilation failed with exit code $LASTEXITCODE."
 }

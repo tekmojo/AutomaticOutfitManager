@@ -15,7 +15,7 @@ The compact technical identity is `AutomaticOutfitManager`, including the reposi
 - RimWorld 1.6
 - Harmony
 
-Current development milestone: version `0.3.2`, with the playtested Phase 2 foundation retained and Phase 3 exact primary-weapon requirements in active playtesting.
+Current release candidate: version `0.3.2`, with the playtested Phase 2 foundation and Phase 3 exact primary-weapon requirements.
 
 Dubs Rimatomics inspired the original radiation-PPE scenario, but it is not a dependency. Automatic Outfit Manager does not detect radiation automatically.
 
@@ -272,6 +272,14 @@ For a non-default RimWorld location:
 ```
 
 The DLL is written to `1.6\Assemblies\AutomaticOutfitManager.dll`.
+
+To build and create an allowlisted Steam Workshop staging folder, run:
+
+```powershell
+.\package-workshop.ps1
+```
+
+The staged mod and its SHA-256 manifest are written below `work\workshop-staging`. See [`RELEASE-CHECKLIST.md`](RELEASE-CHECKLIST.md) for the feature-based release validation and [`WORKSHOP.md`](WORKSHOP.md) for the prepared Workshop listing copy.
 
 ## Install for local testing
 
