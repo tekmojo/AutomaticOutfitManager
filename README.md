@@ -179,24 +179,24 @@ For a dedicated locker, enable the managed apparel and/or weapon filters and dis
 
 ## Example scenarios
 
-These are configurations, not built-in hazard detectors. The named apparel and weapons can come from vanilla RimWorld or any compatible content mod.
+These are illustrative configurations, not built-in hazard detectors, presets, or test requirements. The named apparel and weapons can come from vanilla RimWorld or any compatible content mod, and any valid custom configuration is equally supported.
 
 | Scenario | Work area | Apparel requirement | Primary-weapon alternatives | Locker and buffer |
 |---|---|---|---|---|
-| Radiation maintenance | Reactor and machining room | Radiation suit + radiation mask | Heavy bolter or powersword | Airlock locker; buffer 0–2 |
+| Radiation maintenance | Reactor and machining room | Radiation suit + radiation mask | Any weapon | Airlock locker; buffer 0–2 |
 | Freezer work | Freezer interior | Parka + cold-weather headwear | Any weapon | Entrance storage; buffer 1–3 |
 | Guarded armory | Armory, gatehouse, or defensive workshop | Any apparel | Rifle, shotgun, or melee weapon as exact alternatives | Nearby armory racks; buffer 0 |
 | Clean room | Laboratory, sterile kitchen, or hospital | Clean-room suit + mask | Any weapon | Changing bay; buffer 0 |
 | Industrial workshop | Fabrication room | Apron + helmet + respirator | Any weapon or selected work/security weapon | Equipment closet; buffer 2–5 |
 | Emergency fire zone | Temporary player-created response area | Every selected fire-resistant item | Optional emergency weapon/tool represented as a weapon | Emergency locker; buffer 0 |
 
-### Apparel-and-weapon rule
-
-Create a **Radiation Maintenance** rule over the reactor and machining tables. Select the radiation suit and mask in **Choose apparel**, then select both a heavy bolter and powersword in **Choose weapons**. Every worker wears both apparel items. A shooting-focused pawn prefers the bolter, a melee-focused pawn prefers the powersword, and each pawn restores the exact clothing and primary weapon used before the job.
-
 ### Apparel-only rule
 
-Create a **Freezer Clothing** rule, select a parka and warm headwear, and leave weapons empty. The readiness row displays **Any weapon**, and Automatic Outfit Manager does not disarm or replace the pawn's existing primary weapon merely because the rule has no weapon requirement.
+Create a **Radiation Maintenance** rule over the reactor and machining tables. Select the radiation suit and mask in **Choose apparel**, and leave weapons empty. Every worker wears both apparel items. The readiness row displays **Any weapon**, and Automatic Outfit Manager does not disarm or replace the pawn's existing primary weapon merely because the rule has no weapon requirement.
+
+### Apparel-and-weapon rule
+
+Create an **Industrial Safety** rule for a fabrication room. Select an apron, helmet, and respirator in **Choose apparel**, then select one or more exact work or security weapons in **Choose weapons**. Every worker wears all selected apparel and equips one acceptable primary weapon before qualifying work, then restores the exact clothing and primary weapon used before the job.
 
 ### Weapon-only rule
 
