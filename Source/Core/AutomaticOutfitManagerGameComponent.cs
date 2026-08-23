@@ -257,8 +257,14 @@ namespace AutomaticOutfitManager.Core
                         DetectExternalWeaponOverride(pawn, state, job);
                         foreach (ApparelRule rule in mapPausedRules)
                         {
+                            bool permittedPausedActivity =
+                                Patches.PausedAreaWorkFilter.JobMayEnterPausedRule(
+                                    pawn, job, rule);
+                            bool preparingPermittedHaul =
+                                Patches.PausedAreaWorkFilter.HasPermittedHaulingContext(
+                                    state, rule);
                             if (state?.ActiveRuleId == rule.Id && !state.RecallRequested &&
-                                !Patches.PausedAreaWorkFilter.MatchesPermittedHaulingRule(pawn, job, rule))
+                                !permittedPausedActivity && !preparingPermittedHaul)
                             {
                                 RequestRecall(state);
                                 handled = true;
@@ -266,7 +272,8 @@ namespace AutomaticOutfitManager.Core
                             }
 
                             if (state?.RecallRequested != true && job.workGiverDef != null &&
-                                RuleEvaluator.JobTargetsArea(job, rule.Area))
+                                RuleEvaluator.JobTargetsArea(job, rule.Area) &&
+                                !permittedPausedActivity)
                             {
                                 handled = TryJobTransition(pawn, currentTick, "paused-area work", () =>
                                     pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, true));

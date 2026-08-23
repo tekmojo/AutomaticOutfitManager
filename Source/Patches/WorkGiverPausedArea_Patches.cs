@@ -543,6 +543,28 @@ namespace AutomaticOutfitManager.Patches
                     HaulingPathCrossesArea(pawn, job, rule.Area));
         }
 
+        public static bool HasPermittedHaulingContext(
+            PawnApparelState state, ApparelRule rule)
+        {
+            Pawn pawn = state?.Pawn;
+            if (pawn == null || rule == null || state.RecallRequested)
+                return false;
+
+            if (state.Transition == ApparelTransition.Preparing)
+            {
+                // Outfit transition jobs temporarily replace the haul that
+                // requested them. Preserve the permitted haul behind that
+                // transition so the paused-area watchdog does not recall the
+                // pawn before the outfit is ready.
+                return MatchesPermittedHaulingRule(
+                    pawn, state.PendingWorkJob, rule);
+            }
+
+            return state.Transition == ApparelTransition.Active &&
+                   MatchesPermittedHaulingRule(
+                       pawn, pawn.jobs?.curJob, rule);
+        }
+
         private static ApparelRule MatchingPermittedWanderingRule(Pawn pawn, Job job)
         {
             if (pawn?.Map == null || job == null || !IsManagedPawn(pawn) ||

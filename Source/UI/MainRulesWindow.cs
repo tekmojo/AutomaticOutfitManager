@@ -663,7 +663,16 @@ namespace AutomaticOutfitManager.UI
                     TracksRule(state, rule.Id))
                 .ToList();
             foreach (State.PawnApparelState state in areaWorkers)
-                ReturnWorker(state);
+            {
+                // Pause affects ordinary work only. A haul explicitly allowed
+                // by this rule must keep its outfit transition and current job;
+                // recalling it here makes the same haul restart indefinitely.
+                if (!Patches.PausedAreaWorkFilter.HasPermittedHaulingContext(
+                        state, rule))
+                {
+                    ReturnWorker(state);
+                }
+            }
 
             // Existing untracked work is enforced by the game component on its
             // next scheduled tick. Do not mutate pawn job trackers from OnGUI:
