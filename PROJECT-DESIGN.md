@@ -2,7 +2,7 @@
 
 ## Goal
 
-Automatic Outfit Manager provides context-aware RimWorld outfits without hard-coded integrations. A player-defined area and selected apparel can represent radiation PPE, freezer clothing, firefighting equipment, clean-room garments, industrial safety gear, combat armor, or role-play uniforms.
+Automatic Outfit Manager provides context-aware RimWorld outfits without hard-coded integrations. A player-defined area and selected apparel or exact primary weapons can represent radiation PPE, freezer clothing, firefighting apparel, clean-room garments, industrial safety apparel, combat armor, guard posts, armories, or role-play uniforms.
 
 The mod does not detect hazards. It reacts to jobs, routes, areas, apparel, and player configuration.
 
@@ -17,25 +17,27 @@ The mod does not detect hazards. It reacts to jobs, routes, areas, apparel, and 
 
 ## Product identity and compatibility
 
-The player-facing product name is **Automatic Outfit Manager**. The broader “outfit” name leaves room for future managed equipment such as optional melee or ranged weapon requirements while keeping apparel and PPE as the current implemented scope.
+The player-facing product name is **Automatic Outfit Manager**. The broader “outfit” name covers apparel, PPE, and the optional exact primary-weapon requirements introduced in Phase 3.
 
 The product is branded **Automatic Outfit Manager** in human-readable text, while the repository and technical identity use `AutomaticOutfitManager`. The package ID is `tekmojo.automaticoutfitmanager`; the assembly, namespace, Harmony ID, DefNames, serialized keys, source names, and asset paths use the compact technical identity. The rebrand intentionally establishes a clean identity rather than retaining compatibility with saves created under the former product name.
 
-## Phase 1 — Area-triggered outfitting (implemented)
+## Phase 1 — Area-triggered outfitting foundation (implemented)
 
-An enabled rule references a RimWorld work area and one or more apparel definitions. An eligible undrafted humanlike colonist, slave, prisoner, or hosted guest qualifies when a job target, interaction position, or protected transit route enters the area and its category is permitted.
+The foundation introduced enabled rules tied to RimWorld work areas and required apparel definitions. The current rule model also includes the exact primary-weapon alternatives implemented in Phase 3. Empty categories are shown as **Any apparel** or **Any weapon**; an empty category adds no requirement. All selected apparel is cumulative, while selected primary weapons are alternatives. An eligible undrafted humanlike colonist, slave, prisoner, or hosted guest qualifies when a job target, interaction position, or protected transit route enters the area and its category is permitted.
 
-If required gear is missing:
+If required apparel is missing:
 
 ```text
 qualifying job
   → capture exact worn apparel
-  → find reachable and reservable required gear
+  → find reachable and reservable required apparel
   → queue normal Wear jobs
   → resume qualifying work
 ```
 
 The searchable apparel selector enumerates loaded wearable definitions, so vanilla and modded apparel work without direct integration.
+
+When an exact primary weapon is required, preparation uses the same preserved-job workflow. Higher Shooting prefers ranged alternatives, higher Melee prefers melee alternatives, and ties use stable distribution. The locker and then the map are searched for the preferred type before selection crosses to the weaker combat category.
 
 ## Phase 2 — State, restoration, access, and monitoring (complete; playtested)
 
@@ -44,8 +46,9 @@ The searchable apparel selector enumerates loaded wearable definitions, so vanil
 Each intervention records:
 
 - Pawn and active rule
-- Exact original apparel references
-- Exact automatic/work apparel references
+- Exact original apparel and primary-weapon references
+- Exact automatic/work apparel and temporary managed-weapon references
+- Weapon intervention, restoration-request, and player/mod override state
 - Preparing, active, returning, or restoring transition
 - Return-request state and safe-interrupt cooldown
 - Task-buffer usage and current buffered job
@@ -62,9 +65,9 @@ Every concrete Thing target in A/B/C and both target queues receives one atomic,
 
 ### Restoration
 
-After managed work and the configured task buffer finish, the pawn returns to the optional locker room, removes managed outfit gear, and restores the exact saved items.
+After managed work and the configured task buffer finish, the pawn returns to the optional locker room, removes managed apparel, releases the tracked temporary primary through the equipment tracker so Simple Sidearms cannot retain it as a secondary weapon, and restores the exact saved apparel and primary weapon.
 
-Destroyed references are skipped. Temporarily unavailable items report their status and retry after a cooldown. Recovery/wait jobs pass through so a failed wear operation cannot create a same-tick retry storm. A player can deliberately release a claim with **Clear saved owner**.
+Destroyed references are skipped. Temporarily unavailable items report their status and retry after a cooldown. Recovery/wait jobs pass through so a failed wear operation cannot create a same-tick retry storm. Saved apparel and primary weapons expose consistent owner navigation, recall, and confirmed per-item release actions.
 
 ### Task buffer
 
@@ -74,22 +77,22 @@ Future work may track successful job completion separately from job start and ro
 
 ### Locker rooms and storage
 
-Rules may reference a separate changing area:
+Rules may reference a separate locker-room area:
 
-- Acquisition prefers required gear inside the locker.
+- Acquisition prefers required apparel and weapons inside the locker.
 - Restoration returns the pawn there first.
-- Automatic/non-automatic special storage filters separate managed gear from ordinary apparel.
-- Dropped managed gear remains unforbidden.
+- Managed/non-managed special storage filters separately classify apparel and weapons. Rule-selected definitions enter persistent managed-stock catalogs, so clearing, disabling, or deleting a requirement cannot silently evacuate unused stock into general storage. An explicit selector action forgets a catalog entry when the player intends to release it.
+- Dropped managed apparel and weapons remain unforbidden.
 - A low-priority hauling work giver restocks locker storage whenever its rule is enabled, including during normal active operation and while work is paused.
 
 ### Saved ownership
 
-- Required work gear is shared.
+- Required work apparel and weapons are shared.
 - Displaced personal apparel is claimed for its original pawn.
-- Outfit optimization, wear, reservation, repair, processing, and hauling guards protect claimed gear.
+- Outfit optimization, wear/equip, reservation, repair, processing, and hauling guards protect claimed apparel and weapons.
 - Non-colony pawns cannot target managed apparel.
 - A periodic invariant check removes wrongly worn claimed apparel if another mod bypasses normal validation.
-- Inspection text and apparel gizmos expose role, owner, areas, jump-to-owner, and clear-owner actions.
+- Inspection text plus saved apparel and weapon gizmos expose role, owner, areas, **Jump to owner**, **Recall owner**, and confirmed **Release item** actions.
 
 ### Pause and resume work
 
@@ -107,9 +110,9 @@ Restrictions evaluate targets and relevant routes. Units inside receive safe exi
 
 ### Path safety
 
-Incoming jobs are evaluated before start, and actual next path cells are checked for eligible humanlike pawns. This catches route changes caused by doors, congestion, reservations, or modded pathing. Essential personal jobs restore saved clothing first, then use a safe detour around protected areas when one exists; an unavailable detour yields through a bounded retry rather than crossing without required gear.
+Incoming jobs are evaluated before start, and actual next path cells are checked for eligible humanlike pawns. This catches route changes caused by doors, congestion, reservations, or modded pathing. Essential personal jobs restore saved apparel and the saved primary weapon first, then use a safe detour around protected areas when one exists; an unavailable detour yields through a bounded retry rather than crossing without required apparel or a required weapon.
 
-Hot-path checks use cached field access, non-allocating missing-gear tests, indexed state, and a single periodic pawn traversal.
+Hot-path checks use cached field access, non-allocating missing-item tests, indexed state, and a single periodic pawn traversal. Apparel and weapon stock definitions, exact item IDs, saved owners, and active assignments are indexed rather than rescanning rules or pawn snapshots from storage and reservation hooks. Weapon locker restocking enumerates only definitions selected by active rules and defers reservation and pathfinding until after cheap rule and ownership checks. Requirement edits safely recall affected workers, and queued automatic hauling revalidates its concrete destination at job start.
 
 ### User interface
 
@@ -117,13 +120,14 @@ The **Automatic Outfit Manager** main tab provides:
 
 - Named enabled/disabled rules
 - Work-area and locker-area selection with native hover overlays
-- Searchable apparel selection
+- Searchable apparel and exact primary-weapon selection, with selected and retained-stock groups
 - Hauling, wandering, and child permissions
 - 0–20 task buffer
-- Readiness and gear availability
+- Readiness and apparel/weapon availability
 - Worker, hauler, and wanderer activity
 - Detailed hover status and click-to-jump
-- Per-worker return and area-wide pause/resume
+- Per-worker Recall and area-wide pause/resume
+- Managed/non-managed apparel and weapon storage filters with explicit retained-stock Forget actions
 - Persistent collapse/expand state
 - Rule deletion and RimWorld area management
 
@@ -133,20 +137,30 @@ The **Automatic Outfit Manager** main tab provides:
 - Sleeping is restored around rather than treated as an ordinary buffered task.
 - A missing item can delay restoration but cannot cause unbounded retries.
 - A lost, destroyed, recalled, urgent, reserved, or contested continuation falls back to normal job selection with a specific developer-mode reason.
-- Multiple enabled rules can coexist, but overlapping conflicting rules have no configurable priority yet.
+- Compatible overlapping and nested rules combine requirements and track separate buffers. Known incompatible selector combinations are blocked, but genuinely conflicting overlaps have no configurable manual priority.
 - Debug logging is tied to RimWorld developer mode. Repeated guest diagnostics use a one-day per-pawn/category interval; colony diagnostics retain the shorter stabilization interval.
 
-## Phase 3 — Rule engine (planned)
+## Phase 3 — Exact primary weapons (implemented; active playtesting)
 
-- Deterministic rule priority and conflict resolution
+- Searchable exact primary-weapon alternatives for armories, guard posts, hazardous workshops, and similar work areas
+- One-of alternative matching, with skill-aware ranged/melee preference and stable ties
+- Locker-first and map-wide fallback searches that preserve the preferred combat category
+- Exact previous-primary restoration with save/load continuity, including originally unarmed pawns
+- Persona and biocoding safeguards plus normal RimWorld equipment eligibility
+- Simple Sidearms preference detection, automatic managed-weapon rejection, and player/mod override handling
+- Managed/non-managed weapon storage filters, retained-stock catalogs, per-type Forget controls, and locker restocking
+- Exact saved-weapon ownership, hauling protection, owner navigation, Recall, and confirmed per-item Release
+- Allocation-conscious weapon definition, ownership, and assignment indexes for hot storage and job boundaries
+
+## Deferred rule-engine expansion
+
+- Deterministic manual rule priority and broader conflict resolution
 - Per-pawn assignment and filters
 - JobDef and WorkTypeDef triggers
 - Current-area and destination-area combinations
 - Drafted, temperature, environment, hediff, or generic hazard triggers where appropriate
 - Strict, warning, and best-effort behavior modes
 - Apparel quality, condition, and material filters
-- Optional melee, ranged, or either-weapon requirements for armories, guard posts, and similar work areas
-- Weapon handling that respects drafted equipment, sidearm/weapon-management mods, ideology constraints, and explicit player orders
 
 ## Phase 4 — User experience (planned)
 
@@ -197,4 +211,4 @@ The project references local RimWorld and Harmony assemblies; copyrighted game a
 
 `main` represents the stable development baseline. Significant changes should be validated in a live modded colony, checked for log loops and exceptions, built successfully, and reviewed through a branch or pull request before merging.
 
-The next milestone after Phase 2 stabilization is deterministic overlapping-rule behavior and configurable pawn eligibility.
+The current Phase 3 milestone is exact primary-weapon requirements built on the tested Phase 2 behavior and validated in a large modded colony through repeated rule edits, pause/resume, drafting, saved-item contention, nested work, long sessions, and save/load transitions. Manual priority and pawn-eligibility prototypes remain deferred; ammunition, inventory sidearms, offhands, shields, and automatic drafted switching are outside this weapon scope.

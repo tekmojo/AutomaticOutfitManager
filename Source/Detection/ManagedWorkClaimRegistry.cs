@@ -75,6 +75,9 @@ namespace AutomaticOutfitManager.Detection
 
         public static bool IsClaimedByOther(Pawn pawn, Job job)
         {
+            if (Claims.Count == 0)
+                return false;
+
             List<WorkTarget> targets = TargetsFor(pawn, job);
             if (targets.Count == 0)
                 return false;
@@ -87,7 +90,7 @@ namespace AutomaticOutfitManager.Detection
         public static bool IsClaimedByOther(
             Pawn pawn, Map map, Thing thing, IntVec3 cell)
         {
-            if (pawn == null || map == null)
+            if (Claims.Count == 0 || pawn == null || map == null)
                 return false;
 
             Cleanup();
@@ -97,7 +100,7 @@ namespace AutomaticOutfitManager.Detection
 
         public static void Release(Pawn pawn, Job job)
         {
-            if (pawn == null)
+            if (Claims.Count == 0 || pawn == null)
                 return;
             List<WorkTarget> targets = TargetsFor(pawn, job);
             if (targets.Count == 0)
@@ -109,13 +112,13 @@ namespace AutomaticOutfitManager.Detection
 
         public static void ReleaseAll(Pawn pawn)
         {
-            if (pawn != null)
+            if (Claims.Count > 0 && pawn != null)
                 Claims.RemoveAll(claim => claim.Owner == pawn);
         }
 
         public static bool HasActiveClaim(Pawn pawn)
         {
-            if (pawn == null)
+            if (Claims.Count == 0 || pawn == null)
                 return false;
 
             Cleanup();
@@ -124,7 +127,7 @@ namespace AutomaticOutfitManager.Detection
 
         public static string DescribeActiveClaim(Pawn pawn)
         {
-            if (pawn == null)
+            if (Claims.Count == 0 || pawn == null)
                 return "none";
 
             Cleanup();
@@ -233,6 +236,9 @@ namespace AutomaticOutfitManager.Detection
 
         private static void Cleanup()
         {
+            if (Claims.Count == 0)
+                return;
+
             int now = CurrentTick;
             Claims.RemoveAll(claim =>
                 claim == null || claim.UntilTick <= now ||

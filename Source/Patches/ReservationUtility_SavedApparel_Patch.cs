@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using AutomaticOutfitManager.Core;
 using AutomaticOutfitManager.State;
+using AutomaticOutfitManager.Storage;
 using HarmonyLib;
 using RimWorld;
 using Verse;
@@ -31,10 +31,45 @@ namespace AutomaticOutfitManager.Patches
             if (!__result || __args == null)
                 return;
 
-            Pawn pawn = __args.OfType<Pawn>().FirstOrDefault();
-            Apparel apparel = ApparelTarget(__args);
+            FindTargets(
+                __args, out Pawn pawn, out Apparel apparel,
+                out ThingWithComps weapon);
             AutomaticOutfitManagerGameComponent component = AutomaticOutfitManagerGameComponent.Current;
-            if (pawn == null || apparel == null || component == null ||
+            if (pawn == null || component == null)
+                return;
+
+            if (weapon != null)
+            {
+                if (pawn.Faction != Faction.OfPlayer &&
+                    ManagedWeaponClassifier.Matches(weapon.def) &&
+                    component.StateFor(pawn)?.IsManagedWeapon(weapon) != true)
+                {
+                    __result = false;
+                    return;
+                }
+
+                if (component.IsManagedWeaponAssignedToOtherPawn(weapon, pawn))
+                {
+                    __result = false;
+                    return;
+                }
+
+                Pawn weaponOwner = component.SavedPawnForWeapon(weapon);
+                if (weaponOwner != null && weaponOwner != pawn)
+                {
+                    PawnApparelState weaponOwnerState = component.StateFor(weaponOwner);
+                    if (weaponOwnerState != null &&
+                        (weaponOwnerState.Transition == ApparelTransition.ReturningToChangingArea ||
+                         weaponOwnerState.Transition == ApparelTransition.Restoring ||
+                         weaponOwnerState.WeaponRestorationRequested))
+                    {
+                        __result = false;
+                    }
+                }
+                return;
+            }
+
+            if (apparel == null ||
                 !component.IsManagedApparel(apparel))
             {
                 return;
@@ -90,18 +125,33 @@ namespace AutomaticOutfitManager.Patches
             return false;
         }
 
-        private static Apparel ApparelTarget(IEnumerable<object> arguments)
+        private static void FindTargets(
+            IEnumerable<object> arguments,
+            out Pawn pawn,
+            out Apparel apparel,
+            out ThingWithComps weapon)
         {
+            pawn = null;
+            apparel = null;
+            weapon = null;
+
             foreach (object argument in arguments)
             {
-                if (argument is LocalTargetInfo target && target.Thing is Apparel targetApparel)
-                    return targetApparel;
+                if (pawn == null && argument is Pawn targetPawn)
+                    pawn = targetPawn;
 
-                if (argument is Apparel apparel)
-                    return apparel;
+                Thing thing = argument is LocalTargetInfo target
+                    ? target.Thing
+                    : argument as Thing;
+                if (thing is Apparel targetApparel)
+                    apparel = targetApparel;
+                else if (thing is ThingWithComps targetWeapon &&
+                         targetWeapon.def?.IsWeapon == true)
+                    weapon = targetWeapon;
+
+                if (pawn != null && (apparel != null || weapon != null))
+                    return;
             }
-
-            return null;
         }
     }
 }

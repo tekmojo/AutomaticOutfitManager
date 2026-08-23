@@ -5,10 +5,18 @@ using Verse;
 
 namespace AutomaticOutfitManager.Rules
 {
+    public enum WeaponRequirement
+    {
+        None,
+        Melee,
+        Ranged,
+        Either
+    }
+
     public sealed class ApparelRule : IExposable
     {
         public string Id = Guid.NewGuid().ToString("N");
-        public string Name = "New Apparel Rule";
+        public string Name = "New Outfit Rule";
         public bool Enabled = true;
         public bool UiCollapsed;
         public bool WorkAreaPaused;
@@ -35,11 +43,16 @@ namespace AutomaticOutfitManager.Rules
         public Area Area;
         public Area ChangingArea;
         public List<ThingDef> RequiredApparel = new List<ThingDef>();
+        public List<ThingDef> RequiredWeapons = new List<ThingDef>();
+        // Kept for save compatibility with the first 0.3.0 test build. New
+        // rules use exact weapon definitions; a loaded category continues to
+        // work until the player chooses or clears exact weapons.
+        public WeaponRequirement RequiredWeapon;
 
         public void ExposeData()
         {
             Scribe_Values.Look(ref Id, "id");
-            Scribe_Values.Look(ref Name, "name", "New Apparel Rule");
+            Scribe_Values.Look(ref Name, "name", "New Outfit Rule");
             Scribe_Values.Look(ref Enabled, "enabled", true);
             Scribe_Values.Look(ref UiCollapsed, "uiCollapsed", false);
             Scribe_Values.Look(ref WorkAreaPaused, "workAreaPaused", false);
@@ -66,7 +79,11 @@ namespace AutomaticOutfitManager.Rules
             Scribe_References.Look(ref Area, "area");
             Scribe_References.Look(ref ChangingArea, "changingArea");
             Scribe_Collections.Look(ref RequiredApparel, "requiredApparel", LookMode.Def);
+            Scribe_Collections.Look(ref RequiredWeapons, "requiredWeapons", LookMode.Def);
+            Scribe_Values.Look(ref RequiredWeapon, "requiredWeapon", WeaponRequirement.None);
             RequiredApparel ??= new List<ThingDef>();
+            RequiredWeapons ??= new List<ThingDef>();
+            RequiredWeapons.RemoveAll(def => def?.IsWeapon != true);
             ReturnTaskBuffer = System.Math.Max(0, System.Math.Min(20, ReturnTaskBuffer));
 
             if (string.IsNullOrEmpty(Id))
@@ -74,7 +91,53 @@ namespace AutomaticOutfitManager.Rules
         }
 
         public string ApparelSummary => RequiredApparel.Count == 0
-            ? "None"
+            ? "Any apparel"
             : string.Join(", ", RequiredApparel.Where(d => d != null).Select(d => d.LabelCap.ToString()));
+
+        public bool HasWeaponRequirement =>
+            RequiredWeapons?.Any(def => def?.IsWeapon == true) == true ||
+            RequiredWeapon != WeaponRequirement.None;
+
+        public bool UsesExactWeapons =>
+            RequiredWeapons?.Any(def => def?.IsWeapon == true) == true;
+
+        public string WeaponSummary
+        {
+            get
+            {
+                List<ThingDef> exact = (RequiredWeapons ?? new List<ThingDef>())
+                    .Where(def => def?.IsWeapon == true)
+                    .Distinct()
+                    .ToList();
+                if (exact.Count > 0)
+                {
+                    return string.Join(" or ", exact.Select(def => def.LabelCap.ToString()));
+                }
+
+                switch (RequiredWeapon)
+                {
+                    case WeaponRequirement.Melee:
+                        return "Legacy: any melee weapon";
+                    case WeaponRequirement.Ranged:
+                        return "Legacy: any ranged weapon";
+                    case WeaponRequirement.Either:
+                        return "Legacy: any weapon";
+                    default:
+                        return "Any weapon";
+                }
+            }
+        }
+
+        public void UseExactWeapons()
+        {
+            RequiredWeapons ??= new List<ThingDef>();
+            RequiredWeapon = WeaponRequirement.None;
+        }
+
+        public void ClearWeapons()
+        {
+            RequiredWeapons?.Clear();
+            RequiredWeapon = WeaponRequirement.None;
+        }
     }
 }

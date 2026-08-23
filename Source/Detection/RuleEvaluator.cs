@@ -8,6 +8,37 @@ using Verse.AI;
 
 namespace AutomaticOutfitManager.Detection
 {
+    public sealed class CombinedWeaponRequirement
+    {
+        public bool HasRequirement;
+        public WeaponRequirement LegacyCategory;
+        public HashSet<ThingDef> ExactDefs;
+
+        public bool Matches(ThingWithComps weapon)
+        {
+            if (!HasRequirement)
+                return true;
+            if (weapon?.def?.IsWeapon != true)
+                return false;
+            if (ExactDefs != null && !ExactDefs.Contains(weapon.def))
+                return false;
+            return RuleEvaluator.WeaponMatchesRequirement(
+                weapon, LegacyCategory);
+        }
+
+        public bool Matches(ThingDef def)
+        {
+            if (!HasRequirement)
+                return true;
+            if (def?.IsWeapon != true)
+                return false;
+            if (ExactDefs != null && !ExactDefs.Contains(def))
+                return false;
+            return RuleEvaluator.WeaponDefMatchesRequirement(
+                def, LegacyCategory);
+        }
+    }
+
     public static class RuleEvaluator
     {
         public static ApparelRule MatchingRule(Pawn pawn, Job job)
@@ -86,13 +117,165 @@ namespace AutomaticOutfitManager.Detection
             return false;
         }
 
+        public static bool HasMissingRequiredGear(Pawn pawn, ApparelRule rule) =>
+            HasMissingRequiredApparel(pawn, rule) ||
+            (AutomaticOutfitManagerGameComponent.Current?
+                 .StateFor(pawn)?.WeaponPlayerOverride != true &&
+             HasMissingRequiredWeapon(pawn, rule));
+
+        public static bool HasMissingRequiredWeapon(Pawn pawn, ApparelRule rule)
+        {
+            if (rule?.HasWeaponRequirement != true)
+                return false;
+
+            return !WeaponMatchesRequirement(pawn?.equipment?.Primary, rule);
+        }
+
+        public static bool WeaponMatchesRequirement(
+            ThingWithComps weapon, ApparelRule rule)
+        {
+            if (rule?.HasWeaponRequirement != true)
+                return true;
+            if (weapon?.def?.IsWeapon != true)
+                return false;
+
+            if (rule.UsesExactWeapons)
+            {
+                return rule.RequiredWeapons.Any(def =>
+                    def != null && weapon.def == def);
+            }
+
+            return WeaponMatchesRequirement(weapon, rule.RequiredWeapon);
+        }
+
+        public static bool WeaponDefMatchesRequirement(
+            ThingDef def, ApparelRule rule)
+        {
+            if (rule?.HasWeaponRequirement != true)
+                return true;
+            if (def?.IsWeapon != true)
+                return false;
+            if (rule.UsesExactWeapons)
+                return rule.RequiredWeapons.Contains(def);
+            return WeaponDefMatchesRequirement(def, rule.RequiredWeapon);
+        }
+
+        public static bool WeaponMatchesRequirement(
+            ThingWithComps weapon, WeaponRequirement requirement)
+        {
+            if (requirement == WeaponRequirement.None)
+                return true;
+            if (weapon?.def?.IsWeapon != true)
+                return false;
+
+            return WeaponDefMatchesRequirement(weapon.def, requirement);
+        }
+
+        public static bool WeaponDefMatchesRequirement(
+            ThingDef def, WeaponRequirement requirement)
+        {
+            if (requirement == WeaponRequirement.None)
+                return true;
+            if (def?.IsWeapon != true)
+                return false;
+
+            switch (requirement)
+            {
+                case WeaponRequirement.Melee:
+                    return def.IsMeleeWeapon;
+                case WeaponRequirement.Ranged:
+                    return def.IsRangedWeapon;
+                case WeaponRequirement.Either:
+                    return def.IsMeleeWeapon || def.IsRangedWeapon;
+                default:
+                    return false;
+            }
+        }
+
+        public static bool TryCombinedWeaponRequirement(
+            IEnumerable<ApparelRule> rules, out CombinedWeaponRequirement requirement)
+        {
+            requirement = new CombinedWeaponRequirement();
+
+            foreach (ApparelRule rule in rules ?? Enumerable.Empty<ApparelRule>())
+            {
+                if (rule?.HasWeaponRequirement != true)
+                    continue;
+
+                requirement.HasRequirement = true;
+                if (rule.UsesExactWeapons)
+                {
+                    var exact = new HashSet<ThingDef>(rule.RequiredWeapons
+                        .Where(def => def?.IsWeapon == true));
+                    if (requirement.ExactDefs == null)
+                        requirement.ExactDefs = exact;
+                    else
+                        requirement.ExactDefs.IntersectWith(exact);
+                }
+                else
+                {
+                    if (!TryCombineLegacyCategory(
+                            requirement.LegacyCategory,
+                            rule.RequiredWeapon,
+                            out WeaponRequirement combinedCategory))
+                    {
+                        return false;
+                    }
+                    requirement.LegacyCategory = combinedCategory;
+                }
+            }
+
+            if (requirement.ExactDefs != null)
+            {
+                WeaponRequirement category = requirement.LegacyCategory;
+                requirement.ExactDefs.RemoveWhere(def =>
+                    !WeaponDefMatchesRequirement(
+                        def, category));
+                if (requirement.ExactDefs.Count == 0)
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static bool TryCombineLegacyCategory(
+            WeaponRequirement left,
+            WeaponRequirement right,
+            out WeaponRequirement combined)
+        {
+            if (left == WeaponRequirement.None)
+            {
+                combined = right;
+                return true;
+            }
+            if (right == WeaponRequirement.None || left == right)
+            {
+                combined = left;
+                return true;
+            }
+            if (left == WeaponRequirement.Either)
+            {
+                combined = right;
+                return true;
+            }
+            if (right == WeaponRequirement.Either)
+            {
+                combined = left;
+                return true;
+            }
+
+            combined = WeaponRequirement.None;
+            return false;
+        }
+
         public static bool RuleCanApplyToPawn(Pawn pawn, ApparelRule rule)
         {
             if (pawn == null || pawn.RaceProps?.Humanlike != true || pawn.apparel == null ||
-                rule?.RequiredApparel == null)
+                rule == null ||
+                (rule.HasWeaponRequirement && pawn.equipment == null))
                 return false;
 
-            foreach (ThingDef def in rule.RequiredApparel)
+            foreach (ThingDef def in rule.RequiredApparel ?? Enumerable.Empty<ThingDef>())
             {
                 if (def?.apparel == null)
                     continue;

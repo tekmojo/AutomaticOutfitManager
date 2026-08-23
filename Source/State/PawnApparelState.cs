@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using AutomaticOutfitManager.Core;
 using AutomaticOutfitManager.Rules;
 using RimWorld;
 using Verse;
@@ -22,6 +23,12 @@ namespace AutomaticOutfitManager.State
         public List<string> CurrentRuleIds = new List<string>();
         public List<Apparel> OriginalApparel = new List<Apparel>();
         public List<Apparel> ManagedApparel = new List<Apparel>();
+        public bool ApparelInterventionActive = true;
+        public ThingWithComps OriginalWeapon;
+        public List<ThingWithComps> ManagedWeapons = new List<ThingWithComps>();
+        public bool WeaponInterventionActive;
+        public bool WeaponRestorationRequested;
+        public bool WeaponPlayerOverride;
         public ApparelTransition Transition = ApparelTransition.Preparing;
         public int StartedTick;
         public int LastRestorationAttemptTick = -1;
@@ -39,16 +46,20 @@ namespace AutomaticOutfitManager.State
         public List<NestedRuleBufferState> NestedRuleBuffers = new List<NestedRuleBufferState>();
         public string LastNestedBufferStatus;
 
-        public static PawnApparelState Capture(Pawn pawn, ApparelRule rule)
+        public static PawnApparelState Capture(
+            Pawn pawn, ApparelRule rule, bool captureApparel = true)
         {
             return new PawnApparelState
             {
                 Pawn = pawn,
                 ActiveRuleId = rule?.Id,
-                OriginalApparel = pawn?.apparel?.WornApparel
-                    .Where(apparel => apparel != null)
-                    .ToList() ?? new List<Apparel>(),
+                OriginalApparel = captureApparel
+                    ? pawn?.apparel?.WornApparel
+                        .Where(apparel => apparel != null)
+                        .ToList() ?? new List<Apparel>()
+                    : new List<Apparel>(),
                 ManagedApparel = new List<Apparel>(),
+                ApparelInterventionActive = captureApparel,
                 Transition = ApparelTransition.Preparing,
                 StartedTick = Find.TickManager?.TicksGame ?? 0
             };
@@ -61,6 +72,13 @@ namespace AutomaticOutfitManager.State
             Scribe_Collections.Look(ref CurrentRuleIds, "currentRuleIds", LookMode.Value);
             Scribe_Collections.Look(ref OriginalApparel, "originalApparel", LookMode.Reference);
             Scribe_Collections.Look(ref ManagedApparel, "managedApparel", LookMode.Reference);
+            Scribe_Values.Look(ref ApparelInterventionActive,
+                "apparelInterventionActive", true);
+            Scribe_References.Look(ref OriginalWeapon, "originalWeapon");
+            Scribe_Collections.Look(ref ManagedWeapons, "managedWeapons", LookMode.Reference);
+            Scribe_Values.Look(ref WeaponInterventionActive, "weaponInterventionActive", false);
+            Scribe_Values.Look(ref WeaponRestorationRequested, "weaponRestorationRequested", false);
+            Scribe_Values.Look(ref WeaponPlayerOverride, "weaponPlayerOverride", false);
             Scribe_Values.Look(ref Transition, "transition", ApparelTransition.Preparing);
             Scribe_Values.Look(ref StartedTick, "startedTick");
             Scribe_Values.Look(ref LastRestorationAttemptTick, "lastRestorationAttemptTick", -1);
@@ -79,6 +97,7 @@ namespace AutomaticOutfitManager.State
             Scribe_Values.Look(ref LastNestedBufferStatus, "lastNestedBufferStatus");
             OriginalApparel ??= new List<Apparel>();
             ManagedApparel ??= new List<Apparel>();
+            ManagedWeapons ??= new List<ThingWithComps>();
             CurrentRuleIds ??= new List<string>();
             NestedRuleBuffers ??= new List<NestedRuleBufferState>();
         }
@@ -93,6 +112,67 @@ namespace AutomaticOutfitManager.State
                 if (!ManagedApparel.Contains(item))
                     ManagedApparel.Add(item);
             }
+        }
+
+        public void BeginManagedApparelSnapshot(Pawn pawn)
+        {
+            if (ApparelInterventionActive || pawn?.apparel == null)
+                return;
+
+            OriginalApparel = pawn.apparel.WornApparel
+                .Where(apparel => apparel != null)
+                .ToList();
+            ApparelInterventionActive = true;
+        }
+
+        public void BeginManagedWeapon(Pawn pawn, ThingWithComps weapon)
+        {
+            if (pawn == null || weapon == null)
+                return;
+
+            if (!WeaponInterventionActive)
+            {
+                OriginalWeapon = pawn.equipment?.Primary;
+                WeaponInterventionActive = true;
+                WeaponPlayerOverride = false;
+            }
+
+            WeaponRestorationRequested = false;
+            if (!ManagedWeapons.Contains(weapon))
+                ManagedWeapons.Add(weapon);
+            AutomaticOutfitManagerGameComponent.Current?
+                .InvalidateWeaponStateIndex();
+        }
+
+        public bool IsManagedWeapon(ThingWithComps weapon) =>
+            weapon != null && ManagedWeapons?.Contains(weapon) == true;
+
+        public void RequestWeaponRestoration()
+        {
+            if (WeaponInterventionActive)
+                WeaponRestorationRequested = true;
+        }
+
+        public void CompleteWeaponRestoration()
+        {
+            OriginalWeapon = null;
+            ManagedWeapons?.Clear();
+            WeaponInterventionActive = false;
+            WeaponRestorationRequested = false;
+            AutomaticOutfitManagerGameComponent.Current?
+                .InvalidateWeaponStateIndex();
+        }
+
+        public void MarkWeaponPlayerOverride()
+        {
+            WeaponPlayerOverride = true;
+            WeaponRestorationRequested = false;
+        }
+
+        public void AbandonWeaponManagementForOverride()
+        {
+            CompleteWeaponRestoration();
+            WeaponPlayerOverride = true;
         }
     }
 

@@ -2,11 +2,25 @@
 <Defs>
   <WorkGiverDef>
     <defName>AutomaticOutfitManager_LockerRestock</defName>
-    <label>restock Automatic Outfit Manager locker</label>
+    <label>restock Automatic Outfit Manager apparel</label>
     <giverClass>AutomaticOutfitManager.Storage.WorkGiver_LockerRestock</giverClass>
     <workType>Hauling</workType>
     <verb>restock</verb>
-    <gerund>restocking</gerund>
+    <gerund>restocking apparel</gerund>
+    <priorityInType>16</priorityInType>
+    <requiredCapacities>
+      <li>Manipulation</li>
+    </requiredCapacities>
+    <canBeDoneByMechs>true</canBeDoneByMechs>
+  </WorkGiverDef>
+
+  <WorkGiverDef>
+    <defName>AutomaticOutfitManager_WeaponLockerRestock</defName>
+    <label>restock Automatic Outfit Manager weapons</label>
+    <giverClass>AutomaticOutfitManager.Storage.WorkGiver_WeaponLockerRestock</giverClass>
+    <workType>Hauling</workType>
+    <verb>restock</verb>
+    <gerund>restocking weapons</gerund>
     <priorityInType>16</priorityInType>
     <requiredCapacities>
       <li>Manipulation</li>

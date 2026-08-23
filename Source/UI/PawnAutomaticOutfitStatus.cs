@@ -59,6 +59,8 @@ namespace AutomaticOutfitManager.UI
                 .Where(item => item != null)
                 .Select(item => item.GetUniqueLoadID())
                 .OrderBy(id => id));
+            wornSignature += $"|weapon:{pawn.equipment?.Primary?.GetUniqueLoadID()}" +
+                             $":{state.WeaponInterventionActive}:{state.WeaponPlayerOverride}";
             string currentRuleSignature = string.Join(",", state.CurrentRuleIds ?? new List<string>());
             string nestedBufferSignature = string.Join(",", (state.NestedRuleBuffers ??
                 new List<NestedRuleBufferState>()).Select(item =>
@@ -198,7 +200,9 @@ namespace AutomaticOutfitManager.UI
 
                 if (currentJob?.playerForced == true &&
                     currentJob.def != JobDefOf.Wear &&
-                    currentJob.def != JobDefOf.RemoveApparel)
+                    currentJob.def != JobDefOf.RemoveApparel &&
+                    currentJob.def != JobDefOf.Equip &&
+                    currentJob.def != JobDefOf.DropEquipment)
                 {
                     return "Restoration paused — forced order";
                 }
@@ -219,21 +223,32 @@ namespace AutomaticOutfitManager.UI
             switch (transition)
             {
                 case ApparelTransition.Preparing:
+                    if (state.WeaponRestorationRequested &&
+                        (currentJob?.def == JobDefOf.Equip ||
+                         currentJob?.def == JobDefOf.DropEquipment))
+                    {
+                        return "Returning nested work weapon";
+                    }
                     if (state.NestedRuleBuffers?.Any(progress =>
                             progress?.Finished == true) == true &&
                         (currentJob?.def == JobDefOf.RemoveApparel ||
                          currentJob?.def == JobDefOf.Goto))
                     {
-                        return "Returning nested work gear";
+                        return "Returning nested work apparel";
                     }
+                    if (currentJob?.def == JobDefOf.Equip)
+                        return $"Equipping required weapon: {JobActivity(pawn, currentJob)}";
                     return currentJob?.def == JobDefOf.Wear
-                        ? $"Outfitting work gear: {JobActivity(pawn, currentJob)}"
-                        : "Outfitting work gear";
+                        ? $"Equipping required apparel: {JobActivity(pawn, currentJob)}"
+                        : PreparingRequirementsLabel(requiredSessionRules);
                 case ApparelTransition.Active:
                     if (requiredSessionRules.Any(candidate =>
-                            RuleEvaluator.HasMissingRequiredApparel(pawn, candidate)))
+                            RuleEvaluator.HasMissingRequiredApparel(pawn, candidate)) ||
+                        (!state.WeaponPlayerOverride &&
+                         requiredSessionRules.Any(candidate =>
+                             RuleEvaluator.HasMissingRequiredWeapon(pawn, candidate))))
                     {
-                        return "Work gear incomplete";
+                        return "Required outfit item missing";
                     }
                     if (IsIdleJob(pawn, currentJob))
                         return "Waiting with work outfit";
@@ -271,17 +286,21 @@ namespace AutomaticOutfitManager.UI
                     }
                     if (currentJob != null && IsMeaningfulActivity(currentJob))
                         return $"Active: {JobActivity(pawn, currentJob)}";
-                    return "Work outfit equipped";
+                    return "Outfit requirements met";
                 case ApparelTransition.ReturningToChangingArea:
                     return "Returning to locker room";
                 case ApparelTransition.Restoring:
+                    if (currentJob?.def == JobDefOf.DropEquipment)
+                        return "Returning temporary work weapon";
+                    if (currentJob?.def == JobDefOf.Equip)
+                        return $"Restoring saved weapon: {JobActivity(pawn, currentJob)}";
                     if (currentJob?.def == JobDefOf.RemoveApparel)
-                        return "Returning work gear";
+                        return "Returning managed apparel";
                     if (IsIdleJob(pawn, currentJob))
-                        return "Waiting for saved gear";
+                        return "Waiting for saved outfit item";
                     return currentJob?.def == JobDefOf.Wear
-                        ? $"Outfitting saved gear: {JobActivity(pawn, currentJob)}"
-                        : "Outfitting saved gear";
+                        ? $"Restoring saved apparel: {JobActivity(pawn, currentJob)}"
+                        : "Restoring saved outfit";
                 default:
                     return transition.ToString();
             }
@@ -311,9 +330,16 @@ namespace AutomaticOutfitManager.UI
                     .Where(def => def != null)
                     .Distinct()
                     .ToList();
-                return missing.Count == 0
+                bool missingWeapon = requiredSessionRules.Any(candidate =>
+                    RuleEvaluator.HasMissingRequiredWeapon(pawn, candidate));
+                if (missingWeapon && state.WeaponPlayerOverride)
+                    return "Player or weapon-mod choice retained; required primary weapon is not equipped.";
+                var missingLabels = missing.Select(def => def.LabelCap.ToString()).ToList();
+                if (missingWeapon)
+                    missingLabels.Add("required primary weapon");
+                return missingLabels.Count == 0
                     ? "Waiting for the work job to resume."
-                    : $"Still needed: {string.Join(", ", missing.Select(def => def.LabelCap.ToString()))}";
+                    : $"Still needed: {string.Join(", ", missingLabels)}";
             }
 
             if (state.Transition == ApparelTransition.ReturningToChangingArea)
@@ -326,9 +352,16 @@ namespace AutomaticOutfitManager.UI
                     .Where(def => def != null)
                     .Distinct()
                     .ToList();
-                return missing.Count == 0
+                bool missingWeapon = requiredSessionRules.Any(candidate =>
+                    RuleEvaluator.HasMissingRequiredWeapon(pawn, candidate));
+                if (missingWeapon && state.WeaponPlayerOverride)
+                    return "Player or weapon-mod choice retained; required primary weapon is not equipped.";
+                var missingLabels = missing.Select(def => def.LabelCap.ToString()).ToList();
+                if (missingWeapon)
+                    missingLabels.Add("required primary weapon");
+                return missingLabels.Count == 0
                     ? null
-                    : $"Still needed: {string.Join(", ", missing.Select(def => def.LabelCap.ToString()))}";
+                    : $"Still needed: {string.Join(", ", missingLabels)}";
             }
 
             if (state.Transition != ApparelTransition.Restoring)
@@ -337,6 +370,14 @@ namespace AutomaticOutfitManager.UI
             Apparel missingItem = state.OriginalApparel.FirstOrDefault(item =>
                 item != null && !item.Destroyed &&
                 pawn.apparel?.WornApparel.Contains(item) != true);
+            if (missingItem == null && state.WeaponInterventionActive &&
+                state.OriginalWeapon != null &&
+                pawn.equipment?.Primary != state.OriginalWeapon)
+            {
+                return $"Waiting for saved weapon: {state.OriginalWeapon.LabelCap} — " +
+                       UnavailableWeaponReason(pawn, state.OriginalWeapon);
+            }
+
             if (missingItem == null)
                 return "Finishing the outfit change.";
 
@@ -430,6 +471,63 @@ namespace AutomaticOutfitManager.UI
             if (!pawn.CanReach(apparel, PathEndMode.ClosestTouch, Danger.Deadly))
                 return "unreachable";
             return "ready to retrieve";
+        }
+
+        private static string PreparingRequirementsLabel(
+            List<ApparelRule> requiredSessionRules)
+        {
+            bool apparel = requiredSessionRules?.Any(candidate =>
+                candidate?.RequiredApparel?.Any(def => def?.apparel != null) == true) == true;
+            bool weapon = requiredSessionRules?.Any(candidate =>
+                candidate?.HasWeaponRequirement == true) == true;
+
+            if (apparel && weapon)
+                return "Preparing required apparel and primary weapon";
+            if (weapon)
+                return "Preparing required primary weapon";
+            if (apparel)
+                return "Preparing required apparel";
+            return "Preparing managed outfit";
+        }
+
+        private static string UnavailableWeaponReason(
+            Pawn pawn, ThingWithComps weapon)
+        {
+            Pawn user = Find.Maps
+                .SelectMany(map => map.mapPawns.AllPawnsSpawned)
+                .FirstOrDefault(candidate => candidate != pawn &&
+                    candidate.equipment?.Primary == weapon);
+            if (user != null)
+                return $"currently equipped by {user.LabelShortCap}";
+
+            Pawn carrier = HoldingPawnFor(weapon);
+            if (carrier != null && carrier != pawn)
+                return $"carried by {carrier.LabelShortCap}";
+
+            if (!weapon.Spawned)
+                return "inside an inventory or container";
+            if (weapon.Map != pawn.Map)
+                return "on another map";
+            if (weapon.IsForbidden(pawn))
+                return "forbidden";
+            if (!pawn.CanReserve(weapon))
+                return "reserved by another task";
+            if (!pawn.CanReach(weapon, PathEndMode.ClosestTouch, Danger.Deadly))
+                return "unreachable";
+            return "ready to retrieve";
+        }
+
+        private static Pawn HoldingPawnFor(Thing thing)
+        {
+            IThingHolder holder = thing?.ParentHolder;
+            while (holder != null)
+            {
+                if (holder is Pawn pawn)
+                    return pawn;
+                holder = holder.ParentHolder;
+            }
+
+            return null;
         }
     }
 }

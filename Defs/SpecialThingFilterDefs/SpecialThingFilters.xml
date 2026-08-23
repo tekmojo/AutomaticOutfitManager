@@ -2,8 +2,8 @@
 <Defs>
   <SpecialThingFilterDef>
     <defName>AutomaticOutfitManager_AllowManaged</defName>
-    <label>allow managed outfit gear</label>
-    <description>Allow apparel required by an enabled Automatic Outfit Manager rule or previously handled as part of a managed outfit change.</description>
+    <label>allow managed apparel</label>
+    <description>Allow apparel required by an Automatic Outfit Manager rule, retained as managed locker stock, or protected as an exact managed or saved item. Removing or clearing a requirement keeps the apparel type managed; use Forget in Choose apparel when unused stock should return to ordinary storage.</description>
     <parentCategory>Apparel</parentCategory>
     <allowedByDefault>false</allowedByDefault>
     <saveKey>allowAutomaticOutfitManagerManaged</saveKey>
@@ -13,10 +13,30 @@
   <SpecialThingFilterDef>
     <defName>AutomaticOutfitManager_AllowUnmanaged</defName>
     <label>allow non-managed apparel</label>
-    <description>Allow apparel that is not used or managed by Automatic Outfit Manager.</description>
+    <description>Allow ordinary apparel that is not required by a rule, retained as managed locker stock, or protected as an exact managed or saved item by Automatic Outfit Manager.</description>
     <parentCategory>Apparel</parentCategory>
     <allowedByDefault>true</allowedByDefault>
     <saveKey>allowAutomaticOutfitManagerUnmanaged</saveKey>
     <workerClass>AutomaticOutfitManager.Storage.SpecialThingFilterWorker_NonManagedOutfit</workerClass>
+  </SpecialThingFilterDef>
+
+  <SpecialThingFilterDef>
+    <defName>AutomaticOutfitManager_AllowManagedWeapons</defName>
+    <label>allow managed weapons</label>
+    <description>Allow primary weapons selected by an Automatic Outfit Manager rule, retained as managed locker stock, or protected as an exact managed or saved weapon. Removing or clearing a requirement keeps the weapon type managed; use Forget in Choose weapons when unused stock should return to ordinary storage.</description>
+    <parentCategory>Weapons</parentCategory>
+    <allowedByDefault>false</allowedByDefault>
+    <saveKey>allowAutomaticOutfitManagerManagedWeapons</saveKey>
+    <workerClass>AutomaticOutfitManager.Storage.SpecialThingFilterWorker_ManagedWeapon</workerClass>
+  </SpecialThingFilterDef>
+
+  <SpecialThingFilterDef>
+    <defName>AutomaticOutfitManager_AllowUnmanagedWeapons</defName>
+    <label>allow non-managed weapons</label>
+    <description>Allow ordinary weapons that are not selected by a rule, retained as managed locker stock, or protected as an exact managed or saved weapon by Automatic Outfit Manager.</description>
+    <parentCategory>Weapons</parentCategory>
+    <allowedByDefault>true</allowedByDefault>
+    <saveKey>allowAutomaticOutfitManagerUnmanagedWeapons</saveKey>
+    <workerClass>AutomaticOutfitManager.Storage.SpecialThingFilterWorker_NonManagedWeapon</workerClass>
   </SpecialThingFilterDef>
 </Defs>

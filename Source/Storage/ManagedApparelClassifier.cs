@@ -12,12 +12,9 @@ namespace AutomaticOutfitManager.Storage
             if (def?.apparel == null)
                 return false;
 
-            AutomaticOutfitManagerGameComponent component = AutomaticOutfitManagerGameComponent.Current;
-            return component != null && component.Rules.Any(rule =>
-                rule != null &&
-                rule.Enabled &&
-                rule.RequiredApparel != null &&
-                rule.RequiredApparel.Contains(def));
+            AutomaticOutfitManagerGameComponent component =
+                AutomaticOutfitManagerGameComponent.Current;
+            return component?.IsManagedApparelDefinition(def) == true;
         }
 
         public static bool Matches(Thing thing)

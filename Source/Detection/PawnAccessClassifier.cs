@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using RimWorld;
@@ -9,6 +8,17 @@ namespace AutomaticOutfitManager.Detection
 {
     public static class PawnAccessClassifier
     {
+        private static readonly Type HospitalityGuestCompType =
+            AccessTools.TypeByName("Hospitality.CompGuest");
+        private static readonly FieldInfo HospitalityArrivedField =
+            HospitalityGuestCompType == null
+                ? null
+                : AccessTools.Field(HospitalityGuestCompType, "arrived");
+        private static readonly FieldInfo HospitalitySentAwayField =
+            HospitalityGuestCompType == null
+                ? null
+                : AccessTools.Field(HospitalityGuestCompType, "sentAway");
+
         public static bool IsHostedGuest(Pawn pawn)
         {
             if (pawn?.guest == null || pawn.guest.IsPrisoner || pawn.IsSlave)
@@ -25,19 +35,24 @@ namespace AutomaticOutfitManager.Detection
 
         private static bool IsArrivedHospitalityGuest(Pawn pawn)
         {
-            Type compType = AccessTools.TypeByName("Hospitality.CompGuest");
-            if (compType == null || pawn?.AllComps == null)
+            if (HospitalityGuestCompType == null || pawn?.AllComps == null)
                 return false;
 
-            ThingComp comp = pawn.AllComps.FirstOrDefault(candidate =>
-                candidate != null && compType.IsInstanceOfType(candidate));
+            ThingComp comp = null;
+            foreach (ThingComp candidate in pawn.AllComps)
+            {
+                if (candidate != null &&
+                    HospitalityGuestCompType.IsInstanceOfType(candidate))
+                {
+                    comp = candidate;
+                    break;
+                }
+            }
             if (comp == null)
                 return false;
 
-            FieldInfo arrivedField = AccessTools.Field(compType, "arrived");
-            FieldInfo sentAwayField = AccessTools.Field(compType, "sentAway");
-            bool arrived = arrivedField?.GetValue(comp) is bool value && value;
-            bool sentAway = sentAwayField?.GetValue(comp) is bool sent && sent;
+            bool arrived = HospitalityArrivedField?.GetValue(comp) is bool value && value;
+            bool sentAway = HospitalitySentAwayField?.GetValue(comp) is bool sent && sent;
             return arrived && !sentAway;
         }
 

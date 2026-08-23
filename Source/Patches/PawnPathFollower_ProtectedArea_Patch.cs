@@ -71,11 +71,11 @@ namespace AutomaticOutfitManager.Patches
                     // Pausing a rule stops its work; it does not make sleeping
                     // transit exempt from the area's protective equipment.
                     bool blocked = essentialPersonalJob
-                        ? RuleEvaluator.HasMissingRequiredApparel(pawn, candidate)
+                        ? RuleEvaluator.HasMissingRequiredGear(pawn, candidate)
                         : candidate.WorkAreaPaused
                             ? !PausedAreaWorkFilter.JobMayEnterPausedRule(
                                 pawn, currentJob, candidate)
-                            : RuleEvaluator.HasMissingRequiredApparel(pawn, candidate);
+                            : RuleEvaluator.HasMissingRequiredGear(pawn, candidate);
                     if (blocked)
                     {
                         rule = candidate;
@@ -95,7 +95,7 @@ namespace AutomaticOutfitManager.Patches
                     LastBlockedLogTick[pawn.thingIDNumber] = tick;
                     string reason = rule.WorkAreaPaused
                         ? "while work is paused"
-                        : "without its required work gear";
+                        : "without its required apparel or weapon";
                     Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: stopped before entering '{rule.Name}' {reason}; reconsidering {currentJob.def.defName}.");
                 }
             }
@@ -139,6 +139,18 @@ namespace AutomaticOutfitManager.Patches
                 currentJob.targetA.Thing is Apparel workApparel)
             {
                 return state.ManagedApparel?.Contains(workApparel) == true;
+            }
+
+            // Weapon preparation has the same circular-access risk as apparel:
+            // the selected primary may be stored inside (or reached through) the
+            // protected area whose requirement it satisfies. Exempt only the
+            // exact weapon recorded for this transition, never an arbitrary
+            // automatic or player equipment job.
+            if (state.Transition == ApparelTransition.Preparing &&
+                currentJob.def == JobDefOf.Equip &&
+                currentJob.targetA.Thing is ThingWithComps workWeapon)
+            {
+                return state.ManagedWeapons?.Contains(workWeapon) == true;
             }
 
             if (state.RecallRequested != true)

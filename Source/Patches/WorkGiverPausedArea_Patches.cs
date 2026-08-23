@@ -5,6 +5,8 @@ using System.Reflection;
 using AutomaticOutfitManager.Core;
 using AutomaticOutfitManager.Detection;
 using AutomaticOutfitManager.Rules;
+using AutomaticOutfitManager.State;
+using AutomaticOutfitManager.Storage;
 using HarmonyLib;
 using RimWorld;
 using Verse;
@@ -20,49 +22,82 @@ namespace AutomaticOutfitManager.Patches
     /// </summary>
     internal static class PausedAreaWorkFilter
     {
-        public static IEnumerable<MethodBase> ScannerMethods(Type returnType)
-        {
-            string[] names = returnType == typeof(bool)
-                ? new[] { "HasJobOnThing", "HasJobOnCell" }
-                : new[] { "JobOnThing", "JobOnCell" };
+        private static readonly Dictionary<Type, List<MethodInfo>> scannerMethodsByReturnType =
+            new Dictionary<Type, List<MethodInfo>>();
 
-            return GenTypes.AllTypes
-                .Where(type => type != null &&
-                               !type.IsAbstract &&
-                               typeof(WorkGiver_Scanner).IsAssignableFrom(type))
-                .SelectMany(type => AccessTools.GetDeclaredMethods(type))
-                .Where(method => names.Contains(method.Name) &&
-                                 method.ReturnType == returnType &&
-                                 !method.IsAbstract &&
-                                 !method.ContainsGenericParameters)
+        internal enum ScannerSignature
+        {
+            StandardThing,
+            StandardCell,
+            Fallback
+        }
+
+        public static IEnumerable<MethodBase> ScannerMethods(
+            Type returnType, ScannerSignature signature)
+        {
+            if (!scannerMethodsByReturnType.TryGetValue(
+                    returnType, out List<MethodInfo> scannerMethods))
+            {
+                string[] names = returnType == typeof(bool)
+                    ? new[] { "HasJobOnThing", "HasJobOnCell" }
+                    : new[] { "JobOnThing", "JobOnCell" };
+
+                scannerMethods = GenTypes.AllTypes
+                    .Where(type => type != null &&
+                                   !type.IsAbstract &&
+                                   typeof(WorkGiver_Scanner).IsAssignableFrom(type))
+                    .SelectMany(type => AccessTools.GetDeclaredMethods(type))
+                    .Where(method => names.Contains(method.Name) &&
+                                     method.ReturnType == returnType &&
+                                     !method.IsAbstract &&
+                                     !method.ContainsGenericParameters)
+                    .Distinct()
+                    .ToList();
+                scannerMethodsByReturnType.Add(returnType, scannerMethods);
+            }
+
+            return scannerMethods
+                .Where(method => ScannerSignatureFor(method) == signature)
                 .Cast<MethodBase>()
-                .Distinct();
+                .ToList();
+        }
+
+        private static ScannerSignature ScannerSignatureFor(MethodInfo method)
+        {
+            ParameterInfo[] parameters = method.GetParameters();
+            if (parameters.Length < 2 || parameters[0].ParameterType != typeof(Pawn))
+                return ScannerSignature.Fallback;
+
+            if (method.Name.EndsWith("OnThing", StringComparison.Ordinal) &&
+                typeof(Thing).IsAssignableFrom(parameters[1].ParameterType))
+            {
+                return ScannerSignature.StandardThing;
+            }
+
+            if (method.Name.EndsWith("OnCell", StringComparison.Ordinal) &&
+                parameters[1].ParameterType == typeof(IntVec3))
+            {
+                return ScannerSignature.StandardCell;
+            }
+
+            return ScannerSignature.Fallback;
         }
 
         public static bool ShouldReject(object[] arguments)
         {
-            Pawn pawn = null;
-            Thing thing = null;
-            IntVec3 cellArgument = IntVec3.Invalid;
-            if (arguments != null)
-            {
-                foreach (object argument in arguments)
-                {
-                    if (argument is Pawn pawnArgument)
-                    {
-                        if (pawn == null)
-                            pawn = pawnArgument;
-                        else if (thing == null)
-                            thing = pawnArgument;
-                    }
-                    else if (thing == null && argument is Thing thingArgument)
-                    {
-                        thing = thingArgument;
-                    }
-                    if (!cellArgument.IsValid && argument is IntVec3 cell)
-                        cellArgument = cell;
-                }
-            }
+            ExtractScannerArguments(arguments, out Pawn pawn, out Thing thing,
+                out IntVec3 cellArgument);
+            return ShouldReject(pawn, thing, cellArgument);
+        }
+
+        public static bool ShouldReject(Pawn pawn, Thing thing) =>
+            ShouldReject(pawn, thing, IntVec3.Invalid);
+
+        public static bool ShouldReject(Pawn pawn, IntVec3 cell) =>
+            ShouldReject(pawn, null, cell);
+
+        private static bool ShouldReject(Pawn pawn, Thing thing, IntVec3 cellArgument)
+        {
 
             if (pawn?.Map == null || pawn.Faction != Faction.OfPlayer || pawn.Drafted)
                 return false;
@@ -89,29 +124,22 @@ namespace AutomaticOutfitManager.Patches
         public static bool ShouldRejectScannerTarget(
             WorkGiver_Scanner scanner, object[] arguments)
         {
-            Pawn pawn = null;
-            Thing thing = null;
-            IntVec3 cellArgument = IntVec3.Invalid;
-            if (arguments != null)
-            {
-                foreach (object argument in arguments)
-                {
-                    if (argument is Pawn pawnArgument)
-                    {
-                        if (pawn == null)
-                            pawn = pawnArgument;
-                        else if (thing == null)
-                            thing = pawnArgument;
-                    }
-                    else if (thing == null && argument is Thing thingArgument)
-                    {
-                        thing = thingArgument;
-                    }
+            ExtractScannerArguments(arguments, out Pawn pawn, out Thing thing,
+                out IntVec3 cellArgument);
+            return ShouldRejectScannerTarget(scanner, pawn, thing, cellArgument);
+        }
 
-                    if (!cellArgument.IsValid && argument is IntVec3 cell)
-                        cellArgument = cell;
-                }
-            }
+        public static bool ShouldRejectScannerTarget(
+            WorkGiver_Scanner scanner, Pawn pawn, Thing thing) =>
+            ShouldRejectScannerTarget(scanner, pawn, thing, IntVec3.Invalid);
+
+        public static bool ShouldRejectScannerTarget(
+            WorkGiver_Scanner scanner, Pawn pawn, IntVec3 cell) =>
+            ShouldRejectScannerTarget(scanner, pawn, null, cell);
+
+        private static bool ShouldRejectScannerTarget(
+            WorkGiver_Scanner scanner, Pawn pawn, Thing thing, IntVec3 cellArgument)
+        {
 
             if (pawn?.Map == null || pawn.Drafted || !IsManagedPawn(pawn))
                 return false;
@@ -142,26 +170,138 @@ namespace AutomaticOutfitManager.Patches
 
         public static bool ShouldRejectJob(Job job, object[] arguments)
         {
-            Pawn pawn = null;
-            if (arguments != null)
-            {
-                foreach (object argument in arguments)
-                {
-                    if (argument is Pawn pawnArgument)
-                    {
-                        pawn = pawnArgument;
-                        break;
-                    }
-                }
-            }
+            ExtractScannerArguments(arguments, out Pawn pawn, out Thing thing,
+                out IntVec3 cellArgument);
+            return ShouldRejectJob(job, pawn, thing, cellArgument);
+        }
+
+        public static bool ShouldRejectJob(Job job, Pawn pawn, Thing thing) =>
+            ShouldRejectJob(job, pawn, thing, IntVec3.Invalid);
+
+        public static bool ShouldRejectJob(Job job, Pawn pawn, IntVec3 cell) =>
+            ShouldRejectJob(job, pawn, null, cell);
+
+        private static bool ShouldRejectJob(
+            Job job, Pawn pawn, Thing thing, IntVec3 cellArgument)
+        {
             if (job == null || pawn?.Map == null)
                 return false;
 
-            if (ShouldReject(arguments))
+            if (ShouldReject(pawn, thing, cellArgument))
                 return true;
 
             return ShouldRejectPausedAreaJob(pawn, job) ||
                    ShouldRejectHaulingJob(pawn, job);
+        }
+
+        private static void ExtractScannerArguments(
+            object[] arguments, out Pawn pawn, out Thing thing, out IntVec3 cellArgument)
+        {
+            pawn = null;
+            thing = null;
+            cellArgument = IntVec3.Invalid;
+            if (arguments == null)
+                return;
+
+            foreach (object argument in arguments)
+            {
+                if (argument is Pawn pawnArgument)
+                {
+                    if (pawn == null)
+                        pawn = pawnArgument;
+                    else if (thing == null)
+                        thing = pawnArgument;
+                }
+                else if (thing == null && argument is Thing thingArgument)
+                {
+                    thing = thingArgument;
+                }
+
+                if (!cellArgument.IsValid && argument is IntVec3 cell)
+                    cellArgument = cell;
+            }
+        }
+
+        public static bool TryGetUnassignedAutomaticManagedGear(
+            Pawn pawn,
+            Job job,
+            ThinkNode jobGiver,
+            out Thing gear)
+        {
+            gear = null;
+            if (pawn == null || job?.def == null || job.playerForced)
+                return false;
+
+            AutomaticOutfitManagerGameComponent component =
+                AutomaticOutfitManagerGameComponent.Current;
+            PawnApparelState state = component?.StateFor(pawn);
+            if (job.def == JobDefOf.Wear &&
+                job.targetA.Thing is Apparel apparel &&
+                ManagedApparelClassifier.Matches(apparel.def) &&
+                !PawnJobTracker_StartJob_Patch.IsAssignedTransitionApparelJob(
+                    state, job))
+            {
+                gear = apparel;
+                component?.NotifyRejectedManagedGearJob(pawn);
+                return true;
+            }
+
+            ThingWithComps weapon = ManagedWeaponTarget(job);
+            if (weapon == null ||
+                PawnJobTracker_StartJob_Patch.IsAssignedTransitionWeaponJob(
+                    state, job) ||
+                !LooksLikeAutomaticWeaponPickup(job, jobGiver))
+            {
+                return false;
+            }
+
+            gear = weapon;
+            component?.NotifyRejectedManagedGearJob(pawn);
+            return true;
+        }
+
+        private static ThingWithComps ManagedWeaponTarget(Job job)
+        {
+            if (job == null)
+                return null;
+
+            return ManagedWeaponTarget(job.targetA) ??
+                   ManagedWeaponTarget(job.targetB) ??
+                   ManagedWeaponTarget(job.targetC);
+        }
+
+        private static ThingWithComps ManagedWeaponTarget(
+            LocalTargetInfo target)
+        {
+            return target.Thing is ThingWithComps weapon &&
+                   weapon.def?.IsWeapon == true &&
+                   ManagedWeaponClassifier.Matches(weapon.def)
+                ? weapon
+                : null;
+        }
+
+        private static bool LooksLikeAutomaticWeaponPickup(
+            Job job, ThinkNode jobGiver)
+        {
+            string jobName = job?.def?.defName;
+            string driverName = job?.def?.driverClass?.Name;
+            string giverName = (jobGiver ?? job?.jobGiver)?.GetType().Name;
+            return ContainsWeaponPickupName(jobName) ||
+                   ContainsWeaponPickupName(driverName) ||
+                   ContainsWeaponPickupName(giverName);
+        }
+
+        private static bool ContainsWeaponPickupName(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return false;
+
+            return value.IndexOf("Equip", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   value.IndexOf("Sidearm", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   value.IndexOf("RetrieveWeapon", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   value.IndexOf("PickupWeapon", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   value.IndexOf("SwitchWeapon", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   value.IndexOf("TakeWeapon", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         public static bool ShouldRejectHaulingJob(Pawn pawn, Job job)
@@ -535,7 +675,7 @@ namespace AutomaticOutfitManager.Patches
                                rule.Enabled &&
                                rule.Area?.Map == pawn.Map &&
                                !rule.Area[pawn.Position] &&
-                               RuleEvaluator.HasMissingRequiredApparel(pawn, rule) &&
+                               RuleEvaluator.HasMissingRequiredGear(pawn, rule) &&
                                (RuleEvaluator.JobTargetsArea(job, rule.Area) ||
                                 JobPathCrossesArea(pawn, job, rule.Area)))
                 .ToList() ?? new List<ApparelRule>();
@@ -560,7 +700,7 @@ namespace AutomaticOutfitManager.Patches
                                rule.Enabled &&
                                rule.Area?.Map == pawn.Map &&
                                !rule.Area[pawn.Position] &&
-                               RuleEvaluator.HasMissingRequiredApparel(pawn, rule))
+                               RuleEvaluator.HasMissingRequiredGear(pawn, rule))
                 .ToList() ?? crossedRules;
             if (unsafeRules.Any(rule => RuleEvaluator.JobTargetsArea(job, rule.Area)))
                 return false;
@@ -964,10 +1104,51 @@ namespace AutomaticOutfitManager.Patches
     }
 
     [HarmonyPatch]
-    internal static class WorkGiverPausedArea_HasJob_Patch
+    internal static class WorkGiverPausedArea_HasJobThing_Patch
     {
+        private static bool Prepare() => TargetMethods().Any();
+
         private static IEnumerable<MethodBase> TargetMethods() =>
-            PausedAreaWorkFilter.ScannerMethods(typeof(bool));
+            PausedAreaWorkFilter.ScannerMethods(
+                typeof(bool), PausedAreaWorkFilter.ScannerSignature.StandardThing);
+
+        private static void Postfix(
+            WorkGiver_Scanner __instance, ref bool __result, Pawn __0, Thing __1)
+        {
+            if (__result &&
+                (PausedAreaWorkFilter.ShouldReject(__0, __1) ||
+                 PausedAreaWorkFilter.ShouldRejectScannerTarget(__instance, __0, __1)))
+                __result = false;
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class WorkGiverPausedArea_HasJobCell_Patch
+    {
+        private static bool Prepare() => TargetMethods().Any();
+
+        private static IEnumerable<MethodBase> TargetMethods() =>
+            PausedAreaWorkFilter.ScannerMethods(
+                typeof(bool), PausedAreaWorkFilter.ScannerSignature.StandardCell);
+
+        private static void Postfix(
+            WorkGiver_Scanner __instance, ref bool __result, Pawn __0, IntVec3 __1)
+        {
+            if (__result &&
+                (PausedAreaWorkFilter.ShouldReject(__0, __1) ||
+                 PausedAreaWorkFilter.ShouldRejectScannerTarget(__instance, __0, __1)))
+                __result = false;
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class WorkGiverPausedArea_HasJobFallback_Patch
+    {
+        private static bool Prepare() => TargetMethods().Any();
+
+        private static IEnumerable<MethodBase> TargetMethods() =>
+            PausedAreaWorkFilter.ScannerMethods(
+                typeof(bool), PausedAreaWorkFilter.ScannerSignature.Fallback);
 
         private static void Postfix(
             WorkGiver_Scanner __instance, ref bool __result, object[] __args)
@@ -980,10 +1161,51 @@ namespace AutomaticOutfitManager.Patches
     }
 
     [HarmonyPatch]
-    internal static class WorkGiverPausedArea_JobOn_Patch
+    internal static class WorkGiverPausedArea_JobOnThing_Patch
     {
+        private static bool Prepare() => TargetMethods().Any();
+
         private static IEnumerable<MethodBase> TargetMethods() =>
-            PausedAreaWorkFilter.ScannerMethods(typeof(Job));
+            PausedAreaWorkFilter.ScannerMethods(
+                typeof(Job), PausedAreaWorkFilter.ScannerSignature.StandardThing);
+
+        private static void Postfix(
+            WorkGiver_Scanner __instance, ref Job __result, Pawn __0, Thing __1)
+        {
+            if (__result != null &&
+                (PausedAreaWorkFilter.ShouldRejectJob(__result, __0, __1) ||
+                 PausedAreaWorkFilter.ShouldRejectScannerTarget(__instance, __0, __1)))
+                __result = null;
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class WorkGiverPausedArea_JobOnCell_Patch
+    {
+        private static bool Prepare() => TargetMethods().Any();
+
+        private static IEnumerable<MethodBase> TargetMethods() =>
+            PausedAreaWorkFilter.ScannerMethods(
+                typeof(Job), PausedAreaWorkFilter.ScannerSignature.StandardCell);
+
+        private static void Postfix(
+            WorkGiver_Scanner __instance, ref Job __result, Pawn __0, IntVec3 __1)
+        {
+            if (__result != null &&
+                (PausedAreaWorkFilter.ShouldRejectJob(__result, __0, __1) ||
+                 PausedAreaWorkFilter.ShouldRejectScannerTarget(__instance, __0, __1)))
+                __result = null;
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class WorkGiverPausedArea_JobOnFallback_Patch
+    {
+        private static bool Prepare() => TargetMethods().Any();
+
+        private static IEnumerable<MethodBase> TargetMethods() =>
+            PausedAreaWorkFilter.ScannerMethods(
+                typeof(Job), PausedAreaWorkFilter.ScannerSignature.Fallback);
 
         private static void Postfix(
             WorkGiver_Scanner __instance, ref Job __result, object[] __args)
@@ -1008,6 +1230,15 @@ namespace AutomaticOutfitManager.Patches
         {
             if (!__result.IsValid)
                 return;
+
+            if (PausedAreaWorkFilter.TryGetUnassignedAutomaticManagedGear(
+                    pawn, __result.Job, __instance, out Thing managedGear))
+            {
+                PawnJobTracker_StartJob_Patch.LogAutomaticManagedGearRejection(
+                    pawn, __result.Job, managedGear, "job selection");
+                __result = default;
+                return;
+            }
 
             if (UnavailableWorkRegistry.ShouldReject(pawn, __result.Job))
             {

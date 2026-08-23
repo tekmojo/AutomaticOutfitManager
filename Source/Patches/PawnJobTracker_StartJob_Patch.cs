@@ -20,6 +20,8 @@ namespace AutomaticOutfitManager.Patches
         private const int GuestRepeatedDiagnosticInterval = 60000;
         private static readonly Dictionary<string, int> LastRepeatedDiagnosticTick =
             new Dictionary<string, int>();
+        private static readonly AccessTools.FieldRef<Pawn_JobTracker, Pawn> PawnField =
+            AccessTools.FieldRefAccess<Pawn_JobTracker, Pawn>("pawn");
 
         public static void Prefix(
             Pawn_JobTracker __instance,
@@ -31,12 +33,47 @@ namespace AutomaticOutfitManager.Patches
             if (newJob == null)
                 return;
 
-            Pawn pawn = Traverse.Create(__instance).Field("pawn").GetValue<Pawn>();
+            Pawn pawn = PawnField(__instance);
             if (pawn == null)
                 return;
 
             AutomaticOutfitManagerGameComponent component = AutomaticOutfitManagerGameComponent.Current;
             PawnApparelState state = component?.StateFor(pawn);
+
+            // A storage classification can change while a hauling job waits in
+            // the think-tree or queue. Recheck the concrete destination at the
+            // shared job boundary so an explicit stock-type Forget cannot let
+            // an already-selected automatic haul deposit gear into storage that
+            // now rejects it. Player-forced hauling remains authoritative.
+            if (!newJob.playerForced && HaulDestinationRejectsGear(pawn, newJob))
+            {
+                __instance.ClearQueuedJobs(false);
+                ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
+                return;
+            }
+
+            // A hauling or inventory job can be chosen immediately before the
+            // saved item's owner enters restoration. Do not let a new automatic
+            // job take that exact item away while the owner is waiting for it.
+            // Player-forced orders remain authoritative.
+            if (!newJob.playerForced &&
+                component?.RestoringOwnerForJobTarget(
+                    pawn, newJob, out Thing restoringSavedGear) is Pawn restoringOwner)
+            {
+                if (Prefs.DevMode && ShouldLogRepeatedDiagnostic(
+                        pawn,
+                        $"saved-gear-restoring:{restoringSavedGear.GetUniqueLoadID()}"))
+                {
+                    Log.Message(
+                        $"[AutomaticOutfitManager] {pawn.LabelShortCap}: ignored automatic " +
+                        $"{newJob.def.defName} for {restoringSavedGear.LabelCap}; " +
+                        $"{restoringOwner.LabelShortCap} is restoring that exact saved item.");
+                }
+
+                __instance.ClearQueuedJobs(false);
+                ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
+                return;
+            }
 
             // A work candidate can be selected just before another pawn claims
             // the same target for an outfit transition. Recheck at the common
@@ -122,6 +159,102 @@ namespace AutomaticOutfitManager.Patches
                 return;
             }
 
+            if (state?.WeaponInterventionActive == true &&
+                IsExternalWeaponControlJob(newJob))
+            {
+                if (state.Transition == ApparelTransition.Restoring)
+                    state.AbandonWeaponManagementForOverride();
+                else
+                    state.MarkWeaponPlayerOverride();
+                if (Prefs.DevMode)
+                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {newJob.def.defName} is controlling weapons; the current choice is retained and the saved primary remains available for outfit restoration.");
+                return;
+            }
+
+            if (newJob.def == JobDefOf.Equip &&
+                newJob.targetA.Thing is ThingWithComps equipTarget &&
+                equipTarget.def?.IsWeapon == true &&
+                ((pawn.Faction != Faction.OfPlayer &&
+                  (component?.IsManagedWeapon(equipTarget) == true ||
+                   ManagedWeaponClassifier.Matches(equipTarget.def)) &&
+                  state?.IsManagedWeapon(equipTarget) != true) ||
+                 component?.IsSavedWeaponForOtherPawn(equipTarget, pawn) == true ||
+                 component?.IsManagedWeaponAssignedToOtherPawn(equipTarget, pawn) == true))
+            {
+                ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
+                return;
+            }
+
+            if ((newJob.def == JobDefOf.Equip ||
+                 newJob.def == JobDefOf.DropEquipment) &&
+                newJob.targetA.Thing is ThingWithComps equipmentTarget &&
+                equipmentTarget.def?.IsWeapon == true)
+            {
+                bool assignedTransition =
+                    IsAssignedTransitionWeaponJob(state, newJob);
+                if (newJob.def == JobDefOf.Equip &&
+                    ManagedWeaponClassifier.Matches(equipmentTarget.def) &&
+                    !newJob.playerForced && !assignedTransition)
+                {
+                    LogAutomaticManagedGearRejection(
+                        pawn, newJob, equipmentTarget, "job start");
+                    component?.NotifyRejectedManagedGearJob(pawn);
+                    ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
+                    return;
+                }
+                if (state?.WeaponInterventionActive == true && !assignedTransition)
+                {
+                    if (state.Transition == ApparelTransition.Restoring)
+                        state.AbandonWeaponManagementForOverride();
+                    else
+                        state.MarkWeaponPlayerOverride();
+                    if (Prefs.DevMode)
+                        Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {newJob.def.defName} selected by the player or another mod; the choice is retained until saved-outfit restoration.");
+                }
+
+                if (assignedTransition && state?.WeaponPlayerOverride == true &&
+                    state.Transition == ApparelTransition.Preparing &&
+                    newJob.def == JobDefOf.Equip &&
+                    state.IsManagedWeapon(equipmentTarget))
+                {
+                    ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
+                    return;
+                }
+
+                if (assignedTransition && state?.RecallRequested == true &&
+                    state.Transition == ApparelTransition.Preparing &&
+                    newJob.def == JobDefOf.Equip && state.IsManagedWeapon(equipmentTarget))
+                {
+                    __instance.ClearQueuedJobs(false);
+                    state.PendingWorkJob = null;
+                    state.PendingWorkIsManagedWork = false;
+                    ManagedWorkClaimRegistry.ReleaseAll(pawn);
+                    ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
+                    return;
+                }
+
+                // Weapon jobs are either an exact transition step or an external
+                // player/mod decision. Neither should be reinterpreted as work
+                // merely because its target lies inside a managed area.
+                return;
+            }
+
+            if (state?.WeaponRestorationRequested == true &&
+                (pawn.equipment?.Primary == state.OriginalWeapon ||
+                 (state.OriginalWeapon == null && pawn.equipment?.Primary == null)))
+            {
+                state.CompleteWeaponRestoration();
+            }
+
+            if (state?.WeaponInterventionActive == true &&
+                state.Transition == ApparelTransition.Active &&
+                !state.IsManagedWeapon(pawn.equipment?.Primary))
+            {
+                state.MarkWeaponPlayerOverride();
+                if (Prefs.DevMode)
+                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: weapon changed outside Automatic Outfit Manager; the new choice is retained until saved-outfit restoration.");
+            }
+
             if (newJob.def == JobDefOf.Wear &&
                 newJob.targetA.Thing is Apparel wearTarget &&
                 !ManagedApparelClassifier.Matches(wearTarget.def) &&
@@ -137,6 +270,9 @@ namespace AutomaticOutfitManager.Patches
                 !newJob.playerForced &&
                 !IsAssignedTransitionApparelJob(state, newJob))
             {
+                LogAutomaticManagedGearRejection(
+                    pawn, newJob, managedWearTarget, "job start");
+                component?.NotifyRejectedManagedGearJob(pawn);
                 ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
                 return;
             }
@@ -160,9 +296,12 @@ namespace AutomaticOutfitManager.Patches
 
             if (state?.RecallRequested == true &&
                 state.Transition == ApparelTransition.Preparing &&
-                newJob.def == JobDefOf.Wear &&
-                newJob.targetA.Thing is Apparel queuedAutomaticOutfitManager &&
-                state.ManagedApparel?.Contains(queuedAutomaticOutfitManager) == true)
+                ((newJob.def == JobDefOf.Wear &&
+                  newJob.targetA.Thing is Apparel queuedAutomaticOutfitManager &&
+                  state.ManagedApparel?.Contains(queuedAutomaticOutfitManager) == true) ||
+                 (newJob.def == JobDefOf.Equip &&
+                  newJob.targetA.Thing is ThingWithComps queuedManagedWeapon &&
+                  state.IsManagedWeapon(queuedManagedWeapon))))
             {
                 // The current assigned apparel step was allowed to finish so
                 // RimWorld could leave its layers in a consistent state. Drop
@@ -177,7 +316,10 @@ namespace AutomaticOutfitManager.Patches
                 return;
             }
 
-            if (newJob.def == JobDefOf.Wear || newJob.def == JobDefOf.RemoveApparel)
+            if (newJob.def == JobDefOf.Wear ||
+                newJob.def == JobDefOf.RemoveApparel ||
+                newJob.def == JobDefOf.Equip ||
+                newJob.def == JobDefOf.DropEquipment)
                 return;
 
             // Apparel jobs temporarily displace the work that requested them.
@@ -478,6 +620,7 @@ namespace AutomaticOutfitManager.Patches
                         return;
                     }
 
+                    state.RequestWeaponRestoration();
                     RestorationPlanner.TryMakeHeldOriginalsAccessible(pawn, state);
                     List<Job> restorationJobs = RestorationPlanner.BuildJobs(
                         pawn, state, activeRule, out bool hasUnavailableOriginal);
@@ -491,7 +634,7 @@ namespace AutomaticOutfitManager.Patches
                         QueueRestorationJobs(__instance, ref newJob, ref jobGiver, ref tag, restorationJobs);
 
                         if (Prefs.DevMode)
-                            Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: restoring apparel with {restorationJobs.Count} job(s) before {__instance.curJob?.def?.defName ?? "next job"}.");
+                            Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: restoring saved apparel and primary weapon with {restorationJobs.Count} job(s) before {__instance.curJob?.def?.defName ?? "next job"}.");
                         return;
                     }
 
@@ -558,7 +701,7 @@ namespace AutomaticOutfitManager.Patches
                 {
                     string ruleNames = string.Join(", ",
                         crossedRules.Select(rule => $"'{rule.Name}'"));
-                    Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: delaying {essentialJob.def.defName}; no route around {ruleNames} avoids required work-gear areas.");
+                    Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: delaying {essentialJob.def.defName}; no route around {ruleNames} avoids areas with unmet apparel or weapon requirements.");
                 }
                 ReplaceWithWait(pawn, 300, ref newJob, ref jobGiver, ref tag);
                 return;
@@ -589,13 +732,19 @@ namespace AutomaticOutfitManager.Patches
                 !RuleEvaluator.RuleCanApplyToPawn(pawn, candidate));
             ApparelConflict transitConflict = ApparelCompatibility.FindConflict(
                 applicableRules, pawn.RaceProps?.body);
-            if (unwearableRule != null || transitConflict != null)
+            bool compatibleWeaponRequirements =
+                RuleEvaluator.TryCombinedWeaponRequirement(
+                    applicableRules, out CombinedWeaponRequirement combinedWeaponRequirement);
+            if (unwearableRule != null || transitConflict != null ||
+                !compatibleWeaponRequirements)
             {
                 foreach (ApparelRule blockedRule in applicableRules)
                     UnavailableWorkRegistry.Block(pawn, blockedRule);
                 string reason = unwearableRule != null
-                    ? $"required gear for '{unwearableRule.Name}' cannot be worn"
-                    : $"required gear is incompatible: {transitConflict.Label}";
+                    ? $"required apparel for '{unwearableRule.Name}' cannot be worn"
+                    : transitConflict != null
+                        ? $"required apparel is incompatible: {transitConflict.Label}"
+                        : "overlapping rules require different primary weapons";
                 if (ShouldLogRepeatedDiagnostic(
                         pawn, $"unwearable:{string.Join(",", applicableRules.Select(rule => rule.Id))}"))
                 {
@@ -619,7 +768,32 @@ namespace AutomaticOutfitManager.Patches
             List<ThingDef> missing = requiredByDef.Keys
                 .Where(def => !pawn.apparel.WornApparel.Any(item => item?.def == def))
                 .ToList();
-            if (missing.Count == 0)
+            bool missingWeapon = !combinedWeaponRequirement.Matches(
+                pawn.equipment?.Primary);
+            PawnApparelState weaponState = component?.StateFor(pawn);
+            bool weaponChoiceProtected = missingWeapon &&
+                (weaponState?.WeaponPlayerOverride == true ||
+                 SimpleSidearmsCompatibility.ProtectsCurrentWeaponChoice(pawn));
+            if (weaponChoiceProtected)
+            {
+                missingWeapon = false;
+                weaponState ??= component?.BeginIntervention(
+                    pawn, applicableRules[0], Enumerable.Empty<Apparel>(), null);
+                if (weaponState != null)
+                {
+                    weaponState.MarkWeaponPlayerOverride();
+                    weaponState.CurrentRuleIds = applicableRules
+                        .Select(candidate => candidate.Id)
+                        .Distinct()
+                        .ToList();
+                }
+                if (ShouldLogRepeatedDiagnostic(
+                        pawn, $"weapon-player-control:{string.Join(",", applicableRules.Select(rule => rule.Id))}"))
+                {
+                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: continuing {newJob.def.defName} with the player's current primary weapon; the weapon requirement is skipped while that choice is protected.");
+                }
+            }
+            if (missing.Count == 0 && !missingWeapon)
             {
                 PawnApparelState activeState = component?.StateFor(pawn);
                 if (activeState != null &&
@@ -646,7 +820,8 @@ namespace AutomaticOutfitManager.Patches
                 return;
             }
 
-            var wearJobs = new List<Job>();
+            var transitionJobs = new List<Job>();
+            var managedApparel = new List<Apparel>();
             foreach (ThingDef def in missing)
             {
                 ApparelRule sourceRule = requiredByDef[def];
@@ -668,10 +843,39 @@ namespace AutomaticOutfitManager.Patches
                 // Rule-required safety apparel must be wearable even when the
                 // pawn's ordinary outfit policy does not include it.
                 wearJob.playerForced = true;
-                wearJobs.Add(wearJob);
+                transitionJobs.Add(wearJob);
+                managedApparel.Add(apparel);
             }
 
-            if (wearJobs.Count == 0)
+            ThingWithComps managedWeapon = null;
+            if (missingWeapon)
+            {
+                ApparelRule weaponRule = applicableRules.First(candidate =>
+                    candidate.HasWeaponRequirement);
+
+                managedWeapon = WeaponFinder.FindBest(
+                    pawn, combinedWeaponRequirement, weaponRule.ChangingArea);
+                if (managedWeapon == null)
+                {
+                    UnavailableWorkRegistry.Block(pawn, weaponRule);
+                    if (ShouldLogRepeatedDiagnostic(
+                            pawn, $"weapon-unavailable:{weaponRule.Id}:{weaponRule.WeaponSummary}"))
+                    {
+                        Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: delaying {newJob.def.defName}; no reachable {weaponRule.WeaponSummary.ToLowerInvariant()} is available for '{weaponRule.Name}'.");
+                    }
+                    __instance.ClearQueuedJobs(false);
+                    ReplaceWithWait(pawn, 300, ref newJob, ref jobGiver, ref tag);
+                    return;
+                }
+
+                Job equipJob = JobMaker.MakeJob(JobDefOf.Equip, managedWeapon);
+                // Do not mark the job player-forced: Simple Sidearms uses that
+                // signal for persistent weapon preferences.
+                equipJob.playerForced = false;
+                transitionJobs.Add(equipJob);
+            }
+
+            if (transitionJobs.Count == 0)
                 return;
 
             // Jobs issued directly by the player may not carry a workGiverDef,
@@ -689,9 +893,11 @@ namespace AutomaticOutfitManager.Patches
                 : applicableRules[0];
             UnavailableWorkRegistry.Clear(pawn, applicableRules);
             PawnApparelState preparedState = component?.BeginIntervention(
-                pawn, primaryRule, wearJobs.Select(job => job.targetA.Thing as Apparel));
+                pawn, primaryRule, managedApparel, managedWeapon);
             if (preparedState != null)
             {
+                if (weaponChoiceProtected)
+                    preparedState.MarkWeaponPlayerOverride();
                 preparedState.PendingWorkJob = newJob;
                 preparedState.PendingWorkIsManagedWork = false;
                 preparedState.CurrentRuleIds = applicableRules
@@ -704,7 +910,10 @@ namespace AutomaticOutfitManager.Patches
             {
                 string ruleNames = string.Join(", ",
                     applicableRules.Select(candidate => $"'{candidate.Name}'"));
-                Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: intercepted {newJob.def.defName}; preparing {wearJobs.Count} apparel item(s) for {ruleNames}.");
+                string weaponAssignment = managedWeapon == null
+                    ? "no weapon"
+                    : $"weapon {managedWeapon.LabelCap} [{managedWeapon.def.defName}]";
+                Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: intercepted {newJob.def.defName}; preparing {managedApparel.Count} apparel item(s) and {weaponAssignment} for {ruleNames}.");
             }
 
             if (preparedState != null)
@@ -713,7 +922,7 @@ namespace AutomaticOutfitManager.Patches
                 // next non-apparel candidate will be replaced with this job once
                 // preparation is complete, so recreation or another think-tree
                 // choice cannot displace a player assignment.
-                StartTransitionJobs(__instance, ref newJob, ref jobGiver, ref tag, wearJobs);
+                StartTransitionJobs(__instance, ref newJob, ref jobGiver, ref tag, transitionJobs);
             }
             else
             {
@@ -721,7 +930,7 @@ namespace AutomaticOutfitManager.Patches
                 // retain RimWorld's queue behavior as a safe compatibility
                 // fallback and do not leave a claim with no owning state.
                 ManagedWorkClaimRegistry.Release(pawn, newJob);
-                QueueBeforeCurrent(__instance, ref newJob, ref jobGiver, ref tag, wearJobs);
+                QueueBeforeCurrent(__instance, ref newJob, ref jobGiver, ref tag, transitionJobs);
             }
         }
 
@@ -748,8 +957,16 @@ namespace AutomaticOutfitManager.Patches
                     preparedRules.Add(activeRule);
             }
 
-            return preparedRules.Count > 0 &&
-                   preparedRules.All(rule => !RuleEvaluator.HasMissingRequiredApparel(pawn, rule));
+            if (preparedRules.Count == 0 ||
+                preparedRules.Any(rule => RuleEvaluator.HasMissingRequiredApparel(pawn, rule)) ||
+                !RuleEvaluator.TryCombinedWeaponRequirement(
+                    preparedRules, out CombinedWeaponRequirement weaponRequirement))
+            {
+                return false;
+            }
+
+            return state.WeaponPlayerOverride ||
+                   weaponRequirement.Matches(pawn.equipment?.Primary);
         }
 
         private static void TrackNestedRuleEntries(
@@ -839,12 +1056,13 @@ namespace AutomaticOutfitManager.Patches
                 // buffered follow-up job is outside every managed area. Preserve
                 // its shared requirements while removing only nested-only gear.
                 ApparelRule activeRule = component.RuleById(state.ActiveRuleId);
-                IEnumerable<ApparelRule> retainedRules = matchingRules
+                List<ApparelRule> retainedRules = matchingRules
                     .Concat(activeRule == null
                         ? Enumerable.Empty<ApparelRule>()
                         : new[] { activeRule })
                     .Where(rule => rule != null && rule.Id != nestedRule.Id)
-                    .Distinct();
+                    .Distinct()
+                    .ToList();
                 var retainedDefs = new HashSet<ThingDef>(retainedRules
                     .SelectMany(rule => rule.RequiredApparel ?? new List<ThingDef>())
                     .Where(def => def != null));
@@ -856,8 +1074,20 @@ namespace AutomaticOutfitManager.Patches
                                    state.ManagedApparel.Contains(item))
                     .Select(item => JobMaker.MakeJob(JobDefOf.RemoveApparel, item))
                     .ToList();
+
+                if (state.WeaponInterventionActive &&
+                    RuleEvaluator.TryCombinedWeaponRequirement(
+                        retainedRules, out CombinedWeaponRequirement retainedWeapon) &&
+                    (!retainedWeapon.HasRequirement ||
+                     !retainedWeapon.Matches(pawn.equipment?.Primary)))
+                {
+                    state.RequestWeaponRestoration();
+                    RestorationPlanner.TryMakeHeldOriginalsAccessible(pawn, state);
+                    removalJobs.AddRange(RestorationPlanner.BuildWeaponJobs(
+                        pawn, state, out _));
+                }
                 state.LastNestedBufferStatus =
-                    $"{nestedRule.Name}: buffer complete; removing nested-only gear before {newJob.GetReport(pawn)}.";
+                    $"{nestedRule.Name}: buffer complete; removing nested-only apparel and weapons before {newJob.GetReport(pawn)}.";
                 progress.Completed = nestedRule.ReturnTaskBuffer;
                 progress.Finished = true;
                 progress.LastJobLoadId = newJob.loadID;
@@ -900,7 +1130,7 @@ namespace AutomaticOutfitManager.Patches
                 if (ShouldLogRepeatedDiagnostic(
                         pawn, $"nested-unwearable:{unwearableRule.Id}"))
                 {
-                    Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: blocked from '{unwearableRule.Name}'; its required gear cannot be worn by this pawn.");
+                    Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: blocked from '{unwearableRule.Name}'; its required apparel cannot be worn by this pawn.");
                 }
                 tracker.ClearQueuedJobs(false);
                 ReplaceWithWait(pawn, 300, ref newJob, ref jobGiver, ref tag);
@@ -909,14 +1139,20 @@ namespace AutomaticOutfitManager.Patches
 
             ApparelConflict conflict = ApparelCompatibility.FindConflict(
                 rules, pawn.RaceProps?.body);
-            if (conflict != null)
+            bool compatibleWeaponRequirements =
+                RuleEvaluator.TryCombinedWeaponRequirement(
+                    rules, out CombinedWeaponRequirement combinedWeaponRequirement);
+            if (conflict != null || !compatibleWeaponRequirements)
             {
                 foreach (ApparelRule rule in rules)
                     UnavailableWorkRegistry.Block(pawn, rule);
                 if (ShouldLogRepeatedDiagnostic(
                         pawn, $"nested-conflict:{string.Join(",", rules.Select(rule => rule.Id))}"))
                 {
-                    Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: delaying {newJob.def.defName}; incompatible required gear: {conflict.Label}.");
+                    string conflictLabel = conflict != null
+                        ? conflict.Label
+                        : "different primary weapons";
+                    Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: delaying {newJob.def.defName}; incompatible required apparel: {conflictLabel}.");
                 }
 
                 tracker.ClearQueuedJobs(false);
@@ -937,10 +1173,44 @@ namespace AutomaticOutfitManager.Patches
             var missing = requiredByDef.Keys
                 .Where(def => !pawn.apparel.WornApparel.Any(item => item?.def == def))
                 .ToList();
-            if (missing.Count == 0)
+            bool missingWeapon = !combinedWeaponRequirement.Matches(
+                pawn.equipment?.Primary);
+            PawnApparelState weaponState = component?.StateFor(pawn);
+            bool weaponChoiceProtected = missingWeapon &&
+                (weaponState?.WeaponPlayerOverride == true ||
+                 SimpleSidearmsCompatibility.ProtectsCurrentWeaponChoice(pawn));
+            if (weaponChoiceProtected)
+            {
+                missingWeapon = false;
+                weaponState ??= component?.BeginIntervention(
+                    pawn, rules[0], Enumerable.Empty<Apparel>(), null);
+                if (weaponState != null)
+                {
+                    weaponState.MarkWeaponPlayerOverride();
+                    weaponState.CurrentRuleIds = rules
+                        .Where(rule => rule != null)
+                        .Select(rule => rule.Id)
+                        .Distinct()
+                        .ToList();
+                }
+                if (ShouldLogRepeatedDiagnostic(
+                        pawn, $"nested-weapon-player-control:{string.Join(",", rules.Select(rule => rule.Id))}"))
+                {
+                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: continuing {newJob.def.defName} with the player's current primary weapon; the weapon requirement is skipped while that choice is protected.");
+                }
+            }
+            if (missing.Count == 0 && !missingWeapon)
+            {
+                if (weaponChoiceProtected && weaponState != null)
+                {
+                    weaponState.Transition = ApparelTransition.Active;
+                    weaponState.LastManagedWorkJobDefName = newJob.def.defName;
+                }
                 return false;
+            }
 
-            var wearJobs = new List<Job>();
+            var transitionJobs = new List<Job>();
+            var managedApparel = new List<Apparel>();
             foreach (ThingDef def in missing)
             {
                 ApparelRule sourceRule = requiredByDef[def];
@@ -964,7 +1234,34 @@ namespace AutomaticOutfitManager.Patches
 
                 Job wearJob = JobMaker.MakeJob(JobDefOf.Wear, apparel);
                 wearJob.playerForced = true;
-                wearJobs.Add(wearJob);
+                transitionJobs.Add(wearJob);
+                managedApparel.Add(apparel);
+            }
+
+            ThingWithComps managedWeapon = null;
+            if (missingWeapon)
+            {
+                ApparelRule weaponRule = rules.First(rule =>
+                    rule.HasWeaponRequirement);
+
+                managedWeapon = WeaponFinder.FindBest(
+                    pawn, combinedWeaponRequirement, weaponRule.ChangingArea);
+                if (managedWeapon == null)
+                {
+                    UnavailableWorkRegistry.Block(pawn, weaponRule);
+                    if (ShouldLogRepeatedDiagnostic(
+                            pawn, $"nested-weapon-unavailable:{weaponRule.Id}:{weaponRule.WeaponSummary}"))
+                    {
+                        Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: delaying {newJob.def.defName}; no reachable {weaponRule.WeaponSummary.ToLowerInvariant()} is available for '{weaponRule.Name}'.");
+                    }
+                    tracker.ClearQueuedJobs(false);
+                    ReplaceWithWait(pawn, 300, ref newJob, ref jobGiver, ref tag);
+                    return true;
+                }
+
+                Job equipJob = JobMaker.MakeJob(JobDefOf.Equip, managedWeapon);
+                equipJob.playerForced = false;
+                transitionJobs.Add(equipJob);
             }
 
             if (!ManagedWorkClaimRegistry.TryClaim(pawn, newJob))
@@ -979,9 +1276,11 @@ namespace AutomaticOutfitManager.Patches
                 : rules[0];
             UnavailableWorkRegistry.Clear(pawn, rules);
             PawnApparelState interventionState = component?.BeginIntervention(
-                pawn, primaryRule, wearJobs.Select(job => job.targetA.Thing as Apparel));
+                pawn, primaryRule, managedApparel, managedWeapon);
             if (interventionState != null)
             {
+                if (weaponChoiceProtected)
+                    interventionState.MarkWeaponPlayerOverride();
                 interventionState.PendingWorkJob = newJob;
                 interventionState.PendingWorkIsManagedWork = true;
                 interventionState.LastManagedWorkJobDefName = newJob.def.defName;
@@ -995,14 +1294,17 @@ namespace AutomaticOutfitManager.Patches
             if (Prefs.DevMode)
             {
                 string ruleNames = string.Join(", ", rules.Select(rule => $"'{rule.Name}'"));
-                Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: intercepted {newJob.def.defName}; preparing {wearJobs.Count} apparel item(s) for overlapping rules {ruleNames}.");
+                string weaponAssignment = managedWeapon == null
+                    ? "no weapon"
+                    : $"weapon {managedWeapon.LabelCap} [{managedWeapon.def.defName}]";
+                Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: intercepted {newJob.def.defName}; preparing {managedApparel.Count} apparel item(s) and {weaponAssignment} for overlapping rules {ruleNames}.");
             }
 
             // PendingWorkJob is the sole owner of the interrupted work job while
             // preparation runs. Putting that same Job in RimWorld's queue would
             // make both the queue and PawnApparelState deep-save it, producing
             // duplicate load IDs and unreliable save/load continuations.
-            StartTransitionJobs(tracker, ref newJob, ref jobGiver, ref tag, wearJobs);
+            StartTransitionJobs(tracker, ref newJob, ref jobGiver, ref tag, transitionJobs);
             return true;
         }
 
@@ -1049,7 +1351,7 @@ namespace AutomaticOutfitManager.Patches
             return null;
         }
 
-        private static bool PendingWorkJobIsViable(
+        internal static bool PendingWorkJobIsViable(
             Pawn pawn, Job job, out string reason)
         {
             reason = null;
@@ -1069,6 +1371,16 @@ namespace AutomaticOutfitManager.Patches
                 targets.AddRange(job.targetQueueA);
             if (job.targetQueueB != null)
                 targets.AddRange(job.targetQueueB);
+
+            bool hasMeaningfulTarget = targets.Any(target =>
+                target.IsValid &&
+                (target.HasThing ||
+                 (target.Cell.IsValid && target.Cell.InBounds(pawn.Map))));
+            if (!hasMeaningfulTarget)
+            {
+                reason = "the saved job no longer has a valid target";
+                return false;
+            }
 
             foreach (LocalTargetInfo target in targets)
             {
@@ -1181,7 +1493,7 @@ namespace AutomaticOutfitManager.Patches
             }
         }
 
-        private static bool IsAssignedTransitionApparelJob(PawnApparelState state, Job job)
+        internal static bool IsAssignedTransitionApparelJob(PawnApparelState state, Job job)
         {
             if (state == null || job?.targetA.Thing is not Apparel apparel)
                 return false;
@@ -1196,6 +1508,61 @@ namespace AutomaticOutfitManager.Patches
             // job. Only the exact items recorded for this pawn are exempted.
             return (job.def == JobDefOf.HaulToCell || job.def == JobDefOf.HaulToContainer) &&
                    state.ManagedApparel?.Contains(apparel) == true;
+        }
+
+        private static bool HaulDestinationRejectsGear(Pawn pawn, Job job)
+        {
+            if (pawn?.Map == null || job?.targetA.Thing is not Thing gear ||
+                (gear.def?.apparel == null && gear.def?.IsWeapon != true) ||
+                (job.def != JobDefOf.HaulToCell &&
+                 job.def != JobDefOf.HaulToContainer))
+            {
+                return false;
+            }
+
+            IHaulDestination destination = null;
+            if (job.def == JobDefOf.HaulToCell && job.targetB.Cell.IsValid)
+            {
+                destination = job.targetB.Cell.GetSlotGroup(pawn.Map) as IHaulDestination;
+            }
+            else if (job.def == JobDefOf.HaulToContainer)
+            {
+                destination = job.targetB.Thing as IHaulDestination;
+            }
+
+            return destination != null && !destination.Accepts(gear);
+        }
+
+        internal static bool IsAssignedTransitionWeaponJob(
+            PawnApparelState state, Job job)
+        {
+            if (state == null || job?.targetA.Thing is not ThingWithComps weapon ||
+                weapon.def?.IsWeapon != true || job.playerForced)
+            {
+                return false;
+            }
+
+            if (job.def == JobDefOf.Equip)
+            {
+                return state.IsManagedWeapon(weapon) ||
+                       (state.WeaponRestorationRequested &&
+                        state.OriginalWeapon == weapon);
+            }
+
+            return job.def == JobDefOf.DropEquipment &&
+                   (state.IsManagedWeapon(weapon) ||
+                    (state.WeaponRestorationRequested &&
+                     state.WeaponPlayerOverride &&
+                     state.Pawn?.equipment?.Primary == weapon));
+        }
+
+        private static bool IsExternalWeaponControlJob(Job job)
+        {
+            string defName = job?.def?.defName ?? string.Empty;
+            return defName.IndexOf("SwitchWeapon", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   defName.IndexOf("Sidearm", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   defName.IndexOf("EquipSecondary", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   defName.IndexOf("ReequipSecondary", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static bool IsBufferableJob(Job job)
@@ -1228,7 +1595,24 @@ namespace AutomaticOutfitManager.Patches
             // pawn's saved clothing before they settle into bed.
             => PausedAreaWorkFilter.IsEssentialPersonalJob(job);
 
-        private static bool ShouldLogRepeatedDiagnostic(
+        internal static void LogAutomaticManagedGearRejection(
+            Pawn pawn, Job job, Thing gear, string stage)
+        {
+            if (!Prefs.DevMode || pawn == null || job?.def == null || gear == null ||
+                !ShouldLogRepeatedDiagnostic(
+                    pawn, $"automatic-managed-gear:{job.def.defName}:{gear.def?.defName}"))
+            {
+                return;
+            }
+
+            string gearKind = gear.def?.IsWeapon == true ? "weapon" : "apparel";
+            Log.Message(
+                $"[AutomaticOutfitManager] {pawn.LabelShortCap}: ignored automatic " +
+                $"{job.def.defName} for managed {gearKind} {gear.LabelCap} at {stage}; " +
+                "only an Automatic Outfit Manager transition or explicit player order may use it.");
+        }
+
+        internal static bool ShouldLogRepeatedDiagnostic(
             Pawn pawn, string category, int interval = RepeatedDiagnosticInterval)
         {
             if (pawn == null || string.IsNullOrEmpty(category))
