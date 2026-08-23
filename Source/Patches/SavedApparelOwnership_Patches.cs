@@ -112,7 +112,9 @@ namespace AutomaticOutfitManager.Patches
             Pawn pawn = Traverse.Create(__instance).Field("pawn").GetValue<Pawn>();
             AutomaticOutfitManagerGameComponent component =
                 AutomaticOutfitManagerGameComponent.Current;
-            if (pawn?.Faction != Faction.OfPlayer &&
+            Faction playerFaction = Faction.OfPlayerSilentFail;
+            if (pawn != null && playerFaction != null &&
+                pawn.Faction != playerFaction &&
                 (component?.IsManagedWeapon(newEq) == true ||
                  ManagedWeaponClassifier.Matches(newEq.def)) &&
                 component.StateFor(pawn)?.IsManagedWeapon(newEq) != true)

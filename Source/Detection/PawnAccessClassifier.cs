@@ -27,10 +27,12 @@ namespace AutomaticOutfitManager.Detection
             // Hospitality and similar guest systems may temporarily expose a
             // hosted worker as player-faction. HostFaction is the stable signal;
             // retain the friendly foreign-faction fallback for vanilla guests.
+            Faction playerFaction = Faction.OfPlayerSilentFail;
             return IsArrivedHospitalityGuest(pawn) ||
-                   pawn.HostFaction == Faction.OfPlayer ||
-                   (pawn.Faction != null && pawn.Faction != Faction.OfPlayer &&
-                    !pawn.Faction.HostileTo(Faction.OfPlayer));
+                   (playerFaction != null &&
+                    (pawn.HostFaction == playerFaction ||
+                     (pawn.Faction != null && pawn.Faction != playerFaction &&
+                      !pawn.Faction.HostileTo(playerFaction))));
         }
 
         private static bool IsArrivedHospitalityGuest(Pawn pawn)

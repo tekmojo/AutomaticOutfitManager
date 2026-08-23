@@ -12,7 +12,7 @@ namespace AutomaticOutfitManager.Core
             new Harmony(HarmonyId).PatchAll();
             string version = typeof(AutomaticOutfitManagerMod)
                 .Assembly.GetName().Version?.ToString(3) ?? "unknown";
-            Log.Message($"[AutomaticOutfitManager] {version} loaded (Phase 3 weapon requirements in testing; Phase 2 foundation retained).");
+            Log.Message($"[AutomaticOutfitManager] {version} loaded.");
         }
     }
 }

@@ -134,6 +134,29 @@ namespace AutomaticOutfitManager.Patches
                 return;
             }
 
+            // Most autonomous jobs are rejected by the work-scanner and
+            // ThinkNode patches before assignment. Some vanilla and modded job
+            // givers bypass those shared paths, especially when the job target
+            // is outside a paused area but its route crosses the area. Recheck
+            // the concrete job here so it cannot walk to the boundary, get
+            // cancelled by the path guard, and immediately select the same job
+            // again. A bounded wait also prevents a no-job retry storm when no
+            // safe alternative work is currently available.
+            if (PausedAreaWorkFilter.ShouldRejectPausedAreaJob(pawn, newJob))
+            {
+                if (Prefs.DevMode && ShouldLogRepeatedDiagnostic(
+                        pawn, $"paused-work-start:{newJob.def?.defName}"))
+                {
+                    Log.Message(
+                        $"[AutomaticOutfitManager] {pawn.LabelShortCap}: blocked " +
+                        $"{newJob.def?.defName ?? "job"} before it could enter a paused work area.");
+                }
+
+                __instance.ClearQueuedJobs(false);
+                ReplaceWithWait(pawn, 180, ref newJob, ref jobGiver, ref tag);
+                return;
+            }
+
             // Keep guests and other non-colony pawns from reserving, hauling,
             // repairing, processing, or wearing managed apparel. Checking the
             // common job boundary makes this work for native and modded jobs,

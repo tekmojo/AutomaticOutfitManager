@@ -16,6 +16,8 @@ First Steam Workshop release candidate.
 
 ### Retained and hardened
 
+- Paused work is rejected across concrete job-giver overrides and again at job start, preventing boundary cancel/reselect loops when a route crosses the paused area.
+- New-world weapon generation no longer queries the player faction before that faction exists.
 - Area-based apparel and PPE requirements.
 - Optional locker rooms, task buffers, locker restocking, and exact apparel restoration.
 - Rule pause/resume, per-worker Recall, live status, and pawn-category access controls.

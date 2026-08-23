@@ -62,6 +62,7 @@ Use temporary neutral rule names such as `RC Apparel`, `RC Weapon`, `RC Combined
 ### RC-08: controls and access
 
 - [ ] Verify rule pause/resume, per-worker Recall, and enable/disable behavior.
+- [ ] With work paused, verify jobs targeted beyond the area do not create a walk-to-boundary/cancel/reselect loop when their shortest route crosses it.
 - [ ] Verify work, hauling, wandering, child-watching, and pawn-category permissions independently.
 - [ ] Confirm drafted and explicit player-forced behavior is respected.
 

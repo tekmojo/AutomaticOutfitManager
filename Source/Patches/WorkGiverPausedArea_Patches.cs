@@ -98,8 +98,9 @@ namespace AutomaticOutfitManager.Patches
 
         private static bool ShouldReject(Pawn pawn, Thing thing, IntVec3 cellArgument)
         {
-
-            if (pawn?.Map == null || pawn.Faction != Faction.OfPlayer || pawn.Drafted)
+            Faction playerFaction = Faction.OfPlayerSilentFail;
+            if (pawn?.Map == null || playerFaction == null ||
+                pawn.Faction != playerFaction || pawn.Drafted)
                 return false;
 
             // Recall/restoration jobs must remain available so a paused rule can
@@ -1062,8 +1063,12 @@ namespace AutomaticOutfitManager.Patches
             return rule.AllowColonistWandering;
         }
 
-        private static bool IsManagedPawn(Pawn pawn) =>
-            pawn?.Faction == Faction.OfPlayer || IsFriendlyGuest(pawn) || IsPrisoner(pawn);
+        private static bool IsManagedPawn(Pawn pawn)
+        {
+            Faction playerFaction = Faction.OfPlayerSilentFail;
+            return (playerFaction != null && pawn?.Faction == playerFaction) ||
+                   IsFriendlyGuest(pawn) || IsPrisoner(pawn);
+        }
 
         private static bool IsPrisoner(Pawn pawn) =>
             PawnAccessClassifier.IsColonyPrisoner(pawn);
@@ -1218,18 +1223,40 @@ namespace AutomaticOutfitManager.Patches
     }
 
     /// <summary>
-    /// Child learning and observation jobs come from general think nodes rather
-    /// than WorkGiver_Scanner. Rejecting the result here lets the priority tree
-    /// continue to another safe activity instead of sending a child into an
-    /// active managed work area or replacing the job with an idle wait.
+    /// Jobs such as child learning, equipment optimization, and some route-
+    /// dependent work come from general or specialized job-giver overrides
+    /// rather than a shared WorkGiver_Scanner result. Patching every concrete
+    /// TryIssueJobPackage implementation rejects those candidates while the
+    /// priority tree can still continue to another safe activity.
     /// </summary>
-    [HarmonyPatch(typeof(ThinkNode_JobGiver), "TryIssueJobPackage")]
+    [HarmonyPatch]
     internal static class ThinkNodeJobGiver_ProtectedArea_Patch
     {
-        private static void Postfix(ThinkNode_JobGiver __instance, Pawn pawn, ref ThinkResult __result)
+        private static IEnumerable<MethodBase> TargetMethods()
+        {
+            return GenTypes.AllTypes
+                .Where(type => type != null &&
+                               typeof(ThinkNode_JobGiver).IsAssignableFrom(type))
+                .SelectMany(AccessTools.GetDeclaredMethods)
+                .Where(method =>
+                    method.Name == "TryIssueJobPackage" &&
+                    method.ReturnType == typeof(ThinkResult) &&
+                    !method.IsAbstract &&
+                    !method.ContainsGenericParameters &&
+                    method.GetParameters().Length > 0 &&
+                    method.GetParameters()[0].ParameterType == typeof(Pawn))
+                .Distinct()
+                .Cast<MethodBase>()
+                .ToList();
+        }
+
+        private static void Postfix(
+            ThinkNode_JobGiver __instance, Pawn __0, ref ThinkResult __result)
         {
             if (!__result.IsValid)
                 return;
+
+            Pawn pawn = __0;
 
             if (PausedAreaWorkFilter.TryGetUnassignedAutomaticManagedGear(
                     pawn, __result.Job, __instance, out Thing managedGear))
