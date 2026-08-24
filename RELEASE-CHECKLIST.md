@@ -66,6 +66,8 @@ Use temporary neutral rule names such as `RC Apparel`, `RC Weapon`, `RC Combined
 - [ ] Recall one worker while the rule remains active; verify the current managed task is cancelled, the pawn immediately returns to the configured locker, saved gear is restored, the AOM session clears, another worker may continue, and native task selection resumes without a waiting-for-reassignment state.
 - [ ] Interrupt or otherwise invalidate a pawn's locker-return movement; verify a visible **Standing** state is detected within a few in-game seconds, the locker route or restoration is rebuilt, and the pawn does not remain under **Workers** indefinitely.
 - [ ] Verify hauling and wandering appear only in their dedicated activity rows, including immediately after managed work and during a task buffer.
+- [ ] With hauling allowed and work active, verify an unequipped pawn prepares once, completes the original haul, and does not alternate between preparation and restoration for the same target.
+- [ ] While a pawn is returning or restoring after a haul, verify it appears only under **Workers** and is not duplicated under **Haulers**.
 - [ ] With work paused, verify jobs targeted beyond the area do not create a walk-to-boundary/cancel/reselect loop when their shortest route crosses it.
 - [x] With colonist hauling allowed, pause a rule while a pawn is hauling into its area; the pawn finishes without repeatedly changing outfits or restarting the same haul. Verified in-game on 2026-08-23 with RC DLL `687AD839C5B766331FAB4C4D8B0D9CEA1E53490194CF02D5A85AE4ACBC203A81`.
 - [ ] Verify work, hauling, wandering, child-watching, and pawn-category permissions independently.

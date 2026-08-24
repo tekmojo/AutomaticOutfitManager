@@ -463,6 +463,7 @@ namespace AutomaticOutfitManager.Patches
 
                 var activeRule = component.RuleById(state.ActiveRuleId);
                 if (state.Transition == ApparelTransition.ReturningToChangingArea &&
+                    newJob.def == JobDefOf.Goto &&
                     activeRule?.ChangingArea != null &&
                     JobTargetsArea(newJob, activeRule.ChangingArea))
                 {
@@ -539,6 +540,7 @@ namespace AutomaticOutfitManager.Patches
                     IsBufferableJob(newJob) && hasManagedWorkContext &&
                     !haulingActivity;
                 bool matchesActiveRule = startsMeaningfulWorkInArea ||
+                    (haulingActivity && targetsActiveWorkArea) ||
                     PausedAreaWorkFilter.MatchesPermittedHaulingRule(pawn, newJob, activeRule) ||
                     PausedAreaWorkFilter.MatchesProtectedTransitRule(pawn, newJob, activeRule);
                 bool holdsPendingNestedBuffer =
@@ -1482,7 +1484,7 @@ namespace AutomaticOutfitManager.Patches
             return stillApplies;
         }
 
-        private static bool TryFindChangingCell(Pawn pawn, Area area, out IntVec3 cell)
+        internal static bool TryFindChangingCell(Pawn pawn, Area area, out IntVec3 cell)
         {
             cell = IntVec3.Invalid;
             if (pawn?.Map == null || area?.Map != pawn.Map)

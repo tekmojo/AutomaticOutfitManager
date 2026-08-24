@@ -550,7 +550,7 @@ namespace AutomaticOutfitManager.Core
                     // exact restoration when the pawn is already inside.
                     state.ActiveIdleTicks = 0;
                     bool recoveryStarted = StartChangingAreaReturnRecovery(
-                        pawn, state, currentTick);
+                        pawn, state, rule, currentTick);
                     if (recoveryStarted && StateFor(pawn) != null && Prefs.DevMode)
                     {
                         Log.Message(
@@ -839,20 +839,36 @@ namespace AutomaticOutfitManager.Core
         private bool StartChangingAreaReturnRecovery(
             Pawn pawn,
             PawnApparelState state,
+            ApparelRule rule,
             int currentTick)
         {
-            return TryJobTransition(pawn, currentTick, "idle locker-return recovery", () =>
+            Area changingArea = rule?.ChangingArea;
+            bool insideChangingArea = changingArea?.Map == pawn?.Map &&
+                pawn.Position.IsValid && pawn.Position.InBounds(pawn.Map) &&
+                changingArea[pawn.Position];
+            if (changingArea?.Map == pawn?.Map && !insideChangingArea &&
+                Patches.PawnJobTracker_StartJob_Patch.TryFindChangingCell(
+                    pawn, changingArea, out IntVec3 changingCell))
             {
-                // Reset the same-tick retry guard before asking StartJob to
-                // re-evaluate the transition. The trigger itself never runs:
-                // StartJob replaces it with a fresh locker Goto or restoration
-                // queue using the ordinary Phase 3 return path.
-                state.LastChangingAreaReturnAttemptTick = -1;
-                Job recoveryTrigger = JobMaker.MakeJob(JobDefOf.Wait);
-                recoveryTrigger.expiryInterval = 30;
-                pawn.jobs.StartJob(
-                    recoveryTrigger, JobCondition.InterruptForced, null, false, true);
-            });
+                return TryJobTransition(pawn, currentTick, "idle locker-return travel", () =>
+                {
+                    state.LastChangingAreaReturnAttemptTick = currentTick;
+                    Job returnJob = JobMaker.MakeJob(JobDefOf.Goto, changingCell);
+                    returnJob.expiryInterval = 2000;
+                    returnJob.locomotionUrgency = LocomotionUrgency.Jog;
+                    pawn.jobs.StartJob(
+                        returnJob, JobCondition.InterruptForced, null, false, true);
+                });
+            }
+
+            // The pawn is already inside the locker, the locker was removed, or
+            // no changing cell is currently reachable. Match the ordinary
+            // StartJob fallback by restoring in place instead of feeding another
+            // Wait through the Returning branch forever.
+            state.Transition = ApparelTransition.Restoring;
+            state.LastRestorationAttemptTick = -1;
+            return StartRestorationRecovery(
+                pawn, state, currentTick, "idle locker-return restoration");
         }
 
         private static bool IsIdleRecoveryJob(Pawn pawn, Job job)

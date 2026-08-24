@@ -641,6 +641,19 @@ namespace AutomaticOutfitManager.UI
 
                     State.PawnApparelState trackedState =
                         AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn);
+                    bool trackedTransition = TracksRule(trackedState, rule.Id) &&
+                        (trackedState.Transition ==
+                             State.ApparelTransition.ReturningToChangingArea ||
+                         trackedState.Transition ==
+                             State.ApparelTransition.Restoring);
+                    if (trackedTransition)
+                    {
+                        // Return and restoration have their own Worker headline.
+                        // A stale or transitional haul job must not duplicate the
+                        // same pawn in the Haulers row at the same time.
+                        continue;
+                    }
+
                     Job activityJob = ActivityJobFor(trackedState) ?? job;
                     bool hauling = Patches.PausedAreaWorkFilter
                         .IsHaulingActivityForRule(pawn, activityJob, rule);
@@ -661,9 +674,9 @@ namespace AutomaticOutfitManager.UI
                         continue;
                     }
 
-                    // Tracked work and transition states already have a Worker
-                    // headline. Hauling and wandering are classified first so
-                    // access activity never appears as ordinary managed work.
+                    // Tracked work states already have a Worker headline.
+                    // Hauling and wandering are classified first so retained
+                    // outfit sessions appear only in their access-activity row.
                     if (TracksRule(trackedState, rule.Id))
                         continue;
 
