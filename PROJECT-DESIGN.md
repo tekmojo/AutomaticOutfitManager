@@ -98,7 +98,7 @@ Rules may reference a separate locker-room area:
 
 **Pause work** closes one rule to ordinary work, interrupts active work safely, and restores current workers. **Resume work** reopens it. The control remains available in collapsed view.
 
-Per-worker **Recall** leaves the rule active for everyone else. The recalled pawn may take connective movement, waiting, wandering, and hauling jobs without releasing the hold; only a different meaningful non-hauling activity ends the hold and permits that pawn to accept managed work again.
+Per-worker **Recall** leaves the rule active for everyone else. It cancels the pawn's current managed task, returns them to the configured locker room, completes any exact outfit and primary-weapon restoration, clears the AOM session, and yields immediately to normal RimWorld task selection. Recall does not create a persistent work restriction; native AI remains free to choose any subsequent task.
 
 Work-giver result patches reject paused-area jobs early. A periodic consolidated scan catches jobs injected by other mods. Job transitions share rate-limited exception handling.
 

@@ -101,11 +101,8 @@ namespace AutomaticOutfitManager.UI
                 .ToList();
             string transition = state.RecallInterruptPending
                 ? "Recall pending"
-                : state.RecallRequested && state.IndividualRecallRequested &&
-                  state.Transition == ApparelTransition.Active
-                    ? "Recalled — waiting for reassignment"
-                    : TransitionLabel(
-                        pawn, state, requiredSessionRules, returnTaskBuffer);
+                : TransitionLabel(
+                    pawn, state, requiredSessionRules, returnTaskBuffer);
             string text = $"Automatic Outfit Manager: {transition}";
             if (currentRules.Count > 1)
                 text += $"\nRules: {string.Join(" → ", currentRules.Select(current => current.Name))}";

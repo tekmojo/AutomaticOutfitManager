@@ -182,16 +182,6 @@ namespace AutomaticOutfitManager.Patches
                 return;
             }
 
-            // Individual Recall is a reassignment request, not merely a job
-            // interrupt. Reject the same managed work while the recalled state
-            // waits for native AI to choose a different meaningful activity.
-            if (component?.RecallBlocksWorkJob(pawn, newJob) == true)
-            {
-                __instance.ClearQueuedJobs(false);
-                ReplaceWithWait(pawn, 60, ref newJob, ref jobGiver, ref tag);
-                return;
-            }
-
             if (state?.WeaponInterventionActive == true &&
                 IsExternalWeaponControlJob(newJob))
             {
@@ -588,27 +578,16 @@ namespace AutomaticOutfitManager.Patches
                     !state.ApparelInterventionActive &&
                     !state.WeaponInterventionActive)
                 {
-                    // An individual Recall holds this gear-free session through
-                    // connective Wait/Goto jobs and ordinary hauling. A short
-                    // haul is not a genuine reassignment: releasing the hold for
-                    // it lets the same top-priority managed work restart as soon
-                    // as the haul completes. The ThinkNode guard rejects that
-                    // managed work until native AI selects different meaningful
-                    // non-hauling activity.
-                    if (state.RecallRequested &&
-                        state.IndividualRecallRequested &&
-                        (!IsBufferableJob(newJob) || haulingActivity))
+                    // A tracked-only worker normally needs no locker visit.
+                    // Recall is the exception: it is an explicit request to
+                    // leave the work area, so let the shared return path below
+                    // send the pawn to the configured locker before AOM clears
+                    // the session and yields to native job selection.
+                    if (!state.RecallRequested)
                     {
+                        component.EndIntervention(pawn);
                         return;
                     }
-
-                    bool replaceRecalledCandidate =
-                        state.RecallRequested &&
-                        !state.IndividualRecallRequested;
-                    component.EndIntervention(pawn);
-                    if (replaceRecalledCandidate)
-                        ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
-                    return;
                 }
 
                 if (shouldLeaveRule && state.Transition == ApparelTransition.Preparing &&
@@ -712,7 +691,17 @@ namespace AutomaticOutfitManager.Patches
                     }
 
                     __instance.ClearQueuedJobs(false);
+                    bool recalled = state.RecallRequested;
                     component.EndIntervention(pawn);
+
+                    // The candidate was chosen while the recalled work session
+                    // still existed. Discard it once, then hand the pawn back to
+                    // RimWorld on the next think cycle without any lasting hold.
+                    if (recalled)
+                    {
+                        ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
+                        return;
+                    }
 
                     // The candidate job was selected before recall/restoration.
                     // Recheck the paused area after clearing the apparel state;

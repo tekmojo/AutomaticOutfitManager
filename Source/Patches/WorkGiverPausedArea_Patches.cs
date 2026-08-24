@@ -1295,13 +1295,6 @@ namespace AutomaticOutfitManager.Patches
                 return;
             }
 
-            if (AutomaticOutfitManagerGameComponent.Current?
-                    .RecallBlocksWorkJob(pawn, __result.Job) == true)
-            {
-                __result = default;
-                return;
-            }
-
             if (PausedAreaWorkFilter.DeniedOrdinaryWorkRule(pawn, __result.Job) != null)
             {
                 __result = default;

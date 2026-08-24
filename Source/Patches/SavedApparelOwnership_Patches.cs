@@ -168,7 +168,7 @@ namespace AutomaticOutfitManager.Patches
                         defaultLabel = "Recall owner",
                         defaultDesc = $"Recall {weaponOwner.LabelShortCap} from managed work. They return to the locker room when configured, return managed items, and restore their exact saved apparel and primary weapon.",
                         icon = TexCommand.ClearPrioritizedWork,
-                        action = () => component.RequestIndividualRecall(
+                        action = () => component.RequestRecall(
                             component.StateFor(weaponOwner))
                     };
 
@@ -204,7 +204,7 @@ namespace AutomaticOutfitManager.Patches
                 defaultLabel = "Recall owner",
                 defaultDesc = $"Recall {owner.LabelShortCap} from managed work. They return to the locker room when configured, return managed items, and restore their exact saved apparel and primary weapon.",
                 icon = TexCommand.ClearPrioritizedWork,
-                action = () => component.RequestIndividualRecall(
+                action = () => component.RequestRecall(
                     component.StateFor(owner))
             };
 

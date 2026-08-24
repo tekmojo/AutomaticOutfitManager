@@ -454,7 +454,7 @@ namespace AutomaticOutfitManager.UI
                     TooltipHandler.TipRegion(returnWorkerRect,
                         ownsManagedGear
                             ? $"Recall only {state.Pawn.LabelShortCap} from managed work. They return to the locker room when one is configured, return managed apparel and weapons, and restore their exact saved apparel and primary weapon. Work remains active for other workers."
-                            : $"Recall only {state.Pawn.LabelShortCap} from managed work. They already owned every required item, so AOM interrupts the work without changing, claiming, or restoring their personal outfit. Work remains active for other workers.");
+                            : $"Recall only {state.Pawn.LabelShortCap} from managed work. They return to the locker room when one is configured, then AOM clears the task and session without changing or claiming their already-compliant personal outfit. Normal RimWorld task selection resumes immediately, and work remains active for other workers.");
                 }
 
                 for (int workerIndex = 0;
@@ -506,7 +506,7 @@ namespace AutomaticOutfitManager.UI
 
                     string status = entry.MissingRequiredGear
                         ? "This qualifying worker is missing required gear but has no active AOM outfit session. This indicates a protection failure and should be reported with the player log."
-                        : $"Recall only {worker.LabelShortCap} from managed work. They already owned every required item, so AOM interrupts the work without changing, claiming, or restoring their personal outfit.";
+                        : $"Recall only {worker.LabelShortCap} from managed work. They return to the locker room when one is configured, then AOM clears the task and session without changing or claiming their already-compliant personal outfit. Normal RimWorld task selection resumes immediately.";
                     TooltipHandler.TipRegion(workerRect,
                         $"{status}\n\nClick to select and jump to {worker.LabelShortCap}.");
                     TooltipHandler.TipRegion(fallbackRecallRect, status);
@@ -1064,7 +1064,7 @@ namespace AutomaticOutfitManager.UI
                 return;
 
             AutomaticOutfitManagerGameComponent.Current?
-                .RequestIndividualRecall(state);
+                .RequestRecall(state);
         }
 
         private static void ShowAreaMenu(ApparelRule rule)

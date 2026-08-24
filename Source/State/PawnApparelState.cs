@@ -34,7 +34,6 @@ namespace AutomaticOutfitManager.State
         public int LastRestorationAttemptTick = -1;
         public int UnavailableRestorationAttempts;
         public bool RecallRequested;
-        public bool IndividualRecallRequested;
         public bool RecallInterruptPending;
         public int LastRecallInterruptAttemptTick = -1;
         public int BufferedTasksCompleted;
@@ -46,6 +45,7 @@ namespace AutomaticOutfitManager.State
         public string LastManagedWorkJobDefName;
         public List<NestedRuleBufferState> NestedRuleBuffers = new List<NestedRuleBufferState>();
         public string LastNestedBufferStatus;
+        private bool retiredIndividualRecallRequested;
 
         public static PawnApparelState Capture(
             Pawn pawn, ApparelRule rule, bool captureApparel = true)
@@ -85,7 +85,10 @@ namespace AutomaticOutfitManager.State
             Scribe_Values.Look(ref LastRestorationAttemptTick, "lastRestorationAttemptTick", -1);
             Scribe_Values.Look(ref UnavailableRestorationAttempts, "unavailableRestorationAttempts");
             Scribe_Values.Look(ref RecallRequested, "recallRequested", false);
-            Scribe_Values.Look(ref IndividualRecallRequested,
+            // RC saves briefly persisted a Recall hold that no longer belongs
+            // to the Phase 3 contract. Read it only to recover an already-stuck
+            // pawn, then discard it rather than preserving the retired state.
+            Scribe_Values.Look(ref retiredIndividualRecallRequested,
                 "individualRecallRequested", false);
             Scribe_Values.Look(ref RecallInterruptPending, "recallInterruptPending", false);
             Scribe_Values.Look(ref LastRecallInterruptAttemptTick, "lastRecallInterruptAttemptTick", -1);
@@ -103,6 +106,15 @@ namespace AutomaticOutfitManager.State
             ManagedWeapons ??= new List<ThingWithComps>();
             CurrentRuleIds ??= new List<string>();
             NestedRuleBuffers ??= new List<NestedRuleBufferState>();
+            if (Scribe.mode == LoadSaveMode.PostLoadInit &&
+                retiredIndividualRecallRequested && RecallRequested &&
+                Transition != ApparelTransition.ReturningToChangingArea &&
+                Transition != ApparelTransition.Restoring)
+            {
+                RecallInterruptPending = true;
+                LastRecallInterruptAttemptTick = -1;
+                retiredIndividualRecallRequested = false;
+            }
         }
 
         public void AddManagedApparel(IEnumerable<Apparel> apparel)

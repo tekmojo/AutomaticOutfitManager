@@ -80,14 +80,12 @@ namespace AutomaticOutfitManager.Core
             RecoverIdleApparelWorkers(currentTick);
         }
 
-        public void RequestRecall(
-            PawnApparelState state, bool holdUntilReassigned = false)
+        public void RequestRecall(PawnApparelState state)
         {
             if (state?.Pawn == null)
                 return;
 
             state.RecallRequested = true;
-            state.IndividualRecallRequested = holdUntilReassigned;
 
             // Returning/restoring is already the recall operation. Re-arming
             // the forced interrupt here can cancel the exact Goto or Wear job
@@ -101,45 +99,6 @@ namespace AutomaticOutfitManager.Core
             }
 
             state.RecallInterruptPending = true;
-        }
-
-        public void RequestIndividualRecall(PawnApparelState state)
-        {
-            RequestRecall(state, holdUntilReassigned: true);
-            if (state?.Pawn != null && Prefs.DevMode)
-            {
-                Log.Message(
-                    $"[AutomaticOutfitManager] {state.Pawn.LabelShortCap}: " +
-                    "individual Recall requested; managed work remains blocked " +
-                    "until a genuine non-hauling reassignment.");
-            }
-        }
-
-        public bool RecallBlocksWorkJob(Pawn pawn, Job job)
-        {
-            PawnApparelState state = StateFor(pawn);
-            if (state?.RecallRequested != true ||
-                !state.IndividualRecallRequested || job?.def == null ||
-                Patches.PausedAreaWorkFilter.IsHaulingJob(job))
-            {
-                return false;
-            }
-
-            bool workContext = job.workGiverDef != null ||
-                job.jobGiver is JobGiver_Work ||
-                job.playerForced;
-            if (!workContext)
-                return false;
-
-            IEnumerable<string> ruleIds = (state.CurrentRuleIds ??
-                    new List<string>())
-                .Concat(new[] { state.ActiveRuleId })
-                .Where(id => !string.IsNullOrEmpty(id))
-                .Distinct();
-            return ruleIds
-                .Select(RuleById)
-                .Any(rule => rule?.Area?.Map == pawn.Map &&
-                             RuleEvaluator.JobTargetsArea(job, rule.Area));
         }
 
         public void NotifyRejectedManagedGearJob(Pawn pawn)
@@ -207,8 +166,7 @@ namespace AutomaticOutfitManager.Core
                 state.LastRecallInterruptAttemptTick = currentTick;
                 bool clearTrackedOnlySession =
                     !state.ApparelInterventionActive &&
-                    !state.WeaponInterventionActive &&
-                    !state.IndividualRecallRequested;
+                    !state.WeaponInterventionActive;
                 if (pawn.jobs.curJob == null || TryJobTransition(pawn, currentTick, "return request", () =>
                     pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, true)))
                 {
@@ -1665,38 +1623,6 @@ namespace AutomaticOutfitManager.Core
 
             bool trackedOnly = !state.ApparelInterventionActive &&
                 !state.WeaponInterventionActive;
-            if (state.IndividualRecallRequested &&
-                state.Transition == ApparelTransition.Restoring)
-            {
-                // Restoration has completed, but an individual Recall must not
-                // immediately select the same top-priority job again. Retain a
-                // gear-free session only until native AI starts a different
-                // meaningful activity; no apparel or weapon remains claimed.
-                state.OriginalApparel?.Clear();
-                state.ManagedApparel?.Clear();
-                state.ApparelInterventionActive = false;
-                state.OriginalWeapon = null;
-                state.ManagedWeapons?.Clear();
-                state.WeaponInterventionActive = false;
-                state.WeaponRestorationRequested = false;
-                state.WeaponPlayerOverride = false;
-                state.Transition = ApparelTransition.Active;
-                state.RecallRequested = true;
-                state.RecallInterruptPending = false;
-                state.PendingWorkJob = null;
-                state.PendingWorkIsManagedWork = false;
-                state.BufferedTasksCompleted = 0;
-                state.LastBufferedJobLoadId = -1;
-                state.ActiveIdleTicks = 0;
-                state.NestedRuleBuffers?.Clear();
-                InvalidateWeaponStateIndex();
-                if (Prefs.DevMode)
-                {
-                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: outfit restoration complete; individual Recall remains active until reassignment.");
-                }
-                return;
-            }
-
             PawnStates.Remove(state);
             pawnStateIndex.Remove(pawn);
             indexedPawnStateCount = PawnStates.Count;
