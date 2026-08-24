@@ -589,12 +589,15 @@ namespace AutomaticOutfitManager.Patches
                     !state.WeaponInterventionActive)
                 {
                     // An individual Recall holds this gear-free session through
-                    // connective Wait/Goto jobs. The ThinkNode guard rejects the
-                    // same managed work, and the first different meaningful job
-                    // releases the hold without a fake locker/restoration cycle.
+                    // connective Wait/Goto jobs and ordinary hauling. A short
+                    // haul is not a genuine reassignment: releasing the hold for
+                    // it lets the same top-priority managed work restart as soon
+                    // as the haul completes. The ThinkNode guard rejects that
+                    // managed work until native AI selects different meaningful
+                    // non-hauling activity.
                     if (state.RecallRequested &&
                         state.IndividualRecallRequested &&
-                        !IsBufferableJob(newJob))
+                        (!IsBufferableJob(newJob) || haulingActivity))
                     {
                         return;
                     }

@@ -98,6 +98,8 @@ Rules may reference a separate locker-room area:
 
 **Pause work** closes one rule to ordinary work, interrupts active work safely, and restores current workers. **Resume work** reopens it. The control remains available in collapsed view.
 
+Per-worker **Recall** leaves the rule active for everyone else. The recalled pawn may take connective movement, waiting, wandering, and hauling jobs without releasing the hold; only a different meaningful non-hauling activity ends the hold and permits that pawn to accept managed work again.
+
 Work-giver result patches reject paused-area jobs early. A periodic consolidated scan catches jobs injected by other mods. Job transitions share rate-limited exception handling.
 
 Pauses use deterministic, safety-first overlap precedence: if any enabled overlapping rule is paused, ordinary work is blocked in the shared cells. Readiness distinguishes a partially restricted rule that remains active elsewhere from a rule whose entire work area is covered by paused overlaps. Return travel and exact restoration jobs are narrowly exempt so a worker cannot be stranded while complying with the pause.

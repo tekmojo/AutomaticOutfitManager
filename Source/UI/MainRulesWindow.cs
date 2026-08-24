@@ -790,7 +790,7 @@ namespace AutomaticOutfitManager.UI
                 if (!Patches.PausedAreaWorkFilter.HasPermittedHaulingContext(
                         state, rule))
                 {
-                    ReturnWorker(state);
+                    component.RequestRecall(state);
                 }
             }
 
@@ -1064,7 +1064,7 @@ namespace AutomaticOutfitManager.UI
                 return;
 
             AutomaticOutfitManagerGameComponent.Current?
-                .RequestRecall(state, holdUntilReassigned: true);
+                .RequestIndividualRecall(state);
         }
 
         private static void ShowAreaMenu(ApparelRule rule)

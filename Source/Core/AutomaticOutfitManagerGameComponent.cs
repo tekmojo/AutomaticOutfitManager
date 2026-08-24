@@ -103,6 +103,18 @@ namespace AutomaticOutfitManager.Core
             state.RecallInterruptPending = true;
         }
 
+        public void RequestIndividualRecall(PawnApparelState state)
+        {
+            RequestRecall(state, holdUntilReassigned: true);
+            if (state?.Pawn != null && Prefs.DevMode)
+            {
+                Log.Message(
+                    $"[AutomaticOutfitManager] {state.Pawn.LabelShortCap}: " +
+                    "individual Recall requested; managed work remains blocked " +
+                    "until a genuine non-hauling reassignment.");
+            }
+        }
+
         public bool RecallBlocksWorkJob(Pawn pawn, Job job)
         {
             PawnApparelState state = StateFor(pawn);
