@@ -525,6 +525,41 @@ namespace AutomaticOutfitManager.Core
                     }
                 }
                 if (pawn?.Spawned == true && !pawn.Drafted &&
+                    state.Transition == ApparelTransition.ReturningToChangingArea)
+                {
+                    Job returnJob = pawn.jobs?.curJob;
+                    bool activeReturnTravel = returnJob?.def == JobDefOf.Goto &&
+                        rule?.ChangingArea?.Map == pawn.Map &&
+                        RuleEvaluator.JobTargetsArea(returnJob, rule.ChangingArea) &&
+                        pawn.pather?.Moving == true;
+                    if (activeReturnTravel || returnJob?.playerForced == true)
+                    {
+                        state.ActiveIdleTicks = 0;
+                        continue;
+                    }
+
+                    state.ActiveIdleTicks += 30;
+                    if (state.ActiveIdleTicks < 120)
+                        continue;
+
+                    // RimWorld or a compatibility job can end the locker Goto
+                    // without starting another job, leaving the pawn visibly
+                    // Standing while the transition remains Returning forever.
+                    // Re-enter StartJob through a bounded trigger so the shared
+                    // transition logic either rebuilds the locker route or begins
+                    // exact restoration when the pawn is already inside.
+                    state.ActiveIdleTicks = 0;
+                    bool recoveryStarted = StartChangingAreaReturnRecovery(
+                        pawn, state, currentTick);
+                    if (recoveryStarted && StateFor(pawn) != null && Prefs.DevMode)
+                    {
+                        Log.Message(
+                            $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
+                            "locker return became idle; rebuilding the return or restoration path.");
+                    }
+                    continue;
+                }
+                if (pawn?.Spawned == true && !pawn.Drafted &&
                     state.Transition == ApparelTransition.Restoring)
                 {
                     Job restorationJob = pawn.jobs?.curJob;
@@ -795,6 +830,25 @@ namespace AutomaticOutfitManager.Core
                 // queue before it can execute.
                 state.LastRestorationAttemptTick = -1;
                 Job recoveryTrigger = JobMaker.MakeJob(JobDefOf.Goto, pawn.Position);
+                recoveryTrigger.expiryInterval = 30;
+                pawn.jobs.StartJob(
+                    recoveryTrigger, JobCondition.InterruptForced, null, false, true);
+            });
+        }
+
+        private bool StartChangingAreaReturnRecovery(
+            Pawn pawn,
+            PawnApparelState state,
+            int currentTick)
+        {
+            return TryJobTransition(pawn, currentTick, "idle locker-return recovery", () =>
+            {
+                // Reset the same-tick retry guard before asking StartJob to
+                // re-evaluate the transition. The trigger itself never runs:
+                // StartJob replaces it with a fresh locker Goto or restoration
+                // queue using the ordinary Phase 3 return path.
+                state.LastChangingAreaReturnAttemptTick = -1;
+                Job recoveryTrigger = JobMaker.MakeJob(JobDefOf.Wait);
                 recoveryTrigger.expiryInterval = 30;
                 pawn.jobs.StartJob(
                     recoveryTrigger, JobCondition.InterruptForced, null, false, true);

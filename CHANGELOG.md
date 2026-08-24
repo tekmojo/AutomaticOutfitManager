@@ -18,6 +18,7 @@ First Steam Workshop release candidate.
 
 - Already-equipped qualifying pawns now receive the same tracked worker status and Recall control as workers outfitted by AOM, without claiming their personal gear.
 - Per-worker Recall now cancels the current managed task, returns the pawn to the configured locker, restores saved gear, clears the AOM session, and immediately yields to normal RimWorld task selection without a lasting reassignment hold.
+- Locker returns now recover when RimWorld or a compatibility job ends the return movement and leaves the pawn visibly Standing before restoration begins.
 - Hauling and wandering remain in their dedicated activity rows instead of being promoted to Workers by work-giver metadata or a retained outfit session.
 - Permitted hauling now continues through outfit preparation while ordinary work is paused, without restarting the same haul indefinitely.
 - Paused work is rejected across concrete job-giver overrides and again at job start, preventing boundary cancel/reselect loops when a route crosses the paused area.
