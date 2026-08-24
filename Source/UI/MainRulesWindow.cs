@@ -6,6 +6,7 @@ using AutomaticOutfitManager.Rules;
 using RimWorld;
 using UnityEngine;
 using Verse;
+using Verse.AI;
 
 namespace AutomaticOutfitManager.UI
 {
@@ -34,12 +35,15 @@ namespace AutomaticOutfitManager.UI
         {
             public Pawn Pawn;
             public string Report;
+            public bool MissingRequiredGear;
         }
 
         private sealed class CachedRuleActivity
         {
             public float CreatedAt;
             public Map Map;
+            public readonly List<CachedActivityEntry> QualifyingWorkers =
+                new List<CachedActivityEntry>();
             public readonly List<CachedActivityEntry> Haulers =
                 new List<CachedActivityEntry>();
             public readonly List<CachedActivityEntry> Wanderers =
@@ -383,12 +387,13 @@ namespace AutomaticOutfitManager.UI
             TooltipHandler.TipRegion(new Rect(x, availabilityY, width, 48f),
                 $"Unworn apparel and unequipped weapons currently spawned on this map. Each exact weapon type is counted separately. Personal items saved for a specific pawn are not counted. Availability does not guarantee that every item is reachable or currently unreserved.\n\n{readiness.AvailabilitySummary}");
 
-            List<State.PawnApparelState> workers = component.PawnStates
+            List<State.PawnApparelState> managedWorkers = component.PawnStates
                 .Where(state => state?.Pawn?.RaceProps?.Humanlike == true &&
                                 state.Pawn.apparel != null &&
                                 TracksRule(state, rule.Id))
                 .ToList();
             CachedRuleActivity activity = RuleActivity(rule);
+            int workerCount = managedWorkers.Count + activity.QualifyingWorkers.Count;
             y += 28f;
             Widgets.Label(new Rect(x, y, 100f, 22f), "Readiness:");
             Color previousColor = GUI.color;
@@ -410,15 +415,15 @@ namespace AutomaticOutfitManager.UI
 
             y += 28f;
             Widgets.Label(new Rect(x, y, 100f, 22f), "Workers:");
-            if (workers.Count == 0)
+            if (workerCount == 0)
             {
                 Widgets.Label(new Rect(x + 100f, y, width - 100f, 22f), "No active or returning workers");
             }
             else
             {
-                for (int workerIndex = 0; workerIndex < workers.Count; workerIndex++)
+                for (int workerIndex = 0; workerIndex < managedWorkers.Count; workerIndex++)
                 {
-                    State.PawnApparelState state = workers[workerIndex];
+                    State.PawnApparelState state = managedWorkers[workerIndex];
                     string fullStatus = PawnAutomaticOutfitStatus.Build(state.Pawn) ?? "Automatic Outfit Manager: Active";
                     int detailStart = fullStatus.IndexOf('\n');
                     string headline = detailStart >= 0
@@ -446,9 +451,54 @@ namespace AutomaticOutfitManager.UI
                     TooltipHandler.TipRegion(returnWorkerRect,
                         $"Recall only {state.Pawn.LabelShortCap} from managed work. They return to the locker room when one is configured, return managed apparel and weapons, and restore their exact saved apparel and primary weapon. Work remains active for other workers.");
                 }
+
+                for (int workerIndex = 0;
+                     workerIndex < activity.QualifyingWorkers.Count;
+                     workerIndex++)
+                {
+                    CachedActivityEntry entry =
+                        activity.QualifyingWorkers[workerIndex];
+                    Pawn worker = entry.Pawn;
+                    if (worker == null || worker.Destroyed)
+                        continue;
+
+                    float workerY = y +
+                        (managedWorkers.Count + workerIndex) * 22f;
+                    Rect workerRect = new Rect(
+                        x + 100f, workerY, width - 170f, 22f);
+                    Widgets.DrawHighlightIfMouseover(workerRect);
+                    Color workerColor = GUI.color;
+                    if (entry.MissingRequiredGear)
+                        GUI.color = Color.red;
+                    Widgets.Label(workerRect,
+                        $"{worker.LabelShortCap} — {entry.Report}");
+                    GUI.color = workerColor;
+                    if (Widgets.ButtonInvisible(workerRect))
+                        CameraJumper.TryJumpAndSelect(worker);
+
+                    Rect readyRect = new Rect(
+                        rect.xMax - 78f, workerY, 68f, 22f);
+                    Color readyColor = GUI.color;
+                    GUI.color = entry.MissingRequiredGear
+                        ? Color.red
+                        : Color.gray;
+                    TextAnchor readyPreviousAnchor = Text.Anchor;
+                    Text.Anchor = TextAnchor.MiddleCenter;
+                    Widgets.Label(readyRect,
+                        entry.MissingRequiredGear ? "Untracked" : "Ready");
+                    Text.Anchor = readyPreviousAnchor;
+                    GUI.color = readyColor;
+
+                    string status = entry.MissingRequiredGear
+                        ? "This qualifying worker is missing required gear but has no active AOM outfit session. This indicates a protection failure and should be reported with the player log."
+                        : "This pawn was already wearing and carrying every requirement when qualifying work began. AOM did not change or save their outfit, so there is nothing for Recall to restore.";
+                    TooltipHandler.TipRegion(workerRect,
+                        $"{status}\n\nClick to select and jump to {worker.LabelShortCap}.");
+                    TooltipHandler.TipRegion(readyRect, status);
+                }
             }
 
-            y += Mathf.Max(1, workers.Count) * 22f + 4f;
+            y += Mathf.Max(1, workerCount) * 22f + 4f;
             DrawActivityRow("Haulers:", activity.Haulers, x, y, width,
                 "Actors currently hauling through or into this work area. This is controlled by the Hauling access row.");
             y += Mathf.Max(1, activity.Haulers.Count) * 22f + 4f;
@@ -503,10 +553,11 @@ namespace AutomaticOutfitManager.UI
             if (rule?.UiCollapsed == true)
                 return 70f;
 
-            int workerCount = component.PawnStates.Count(state =>
+            int managedWorkerCount = component.PawnStates.Count(state =>
                 state?.Pawn?.RaceProps?.Humanlike == true && state.Pawn.apparel != null &&
                 TracksRule(state, rule.Id));
             CachedRuleActivity activity = RuleActivity(rule);
+            int workerCount = managedWorkerCount + activity.QualifyingWorkers.Count;
             int haulerCount = activity.Haulers.Count;
             int wandererCount = activity.Wanderers.Count;
             float activityHeight = 8f + Mathf.Max(1, haulerCount) * 22f +
@@ -549,6 +600,26 @@ namespace AutomaticOutfitManager.UI
                             AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn),
                             rule.Id))
                     {
+                        continue;
+                    }
+
+                    bool managedWorkContext =
+                        job.workGiverDef != null ||
+                        job.jobGiver is JobGiver_Work ||
+                        job.playerForced;
+                    if (managedWorkContext &&
+                        RuleEvaluator.MatchesRule(pawn, job, rule))
+                    {
+                        string workerReport = job.GetReport(pawn);
+                        if (string.IsNullOrEmpty(workerReport))
+                            workerReport = job.def?.label ?? "Working";
+                        cached.QualifyingWorkers.Add(new CachedActivityEntry
+                        {
+                            Pawn = pawn,
+                            Report = workerReport.CapitalizeFirst(),
+                            MissingRequiredGear =
+                                RuleEvaluator.HasMissingRequiredGear(pawn, rule)
+                        });
                         continue;
                     }
 
