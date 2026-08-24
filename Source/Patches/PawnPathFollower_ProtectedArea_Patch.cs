@@ -62,25 +62,16 @@ namespace AutomaticOutfitManager.Patches
                         candidate.Area?.Map != pawn.Map || !candidate.Area[nextCell])
                         continue;
 
-                    // Do not trap a pawn who is already inside this area. Also
-                    // allow an essential personal job whose actual destination
-                    // is inside it (for example, an assigned bed). Such a job
-                    // has no possible detour that avoids its destination; the
-                    // pawn has already restored normal clothing at StartJob.
-                    // Unrelated pass-through remains protected below.
-                    if (essentialPersonalJob &&
-                        (candidate.Area[pawn.Position] ||
-                         RuleEvaluator.JobTargetsArea(currentJob, candidate.Area)))
-                        continue;
-
-                    // Pausing a rule stops its work; it does not make sleeping
-                    // transit exempt from the area's protective equipment.
-                    bool blocked = essentialPersonalJob
-                        ? RuleEvaluator.HasMissingRequiredGear(pawn, candidate)
-                        : candidate.WorkAreaPaused
-                            ? !PausedAreaWorkFilter.JobMayEnterPausedRule(
+                    // Job type never exempts an active area. Sleeping, eating,
+                    // recreation, hauling, wandering, and pass-through all use
+                    // the same complete-gear gate. Paused-area access remains
+                    // governed by its existing activity permissions.
+                    bool blocked = candidate.WorkAreaPaused
+                        ? essentialPersonalJob
+                            ? RuleEvaluator.HasMissingRequiredGear(pawn, candidate)
+                            : !PausedAreaWorkFilter.JobMayEnterPausedRule(
                                 pawn, currentJob, candidate)
-                            : RuleEvaluator.HasMissingRequiredGear(pawn, candidate);
+                        : RuleEvaluator.HasMissingRequiredGear(pawn, candidate);
                     if (blocked)
                     {
                         rule = candidate;
@@ -164,11 +155,30 @@ namespace AutomaticOutfitManager.Patches
             if (state.Transition == ApparelTransition.ReturningToChangingArea &&
                 currentJob.def == JobDefOf.Goto)
             {
-                var activeRule = AutomaticOutfitManagerGameComponent.Current?
-                    .RuleById(state.ActiveRuleId);
-                return activeRule?.Enabled == true &&
-                       activeRule.ChangingArea?.Map == pawn.Map &&
-                       RuleEvaluator.JobTargetsArea(currentJob, activeRule.ChangingArea);
+                // Only AOM sets ReturningToChangingArea. The exact Goto may
+                // target the preferred locker or the nearest safe exterior cell
+                // when no locker exists or the locker overlaps the work area.
+                // It remains exempt only while the full session requirement is
+                // still equipped; losing one piece mid-return must stop the next
+                // protected cell and re-enter ordinary preparation recovery.
+                var component = AutomaticOutfitManagerGameComponent.Current;
+                ApparelRule activeRule = component?.RuleById(state.ActiveRuleId);
+                if (activeRule != null &&
+                    RuleEvaluator.HasMissingRequiredGear(pawn, activeRule))
+                {
+                    return false;
+                }
+                foreach (string ruleId in state.CurrentRuleIds ??
+                             new List<string>())
+                {
+                    ApparelRule rule = component?.RuleById(ruleId);
+                    if (rule != null &&
+                        RuleEvaluator.HasMissingRequiredGear(pawn, rule))
+                    {
+                        return false;
+                    }
+                }
+                return true;
             }
 
             if (state.Transition != ApparelTransition.Restoring ||

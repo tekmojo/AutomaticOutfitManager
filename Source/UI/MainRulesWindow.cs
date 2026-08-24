@@ -184,7 +184,7 @@ namespace AutomaticOutfitManager.UI
             y += 34f;
             Rect workLabelRect = new Rect(x, y + 4f, 100f, 24f);
             Widgets.Label(workLabelRect, "Work area:");
-            TooltipHandler.TipRegion(workLabelRect, "Qualifying jobs in or through this area require all selected apparel and one acceptable selected primary weapon. Empty apparel or weapon categories add no requirement. Examples: reactor rooms, freezers, hospitals, workshops, or defensive positions.");
+            TooltipHandler.TipRegion(workLabelRect, "Every eligible pawn inside, entering, or passing through this active area must wear all selected apparel and one acceptable selected primary weapon, regardless of activity. Empty apparel or weapon categories add no requirement. Examples: reactor rooms, freezers, hospitals, workshops, or defensive positions.");
             string areaLabel = rule.Area?.Label ?? "Choose work area...";
             Rect workButtonRect = new Rect(x + 100f, y, 300f, 28f);
             if (Widgets.ButtonText(workButtonRect, areaLabel))
@@ -303,7 +303,7 @@ namespace AutomaticOutfitManager.UI
             y += 30f;
             Rect lockerLabelRect = new Rect(x, y + 4f, 100f, 24f);
             Widgets.Label(lockerLabelRect, "Locker room:");
-            TooltipHandler.TipRegion(lockerLabelRect, "Optional staging area where pawns change before and after managed work. Examples: a locker room, airlock, changing bay, or equipment closet.");
+            TooltipHandler.TipRegion(lockerLabelRect, "Optional staging area where pawns equip before entering and restore after leaving the protected area. Examples: a locker room, airlock, changing bay, or equipment closet.");
             string changingAreaLabel = rule.ChangingArea?.Label ?? "No locker room";
             Rect lockerButtonRect = new Rect(x + 100f, y, 300f, 28f);
             if (Widgets.ButtonText(lockerButtonRect, changingAreaLabel))
@@ -329,12 +329,12 @@ namespace AutomaticOutfitManager.UI
                 rule.ReturnTaskBuffer++;
             GUI.enabled = previousBufferEnabled;
             TooltipHandler.TipRegion(new Rect(bufferLabelRect.x, y, 286f, 28f),
-                "Choose how many ordinary follow-up tasks a pawn may start after managed work before returning to the locker room and restoring the saved outfit. Immediate starts restoration when managed work ends. Renewed qualifying work resets the count. Compatible overlapping rules track their own nested buffers instead of consuming this one. Pause work bypasses all remaining buffered tasks.");
+                "Choose how many ordinary follow-up tasks a pawn may start after leaving managed work before returning to the locker room and restoring the saved outfit. Immediate starts restoration once no active area still applies. Sleep outside every applicable area bypasses the buffer; sleep inside retains the complete requirement. Renewed qualifying work resets the count. Compatible overlapping rules track their own nested buffers. Pause work bypasses remaining buffered tasks.");
 
             y += 34f;
             Rect gearLabelRect = new Rect(x, y + 4f, 100f, 24f);
             Widgets.Label(gearLabelRect, "Apparel:");
-            TooltipHandler.TipRegion(gearLabelRect, "All selected apparel and personal protective equipment (PPE) must be worn before qualifying work starts. With nothing selected, this rule has no apparel requirement. Examples: radiation suit and mask, parka and tuque, firefighter suit, armor, or a uniform.");
+            TooltipHandler.TipRegion(gearLabelRect, "All selected apparel and personal protective equipment (PPE) must be worn simultaneously before entry and remain worn for every activity and protected route inside the active area. With nothing selected, this rule has no apparel requirement. Examples: radiation suit and mask, parka and tuque, firefighter suit, armor, or a uniform.");
             Rect addGearRect = new Rect(x + 100f, y, 160f, 28f);
             if (Widgets.ButtonText(addGearRect, "Choose apparel"))
                 ShowApparelMenu(rule);
@@ -1104,7 +1104,7 @@ namespace AutomaticOutfitManager.UI
 
             var options = new List<FloatMenuOption>
             {
-                new FloatMenuOption("No locker room (change and restore wherever needed)", () => rule.ChangingArea = null)
+                new FloatMenuOption("No locker room (restore after reaching a safe exterior cell)", () => rule.ChangingArea = null)
             };
             foreach (Area area in map.areaManager.AllAreas.Where(a => a != null))
             {

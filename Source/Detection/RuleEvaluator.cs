@@ -79,6 +79,32 @@ namespace AutomaticOutfitManager.Detection
                    JobTargetsArea(job, rule.Area);
         }
 
+        public static List<ApparelRule> MatchingLocationRules(Pawn pawn)
+        {
+            if (pawn?.Map == null ||
+                !PawnAccessClassifier.IsApparelEligibleHuman(pawn) || pawn.Drafted)
+            {
+                return new List<ApparelRule>();
+            }
+
+            var component = AutomaticOutfitManagerGameComponent.Current;
+            if (component?.Rules == null || !pawn.Position.IsValid ||
+                !pawn.Position.InBounds(pawn.Map))
+            {
+                return new List<ApparelRule>();
+            }
+
+            // Location is an independent safety signal. A pawn who is already
+            // inside a live work area still needs its complete requirement when
+            // the native thinker switches from work to eating, recreation,
+            // waiting, sleep, or another job whose target is elsewhere.
+            return component.Rules
+                .Where(rule => rule != null && rule.Enabled &&
+                               !rule.WorkAreaPaused && rule.Area?.Map == pawn.Map &&
+                               rule.Area[pawn.Position])
+                .ToList();
+        }
+
         public static List<ThingDef> MissingRequiredApparel(Pawn pawn, ApparelRule rule)
         {
             if (pawn?.apparel == null || rule?.RequiredApparel == null)

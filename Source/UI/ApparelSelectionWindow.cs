@@ -140,7 +140,7 @@ namespace AutomaticOutfitManager.UI
             {
                 TooltipHandler.TipRegion(
                     new Rect(rect.x + 4f, rect.y, rect.width - 100f, rect.height),
-                    "Selected for this rule. Every green apparel entry must be worn before qualifying work starts.");
+                    "Selected for this rule. Every green apparel entry must be worn simultaneously before entry and throughout every activity or protected route inside the active area.");
             }
             else if (retainedStock)
             {

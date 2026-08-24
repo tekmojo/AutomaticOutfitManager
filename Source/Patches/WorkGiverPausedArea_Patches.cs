@@ -667,114 +667,18 @@ namespace AutomaticOutfitManager.Patches
             if (pawn?.Map == null || job == null || rule == null ||
                 !PawnAccessClassifier.IsApparelEligibleHuman(pawn) || pawn.Drafted || !rule.Enabled ||
                 rule.WorkAreaPaused || rule.Area?.Map != pawn.Map ||
-                !RuleEvaluator.RuleCanApplyToPawn(pawn, rule) ||
-                IsEssentialPersonalJob(job))
+                !RuleEvaluator.RuleCanApplyToPawn(pawn, rule))
             {
                 return false;
             }
 
             // Direct targets are handled by RuleEvaluator.MatchesRule. This
-            // branch covers unrelated destinations whose actual route crosses
-            // the protected area, so PPE is required even for pass-through.
+            // branch covers every unrelated destination whose actual route
+            // crosses the protected area, including beds and other essential
+            // personal destinations. Activity type never exempts pass-through
+            // from the complete apparel and primary-weapon requirement.
             return !RuleEvaluator.JobTargetsArea(job, rule.Area) &&
                    JobPathCrossesArea(pawn, job, rule.Area);
-        }
-
-        public static List<ApparelRule> UnsafeEssentialPersonalTransitRules(
-            Pawn pawn, Job job)
-        {
-            if (pawn?.Map == null || job == null || pawn.Drafted ||
-                !PawnAccessClassifier.IsApparelEligibleHuman(pawn) ||
-                !IsEssentialPersonalJob(job))
-            {
-                return new List<ApparelRule>();
-            }
-
-            // A pawn already inside a managed area must be allowed to leave it.
-            // An essential destination inside the area (most importantly, an
-            // assigned bed) must also remain reachable after normal clothing is
-            // restored; otherwise the only valid destination is rejected on
-            // every think cycle and the pawn stands indefinitely. Preserve the
-            // detour requirement only when the area is unrelated pass-through.
-            return AutomaticOutfitManagerGameComponent.Current?.Rules?
-                .Where(rule => rule != null &&
-                               rule.Enabled &&
-                               rule.Area?.Map == pawn.Map &&
-                               !rule.Area[pawn.Position] &&
-                               RuleEvaluator.HasMissingRequiredGear(pawn, rule) &&
-                               !RuleEvaluator.JobTargetsArea(job, rule.Area) &&
-                               JobPathCrossesArea(pawn, job, rule.Area))
-                .ToList() ?? new List<ApparelRule>();
-        }
-
-        public static bool TryFindSafeEssentialPersonalDetour(
-            Pawn pawn, Job job, List<ApparelRule> crossedRules, out IntVec3 safeCell)
-        {
-            safeCell = IntVec3.Invalid;
-            if (pawn?.Map == null || job == null || crossedRules == null ||
-                crossedRules.Count == 0)
-            {
-                return false;
-            }
-
-            LocalTargetInfo destination = TransitDestinationFor(job);
-            if (!destination.IsValid)
-                return false;
-
-            List<ApparelRule> unsafeRules = AutomaticOutfitManagerGameComponent.Current?.Rules?
-                .Where(rule => rule != null &&
-                               rule.Enabled &&
-                               rule.Area?.Map == pawn.Map &&
-                               !rule.Area[pawn.Position] &&
-                               RuleEvaluator.HasMissingRequiredGear(pawn, rule))
-                .ToList() ?? crossedRules;
-            if (unsafeRules.Any(rule => RuleEvaluator.JobTargetsArea(job, rule.Area)))
-                return false;
-
-            // Force RimWorld's ordinary pathfinder to consider a point around
-            // the outside edge of the crossed area, then verify both halves of
-            // the resulting route. The verification matters because areas are
-            // not native path costs and a changing door or reservation can make
-            // the shortest route cut back through the protected cells.
-            var candidates = new HashSet<IntVec3>();
-            foreach (ApparelRule rule in crossedRules)
-            {
-                foreach (IntVec3 areaCell in rule.Area.ActiveCells)
-                {
-                    foreach (IntVec3 candidate in GenRadial.RadialCellsAround(
-                                 areaCell, 5.9f, false))
-                    {
-                        if (candidate.IsValid && candidate.InBounds(pawn.Map) &&
-                            candidate != pawn.Position && candidate.Standable(pawn.Map) &&
-                            unsafeRules.All(unsafeRule => !unsafeRule.Area[candidate]))
-                        {
-                            candidates.Add(candidate);
-                        }
-                    }
-                }
-            }
-
-            foreach (IntVec3 candidate in candidates
-                         .Where(cell => HasRestrictedAreaClearance(
-                             pawn.Map, cell, unsafeRules, 1.9f))
-                         .OrderBy(cell =>
-                             cell.DistanceToSquared(pawn.Position) +
-                             cell.DistanceToSquared(destination.Cell))
-                         .Take(512))
-            {
-                if (PathAvoidsAreas(
-                        pawn, pawn.Position, candidate, PathEndMode.OnCell, unsafeRules) &&
-                    PathAvoidsAreas(
-                        pawn, candidate, destination,
-                        destination.HasThing ? PathEndMode.Touch : PathEndMode.OnCell,
-                        unsafeRules))
-                {
-                    safeCell = candidate;
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private static bool JobPathCrossesArea(Pawn pawn, Job job, Area area)
@@ -792,35 +696,6 @@ namespace AutomaticOutfitManager.Patches
             return job.targetA.IsValid
                 ? job.targetA
                 : job.targetB.IsValid ? job.targetB : job.targetC;
-        }
-
-        private static bool PathAvoidsAreas(
-            Pawn pawn,
-            IntVec3 start,
-            LocalTargetInfo destination,
-            PathEndMode endMode,
-            List<ApparelRule> unsafeRules)
-        {
-            if (pawn?.Map == null || !start.IsValid || !start.InBounds(pawn.Map) ||
-                !destination.IsValid || unsafeRules == null)
-            {
-                return false;
-            }
-
-            PawnPath path = null;
-            try
-            {
-                path = pawn.Map.pathFinder.FindPathNow(
-                    start, destination, pawn, null, endMode);
-                return path != null && path.Found &&
-                       path.NodesReversed.All(cell =>
-                           cell.IsValid && cell.InBounds(pawn.Map) &&
-                           unsafeRules.All(rule => !rule.Area[cell]));
-            }
-            finally
-            {
-                path?.ReleaseToPool();
-            }
         }
 
         public static bool ShouldRejectWanderingJob(Pawn pawn, Job job, ThinkNode jobGiver = null)

@@ -21,7 +21,9 @@ First Steam Workshop release candidate.
 - Locker returns now restart actual locker travel or begin restoration directly when RimWorld or a compatibility job ends the return movement and leaves the pawn visibly Standing.
 - Hauling and wandering remain in their dedicated activity rows instead of being promoted to Workers by work-giver metadata or a retained outfit session.
 - Permitted hauling now remains part of its active outfit session until the haul completes, including while ordinary work is paused, without repeatedly changing outfits and reacquiring the same haul.
-- Assigned beds and other essential personal destinations inside a managed work area remain reachable after normal gear is restored, preventing repeated rejected sleep jobs and standing pawns.
+- Required apparel and primary weapons now follow active-area occupancy instead of job labels: eligible pawns retain the complete set while working, hauling, wandering, eating, recreating, waiting, sleeping, or passing through.
+- Assigned beds inside active work areas now keep the full managed outfit for travel and sleep; essential jobs outside protected routes still begin restoration immediately.
+- A bounded runtime check repairs missing pieces caused by loaded saves, area edits, or external gear changes while a pawn is already inside.
 - Legitimate haul delay toils no longer look like completed or stalled work, disabled activity recalls enter the locker-return path directly, and simultaneous returns avoid occupied or already-targeted locker cells.
 - Invalid destroyed targets are discarded before a pending continuation is saved, preventing new saves from persisting unresolved job references.
 - Paused work is rejected across concrete job-giver overrides and again at job start, preventing boundary cancel/reselect loops when a route crosses the paused area.

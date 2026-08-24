@@ -23,7 +23,7 @@ The product is branded **Automatic Outfit Manager** in human-readable text, whil
 
 ## Phase 1 — Area-triggered outfitting foundation (implemented)
 
-The foundation introduced enabled rules tied to RimWorld work areas and required apparel definitions. The current rule model also includes the exact primary-weapon alternatives implemented in Phase 3. Empty categories are shown as **Any apparel** or **Any weapon**; an empty category adds no requirement. All selected apparel is cumulative, while selected primary weapons are alternatives. An eligible undrafted humanlike colonist, slave, prisoner, or hosted guest qualifies when a job target, interaction position, or protected transit route enters the area and its category is permitted.
+The foundation introduced enabled rules tied to RimWorld work areas and required apparel definitions. The current rule model also includes the exact primary-weapon alternatives implemented in Phase 3. Empty categories are shown as **Any apparel** or **Any weapon**; an empty category adds no requirement. All selected apparel is cumulative, while selected primary weapons are alternatives. An eligible undrafted humanlike colonist, slave, prisoner, or hosted guest qualifies when already inside, when a job target or interaction position enters the area, or when a protected transit route crosses it and its category is permitted. Activity type does not weaken the equipment requirement.
 
 If required apparel is missing:
 
@@ -65,13 +65,13 @@ Every concrete Thing target in A/B/C and both target queues receives one atomic,
 
 ### Restoration
 
-After managed work and the configured task buffer finish, the pawn returns to the optional locker room, removes managed apparel, releases the tracked temporary primary through the equipment tracker so Simple Sidearms cannot retain it as a secondary weapon, and restores the exact saved apparel and primary weapon. Locker destinations exclude occupied, reserved, and concurrently targeted cells; when none is usable, bounded recovery restores in place instead of repeatedly selecting the same failed destination.
+After managed work and the configured task buffer finish, the pawn first clears every still-applicable protected area, then returns to the optional locker room, removes managed apparel, releases the tracked temporary primary through the equipment tracker so Simple Sidearms cannot retain it as a secondary weapon, and restores the exact saved apparel and primary weapon. Without a locker, the nearest reachable exterior cell becomes the safe restoration point. Locker destinations exclude occupied, reserved, and concurrently targeted cells; when none is usable after the protected area is clear, bounded recovery restores safely in place instead of repeatedly selecting the same failed destination.
 
 Destroyed references are skipped. Temporarily unavailable items report their status and retry after a cooldown. Recovery/wait jobs pass through so a failed wear operation cannot create a same-tick retry storm. Saved apparel and primary weapons expose consistent owner navigation, recall, and confirmed per-item release actions.
 
 ### Task buffer
 
-Each rule allows 0–20 ordinary follow-up jobs before restoration. A slot is reserved when a new bufferable job starts. Renewed qualifying work resets usage, including player-assigned and modded work that lacks a normal work-giver tag, while sleeping begins restoration immediately. The worker UI names the active buffered job and count and uses the same retained work context as the transition logic.
+Each rule allows 0–20 ordinary follow-up jobs after leaving its protected context before restoration. A slot is reserved when a new bufferable job starts. Renewed qualifying work resets usage, including player-assigned and modded work that lacks a normal work-giver tag. Sleep outside every applicable active area begins restoration immediately; a bed or sleep route inside an active area keeps the complete requirement. The worker UI names the active buffered job and count and uses the same retained work context as the transition logic.
 
 Future work may track successful job completion separately from job start and roll back interrupted slots.
 
@@ -112,7 +112,7 @@ Restrictions evaluate targets and relevant routes. Units inside receive safe exi
 
 ### Path safety
 
-Incoming jobs are evaluated before start, and actual next path cells are checked for eligible humanlike pawns. This catches route changes caused by doors, congestion, reservations, or modded pathing. Essential personal jobs restore saved apparel and the saved primary weapon first. A destination inside a protected area, such as an assigned bed, remains reachable; an unrelated pass-through uses a safe detour when one exists, or yields through a bounded retry rather than crossing without required apparel or a required weapon.
+Incoming jobs, current area occupancy, and actual next path cells are checked for eligible humanlike pawns. This catches route changes caused by doors, congestion, reservations, modded pathing, loaded saves, area edits, and external gear changes. Work, hauling, wandering, eating, recreation, waiting, sleeping, and pass-through use the same full-gear gate. Essential personal jobs restore first only when their destination and route are outside every applicable active area; a bed inside an area retains every required apparel item and an acceptable primary weapon for travel and sleep.
 
 Hot-path checks use cached field access, non-allocating missing-item tests, indexed state, and a single periodic pawn traversal. Apparel and weapon stock definitions, exact item IDs, saved owners, and active assignments are indexed rather than rescanning rules or pawn snapshots from storage and reservation hooks. Weapon locker restocking enumerates only definitions selected by active rules and defers reservation and pathfinding until after cheap rule and ownership checks. Requirement edits safely recall affected workers, and queued automatic hauling revalidates its concrete destination at job start.
 
@@ -136,7 +136,7 @@ The **Automatic Outfit Manager** main tab provides:
 ## Phase 2 behavior boundaries
 
 - Drafted and forced behavior takes priority where practical.
-- Sleeping is restored around rather than treated as an ordinary buffered task.
+- Sleeping outside active protected contexts begins restoration instead of consuming an ordinary buffer slot; sleeping inside retains the complete requirement.
 - A missing item can delay restoration but cannot cause unbounded retries.
 - A lost, destroyed, recalled, urgent, reserved, or contested continuation falls back to normal job selection with a specific developer-mode reason.
 - Compatible overlapping and nested rules combine requirements and track separate buffers. Known incompatible selector combinations are blocked, but genuinely conflicting overlaps have no configurable manual priority.

@@ -4,7 +4,7 @@ Automatic Outfit Manager is a RimWorld 1.6 mod for area-based work apparel, pers
 
 Repository: [github.com/tekmojo/AutomaticOutfitManager](https://github.com/tekmojo/AutomaticOutfitManager)
 
-Create a rule, select a work area, require any number of apparel items and optional exact primary-weapon alternatives, and optionally assign a locker room. Eligible humanlike pawns equip all selected apparel and one acceptable selected primary weapon before qualifying work, keep the managed outfit for a configurable number of follow-up tasks, then return managed items and restore the exact apparel and primary weapon they had beforehand.
+Create a rule, select a work area, require any number of apparel items and optional exact primary-weapon alternatives, and optionally assign a locker room. Eligible undrafted humanlike pawns equip every selected apparel item and one acceptable selected primary weapon before entering, remain fully equipped for every activity and protected route inside the area, then return managed items and restore the exact apparel and primary weapon they had beforehand after leaving and completing any configured buffer.
 
 The mod uses ordinary RimWorld areas, jobs, apparel, equipment, reservations, and storage. It supports vanilla and modded apparel and weapons without hard-coded hazard or content-mod integrations.
 
@@ -23,6 +23,7 @@ Dubs Rimatomics inspired the original radiation-PPE scenario, but it is not a de
 
 - Area-triggered apparel and exact primary-weapon rules using ordinary RimWorld areas and jobs
 - All-of apparel requirements and one-of primary-weapon alternatives
+- Continuous full-gear enforcement for work, hauling, wandering, eating, recreation, sleep, waiting, and pass-through
 - Shooting-versus-Melee preference when both ranged and melee alternatives are available
 - Exact saved apparel and primary-weapon restoration, including save/load continuity
 - Exact queued-job continuation with temporary claims for real job targets and queues
@@ -60,17 +61,17 @@ Removing a green entry keeps its type managed and moves it to the cyan group. **
 
 ### Work area and entry protection
 
-The work area is an existing RimWorld area. A job qualifies when its relevant target or interaction location is inside that area, or when a protected route must cross it.
+The work area is an existing RimWorld area. Its equipment requirement follows the location, not the pawn's activity. It applies when a job target or interaction location is inside, when the pawn is already inside, or when the actual route must cross the area.
 
-The mod checks actual movement as well as the initial job. If a route changes, an eligible pawn missing required apparel or a required weapon is stopped before entering an active protected area and allowed to reconsider after obtaining the required items.
+The mod checks the initial job, current occupancy, and actual movement. If a route changes, an eligible pawn missing even one required apparel item or an acceptable required primary weapon is stopped before entering an active protected area and allowed to reconsider after obtaining the complete set. A periodic check repairs loaded saves, area edits, or external gear changes that leave an eating, recreating, waiting, or sleeping pawn inside without every available requirement.
 
 The exact job that triggered outfitting is preserved while the pawn changes, including direct player assignments and compatible modded work that does not provide RimWorld’s usual work-giver tag. Its concrete targets are temporarily claimed so another outfitting pawn cannot take the same frame, bill ingredients, haul targets, or similar work. Before resuming, the mod confirms that the job and its reservations are still valid; invalid or contested work is released safely for normal reconsideration.
 
-Sleeping and other essential personal jobs do not keep the work outfit through the task buffer. The pawn restores saved clothing first. An assigned bed or other essential destination inside the work area remains reachable; when the destination is elsewhere, the pawn routes around active protected areas when possible. If no safe transit route exists, the personal job waits instead of taking an unrelated shortcut through the area.
+Activity type is never an entry exemption. Work, hauling, wandering, eating, recreation, waiting, sleep, and unrelated pass-through all retain the complete requirement for as long as their destination or route is protected. A bed inside an active work area therefore requires the same full gear while the pawn travels to it and sleeps. Sleeping outside every applicable area still bypasses the ordinary follow-up buffer and begins locker return/restoration.
 
 ### Required apparel
 
-The searchable selector includes loaded vanilla and modded apparel. Every selected apparel definition is required. With no apparel selected, the rule imposes no apparel requirement. Before qualifying work starts, an eligible humanlike pawn:
+The searchable selector includes loaded vanilla and modded apparel. Every selected apparel definition is required simultaneously. With no apparel selected, the rule imposes no apparel requirement. Before an applicable job or route starts, an eligible humanlike pawn:
 
 1. Saves every personal apparel item currently worn.
 2. Finds reachable, reservable copies of missing required apparel.
@@ -96,7 +97,7 @@ The optional locker room controls where restoration occurs and where shared appa
 - Required apparel and weapons in the locker are preferred; suitable map-wide items are a fallback.
 - After the task buffer is exhausted, the pawn returns there before restoring saved clothing and any managed primary weapon. Simultaneous returns choose separate usable cells; if the locker has no free reachable cell, recovery restores in place rather than leaving the pawn Standing indefinitely.
 - Low-priority apparel- and weapon-specific hauling work givers return loose selected apparel and weapons to valid locker storage whenever their rule is enabled, including during normal active operation and while work is paused.
-- Rules without a locker still change outfits without a dedicated return trip.
+- Rules without a locker still change outfits without a dedicated storage return; restoration waits until the pawn reaches the nearest reachable cell outside every still-applicable protected area.
 
 ### Task buffer
 
@@ -106,7 +107,7 @@ The task buffer controls how many ordinary jobs a pawn may start after leaving q
 - `1 task`: allow one follow-up job, such as eating or hauling.
 - Higher values reduce repeated changes around busy work areas.
 - Renewed qualifying work inside the area resets the counter, including direct orders and compatible modded work without a normal work-giver tag.
-- Sleeping bypasses the buffer and begins restoration.
+- Sleeping outside every applicable protected area bypasses the buffer and begins restoration; sleeping in an active area keeps the complete managed outfit.
 - Pausing work, drafting, forced orders, and item availability can alter when restoration completes.
 
 The worker row identifies the activity, for example:
@@ -159,7 +160,7 @@ Worker rows and hover tooltips expose the current transition:
 - **Buffered task X of Y: activity** — performing the named follow-up task.
 - **Returning to locker room** — traveling to the configured locker room.
 - **Restoring saved outfit** — returning managed items and restoring the exact saved apparel and primary weapon.
-- **Restoration paused — sleeping or resting/drafted/forced order** — higher-priority behavior currently wins.
+- **Restoration paused — sleeping or resting/drafted/forced order** — higher-priority behavior currently wins after the pawn is outside every applicable active area.
 - **Return pending** — waiting for a safe job transition.
 
 Hovering also shows the rule, buffer count, missing apparel or weapon, destination, or why saved apparel or a saved primary weapon is unavailable. Clicking a worker selects and jumps to that pawn.
@@ -194,15 +195,15 @@ These are illustrative configurations, not built-in hazard detectors, presets, o
 
 ### Apparel-only rule
 
-Create a **Radiation Maintenance** rule over the reactor and machining tables. Select the radiation suit and mask in **Choose apparel**, and leave weapons empty. Every worker wears both apparel items. The readiness row displays **Any weapon**, and Automatic Outfit Manager does not disarm or replace the pawn's existing primary weapon merely because the rule has no weapon requirement.
+Create a **Radiation Maintenance** rule over the reactor and machining tables. Select the radiation suit and mask in **Choose apparel**, and leave weapons empty. Every eligible pawn inside or passing through wears both apparel items simultaneously. The readiness row displays **Any weapon**, and Automatic Outfit Manager does not disarm or replace the pawn's existing primary weapon merely because the rule has no weapon requirement.
 
 ### Apparel-and-weapon rule
 
-Create an **Industrial Safety** rule for a fabrication room. Select an apron, helmet, and respirator in **Choose apparel**, then select one or more exact work or security weapons in **Choose weapons**. Every worker wears all selected apparel and equips one acceptable primary weapon before qualifying work, then restores the exact clothing and primary weapon used before the job.
+Create an **Industrial Safety** rule for a fabrication room. Select an apron, helmet, and respirator in **Choose apparel**, then select one or more exact work or security weapons in **Choose weapons**. Every eligible pawn wears all selected apparel and equips one acceptable primary weapon before entering, keeps the full set through every activity in the room, then restores the exact clothing and primary weapon used before the protected session.
 
 ### Weapon-only rule
 
-Create a **Guard Weapons** rule, leave apparel empty, and select several exact rifles or melee weapons. The readiness row displays **Any apparel**. Pawns equip one acceptable primary weapon before qualifying work and restore their exact previous primary afterward; a pawn who began unarmed returns to being unarmed.
+Create a **Guard Weapons** rule, leave apparel empty, and select several exact rifles or melee weapons. The readiness row displays **Any apparel**. Pawns equip one acceptable primary weapon before entering or passing through and restore their exact previous primary afterward; a pawn who began unarmed returns to being unarmed.
 
 ### Nested areas
 
@@ -239,7 +240,7 @@ Clearing a rule requirement retains its apparel or weapon types as managed locke
 
 ### A pawn does not change apparel or primary weapon
 
-Confirm the rule is **Enabled** and work is resumed, the job targets, interacts with, or routes through the area, the pawn is an eligible undrafted humanlike colonist, slave, prisoner, or hosted guest, its category is permitted, and reachable copies of all required apparel plus at least one acceptable selected primary weapon exist. Inventory sidearms do not satisfy the primary-weapon requirement.
+Confirm the rule is **Enabled** and work is resumed, the pawn is inside or its job targets, interacts with, or routes through the area, the pawn is an eligible undrafted humanlike colonist, slave, prisoner, or hosted guest, its category is permitted, and reachable copies of every required apparel item plus at least one acceptable selected primary weapon exist. Inventory sidearms do not satisfy the primary-weapon requirement.
 
 ### A mech, robot, or animal enters
 

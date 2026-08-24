@@ -18,7 +18,7 @@
   <loadAfter>
     <li>brrainz.harmony</li>
   </loadAfter>
-  <description>Create area-based outfit rules for apparel, personal protective equipment (PPE), and optional exact primary-weapon alternatives. Eligible humanlike workers prepare before qualifying work, retain managed gear through a configurable task buffer, return items through an optional locker room, and restore their exact previous apparel and primary weapon.
+  <description>Create area-based outfit rules for apparel, personal protective equipment (PPE), and optional exact primary-weapon alternatives. Eligible undrafted humanlike pawns equip the complete requirement before entry and retain it through work, hauling, wandering, personal activities, sleep, and pass-through. They return items through an optional locker room and restore their exact previous apparel and primary weapon after leaving and completing any configured buffer.
 
 Includes nested rules, pause and Recall controls, access permissions, live status, locker restocking, managed storage filters, and generic vanilla or modded gear support. Harmony is required.</description>
 </ModMetaData>

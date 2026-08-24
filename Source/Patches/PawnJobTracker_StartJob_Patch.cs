@@ -411,6 +411,7 @@ namespace AutomaticOutfitManager.Patches
             bool hasManagedWorkContext = HasManagedWorkContext(
                 newJob, jobGiver, state);
             bool haulingActivity = PausedAreaWorkFilter.IsHaulingJob(newJob);
+            List<ApparelRule> protectedJobRules = ProtectedRulesForJob(pawn, newJob);
             List<ApparelRule> matchingWorkRules =
                 hasManagedWorkContext && !haulingActivity
                 ? RuleEvaluator.MatchingRules(pawn, newJob)
@@ -444,7 +445,7 @@ namespace AutomaticOutfitManager.Patches
             // without ever recording work outside that area.
             if (canPrepareForMatchingWork && state?.NestedRuleBuffers?.Count > 0 &&
                 HandleNestedRuleBuffers(
-                    __instance, pawn, component, state, matchingWorkRules,
+                    __instance, pawn, component, state, protectedJobRules,
                     ref newJob, ref jobGiver, ref tag))
             {
                 return;
@@ -489,9 +490,7 @@ namespace AutomaticOutfitManager.Patches
 
                 var activeRule = component.RuleById(state.ActiveRuleId);
                 if (state.Transition == ApparelTransition.ReturningToChangingArea &&
-                    newJob.def == JobDefOf.Goto &&
-                    activeRule?.ChangingArea != null &&
-                    JobTargetsArea(newJob, activeRule.ChangingArea))
+                    newJob.def == JobDefOf.Goto)
                 {
                     return;
                 }
@@ -565,10 +564,13 @@ namespace AutomaticOutfitManager.Patches
                 bool startsMeaningfulWorkInArea = targetsActiveWorkArea &&
                     IsBufferableJob(newJob) && hasManagedWorkContext &&
                     !haulingActivity;
-                bool matchesActiveRule = startsMeaningfulWorkInArea ||
-                    (haulingActivity && targetsActiveWorkArea) ||
-                    PausedAreaWorkFilter.MatchesPermittedHaulingRule(pawn, newJob, activeRule) ||
-                    PausedAreaWorkFilter.MatchesProtectedTransitRule(pawn, newJob, activeRule);
+                // Safety follows the area, not the activity label. Any direct
+                // destination or protected route for the active rule keeps the
+                // full outfit on, including eating, recreation, waiting, and
+                // sleeping. Meaningful work still exclusively owns task-buffer
+                // resets and worker activity labels below.
+                bool matchesActiveRule = protectedJobRules.Any(candidate =>
+                    candidate?.Id == activeRule?.Id);
                 bool holdsPendingNestedBuffer =
                     state.NestedRuleBuffers?.Any(progress =>
                         progress != null && !progress.Finished) == true &&
@@ -646,9 +648,14 @@ namespace AutomaticOutfitManager.Patches
 
                 if (shouldLeaveRule)
                 {
-                    if (activeRule?.ChangingArea != null &&
-                        !PawnInsideArea(pawn, activeRule.ChangingArea) &&
-                        TryFindChangingCell(pawn, activeRule.ChangingArea, out IntVec3 changingCell))
+                    bool insideProtectedArea =
+                        PawnInsideStateProtectedArea(pawn, component, state);
+                    bool outsidePreferredChangingArea =
+                        activeRule?.ChangingArea != null &&
+                        !PawnInsideArea(pawn, activeRule.ChangingArea);
+                    if ((insideProtectedArea || outsidePreferredChangingArea) &&
+                        TryFindRestorationCell(
+                            pawn, component, state, out IntVec3 changingCell))
                     {
                         int returnTick = Find.TickManager?.TicksGame ?? 0;
                         if (state.LastChangingAreaReturnAttemptTick >= 0 &&
@@ -731,6 +738,19 @@ namespace AutomaticOutfitManager.Patches
                         return;
                     }
 
+                    if (insideProtectedArea)
+                    {
+                        // Never remove even one managed layer while the pawn is
+                        // still inside a rule that requires it. A temporarily
+                        // unreachable exit is safer as a bounded native wait;
+                        // the next job selection retries the ordinary return.
+                        state.Transition = ApparelTransition.Active;
+                        __instance.ClearQueuedJobs(false);
+                        ReplaceWithWait(
+                            pawn, 300, ref newJob, ref jobGiver, ref tag);
+                        return;
+                    }
+
                     // The candidate job was selected before recall/restoration.
                     // Recheck the paused area after clearing the apparel state;
                     // otherwise that stale job can start in the same StartJob
@@ -743,64 +763,17 @@ namespace AutomaticOutfitManager.Patches
                 }
             }
 
-            // Sleeping and bed travel remain outside the task buffer and restore
-            // the pawn's normal clothing first. An essential destination inside
-            // a managed area remains reachable; for an unrelated protected area
-            // crossed only in transit, route around it when possible.
-            if (RequiresImmediateRestoration(newJob))
-            {
-                List<ApparelRule> crossedRules =
-                    PausedAreaWorkFilter.UnsafeEssentialPersonalTransitRules(
-                        pawn, newJob);
-                if (crossedRules.Count == 0)
-                    return;
-
-                Job essentialJob = newJob;
-                if (PausedAreaWorkFilter.TryFindSafeEssentialPersonalDetour(
-                        pawn, essentialJob, crossedRules, out IntVec3 safeCell))
-                {
-                    __instance.jobQueue.EnqueueFirst(essentialJob, tag);
-                    newJob = JobMaker.MakeJob(JobDefOf.Goto, safeCell);
-                    newJob.expiryInterval = 2000;
-                    newJob.locomotionUrgency = LocomotionUrgency.Jog;
-                    jobGiver = null;
-                    tag = null;
-                    if (Prefs.DevMode && ShouldLogRepeatedDiagnostic(
-                            pawn, $"personal-detour:{string.Join(",", crossedRules.Select(rule => rule.Id))}"))
-                    {
-                        string ruleNames = string.Join(", ",
-                            crossedRules.Select(rule => $"'{rule.Name}'"));
-                        Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: routing {essentialJob.def.defName} around {ruleNames} after restoring normal clothing.");
-                    }
-                    return;
-                }
-
-                __instance.ClearQueuedJobs(false);
-                if (ShouldLogRepeatedDiagnostic(
-                        pawn, $"personal-no-detour:{string.Join(",", crossedRules.Select(rule => rule.Id))}"))
-                {
-                    string ruleNames = string.Join(", ",
-                        crossedRules.Select(rule => $"'{rule.Name}'"));
-                    Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: delaying {essentialJob.def.defName}; no route around {ruleNames} avoids areas with unmet apparel or weapon requirements.");
-                }
-                ReplaceWithWait(pawn, 300, ref newJob, ref jobGiver, ref tag);
-                return;
-            }
-
             if (newJob.def == JobDefOf.HaulToCell &&
                 ManagedApparelClassifier.Matches(newJob.targetA.Thing))
             {
                 return;
             }
 
-            List<ApparelRule> applicableRules = RuleEvaluator.MatchingRules(pawn, newJob);
-            ApparelRule haulingRule =
-                PausedAreaWorkFilter.MatchingPermittedHaulingRule(pawn, newJob);
-            if (haulingRule != null)
-                applicableRules.Add(haulingRule);
-            applicableRules.AddRange(
-                PausedAreaWorkFilter.MatchingProtectedTransitRules(pawn, newJob));
-            applicableRules = applicableRules
+            // Current occupancy is deliberately included here as a second line
+            // of defense. It repairs loaded saves, area edits, forced apparel
+            // changes, and gear loss that leave a pawn inside between job starts.
+            List<ApparelRule> applicableRules = protectedJobRules
+                .Concat(RuleEvaluator.MatchingLocationRules(pawn))
                 .Where(candidate => candidate != null)
                 .GroupBy(candidate => candidate.Id)
                 .Select(group => group.First())
@@ -880,6 +853,15 @@ namespace AutomaticOutfitManager.Patches
                 {
                     activeState = component?.TrackCompliantWorkSession(
                         pawn, newJob, matchingWorkRules);
+                }
+                if (activeState != null && !activeState.RecallRequested &&
+                    (activeState.Transition == ApparelTransition.Preparing ||
+                     activeState.Transition == ApparelTransition.Active))
+                {
+                    activeState.CurrentRuleIds = applicableRules
+                        .Select(candidate => candidate.Id)
+                        .Distinct()
+                        .ToList();
                 }
                 if (activeState != null &&
                     applicableRules.Any(candidate => candidate.Id == activeState.ActiveRuleId) &&
@@ -1181,11 +1163,28 @@ namespace AutomaticOutfitManager.Patches
                 if (removalJobs.Count == 0)
                     continue;
 
-                if (nestedRule.ChangingArea != null &&
-                    !PawnInsideArea(pawn, nestedRule.ChangingArea) &&
-                    TryFindChangingCell(pawn, nestedRule.ChangingArea, out IntVec3 changingCell))
+                bool insideNestedArea = PawnInsideArea(pawn, nestedRule.Area);
+                bool outsideNestedChangingArea = nestedRule.ChangingArea != null &&
+                    !PawnInsideArea(pawn, nestedRule.ChangingArea);
+                if ((insideNestedArea || outsideNestedChangingArea) &&
+                    TryFindSafeTransitionCell(
+                        pawn, nestedRule.ChangingArea, new[] { nestedRule },
+                        out IntVec3 changingCell))
                 {
                     removalJobs.Insert(0, JobMaker.MakeJob(JobDefOf.Goto, changingCell));
+                }
+
+                else if (insideNestedArea)
+                {
+                    // Keep every inner requirement on until a safe exterior
+                    // cell exists. Do not queue nested-only removal in place.
+                    progress.Finished = false;
+                    progress.LastJobLoadId = -1;
+                    state.LastNestedBufferStatus =
+                        $"{nestedRule.Name}: buffer complete; waiting for a safe exit before removing nested-only gear.";
+                    ReplaceWithWait(
+                        pawn, 300, ref newJob, ref jobGiver, ref tag);
+                    return true;
                 }
 
                 state.Transition = ApparelTransition.Preparing;
@@ -1424,7 +1423,8 @@ namespace AutomaticOutfitManager.Patches
             if (state?.RecallRequested == true)
                 return "work was paused or a return was requested";
 
-            if (RequiresImmediateRestoration(nextJob))
+            if (RequiresImmediateRestoration(nextJob) &&
+                ProtectedRulesForJob(pawn, nextJob).Count == 0)
                 return $"{nextJob?.def?.defName ?? "the next job"} requires immediate clothing restoration";
 
             if (!PendingWorkJobIsViable(pawn, state?.PendingWorkJob, out string reason))
@@ -1434,6 +1434,22 @@ namespace AutomaticOutfitManager.Patches
                 return "another outfitting pawn now claims one of its targets";
 
             return null;
+        }
+
+        private static List<ApparelRule> ProtectedRulesForJob(Pawn pawn, Job job)
+        {
+            var rules = RuleEvaluator.MatchingRules(pawn, job);
+            ApparelRule haulingRule =
+                PausedAreaWorkFilter.MatchingPermittedHaulingRule(pawn, job);
+            if (haulingRule != null)
+                rules.Add(haulingRule);
+            rules.AddRange(
+                PausedAreaWorkFilter.MatchingProtectedTransitRules(pawn, job));
+            return rules
+                .Where(rule => rule != null)
+                .GroupBy(rule => rule.Id)
+                .Select(group => group.First())
+                .ToList();
         }
 
         internal static bool PendingWorkJobIsViable(
@@ -1521,6 +1537,104 @@ namespace AutomaticOutfitManager.Patches
                                     pawn.CanReach(candidate, PathEndMode.OnCell, Danger.Deadly) &&
                                     ChangingCellIsAvailable(pawn, candidate))
                 .OrderBy(candidate => candidate.DistanceToSquared(pawn.Position))
+                .FirstOrDefault();
+            return cell.IsValid;
+        }
+
+        internal static bool TryFindRestorationCell(
+            Pawn pawn,
+            AutomaticOutfitManagerGameComponent component,
+            PawnApparelState state,
+            out IntVec3 cell)
+        {
+            ApparelRule activeRule = component?.RuleById(state?.ActiveRuleId);
+            return TryFindSafeTransitionCell(
+                pawn,
+                activeRule?.ChangingArea,
+                StateProtectedRules(component, state, pawn?.Map),
+                out cell);
+        }
+
+        internal static bool PawnInsideStateProtectedArea(
+            Pawn pawn,
+            AutomaticOutfitManagerGameComponent component,
+            PawnApparelState state)
+        {
+            return StateProtectedRules(component, state, pawn?.Map)
+                .Any(rule => PawnInsideArea(pawn, rule.Area));
+        }
+
+        private static List<ApparelRule> StateProtectedRules(
+            AutomaticOutfitManagerGameComponent component,
+            PawnApparelState state,
+            Map map)
+        {
+            var ruleIds = new List<string>(state?.CurrentRuleIds ??
+                Enumerable.Empty<string>());
+            if (!string.IsNullOrEmpty(state?.ActiveRuleId))
+                ruleIds.Add(state.ActiveRuleId);
+            return ruleIds
+                .Distinct()
+                .Select(ruleId => component?.RuleById(ruleId))
+                .Where(rule => rule?.Area?.Map == map)
+                .ToList();
+        }
+
+        private static bool TryFindSafeTransitionCell(
+            Pawn pawn,
+            Area preferredArea,
+            IEnumerable<ApparelRule> protectedRules,
+            out IntVec3 cell)
+        {
+            cell = IntVec3.Invalid;
+            if (pawn?.Map == null)
+                return false;
+
+            List<ApparelRule> rules = protectedRules?
+                .Where(rule => rule?.Area?.Map == pawn.Map)
+                .GroupBy(rule => rule.Id)
+                .Select(group => group.First())
+                .ToList() ?? new List<ApparelRule>();
+            bool IsSafe(IntVec3 candidate) =>
+                candidate.IsValid && candidate.InBounds(pawn.Map) &&
+                rules.All(rule => !rule.Area[candidate]);
+            bool IsUsable(IntVec3 candidate) =>
+                IsSafe(candidate) && candidate.Standable(pawn.Map) &&
+                pawn.CanReach(candidate, PathEndMode.OnCell, Danger.Deadly) &&
+                ChangingCellIsAvailable(pawn, candidate);
+
+            if (preferredArea?.Map == pawn.Map)
+            {
+                cell = preferredArea.ActiveCells
+                    .Where(IsUsable)
+                    .OrderBy(candidate =>
+                        candidate.DistanceToSquared(pawn.Position))
+                    .FirstOrDefault();
+                if (cell.IsValid)
+                    return true;
+            }
+
+            if (!rules.Any(rule => PawnInsideArea(pawn, rule.Area)))
+                return false;
+
+            var boundaryCells = new HashSet<IntVec3>();
+            foreach (ApparelRule rule in rules)
+            {
+                foreach (IntVec3 areaCell in rule.Area.ActiveCells)
+                {
+                    foreach (IntVec3 candidate in GenRadial.RadialCellsAround(
+                                 areaCell, 1.5f, false))
+                    {
+                        if (IsSafe(candidate))
+                            boundaryCells.Add(candidate);
+                    }
+                }
+            }
+
+            cell = boundaryCells
+                .Where(IsUsable)
+                .OrderBy(candidate =>
+                    candidate.DistanceToSquared(pawn.Position))
                 .FirstOrDefault();
             return cell.IsValid;
         }
@@ -1700,9 +1814,9 @@ namespace AutomaticOutfitManager.Patches
         }
 
         private static bool RequiresImmediateRestoration(Job job)
-            // Sleeping is a long-lived state rather than a short task between
-            // work-area jobs. Never spend a task-buffer slot on it: restore the
-            // pawn's saved clothing before they settle into bed.
+            // Sleep is a long-lived state rather than an ordinary buffer task.
+            // Callers restore immediately only after confirming that neither
+            // its destination nor route is protected by an active rule.
             => PausedAreaWorkFilter.IsEssentialPersonalJob(job);
 
         internal static void LogAutomaticManagedGearRejection(

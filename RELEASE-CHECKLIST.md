@@ -38,8 +38,11 @@ Use temporary neutral rule names such as `RC Apparel`, `RC Weapon`, `RC Combined
 ### RC-04: combined requirements
 
 - [ ] Select multiple compatible apparel requirements and multiple exact weapon alternatives.
-- [ ] Verify all apparel and one acceptable primary are equipped before qualifying work resumes.
+- [ ] Verify every apparel item and one acceptable primary are equipped simultaneously before the pawn enters; no one-piece or partial-set transit is allowed when the complete set is available.
 - [ ] Verify ranged/melee preference follows pawn skills when both categories are valid.
+- [ ] While the pawn remains inside, switch naturally among work, hauling, wandering, eating, recreation, waiting, and sleep; verify the complete set remains equipped through every change.
+- [ ] Send a pawn to an unrelated destination whose route crosses the area; verify the complete set is equipped before the first protected cell and retained until the route leaves it.
+- [ ] Remove or destroy one required item while a pawn is idle or sleeping inside; verify bounded recovery re-prepares available gear without a Standing or job-retry loop.
 
 ### RC-05: restoration and ownership
 
@@ -51,7 +54,8 @@ Use temporary neutral rule names such as `RC Apparel`, `RC Weapon`, `RC Combined
 
 - [ ] Verify buffer values 0, 1, and a multi-task value.
 - [ ] Verify compatible outer and inner rules combine requirements and track buffers independently.
-- [ ] Verify leaving the inner area restores only requirements no longer active.
+- [ ] Verify inner-only requirements remain equipped until the pawn is physically outside the inner area, then restore only requirements no longer active.
+- [ ] Remove the locker assignment and repeat with buffer 0; verify the pawn reaches a safe cell outside every applicable area before removing any managed item.
 
 ### RC-07: save/load continuity
 
@@ -71,7 +75,7 @@ Use temporary neutral rule names such as `RC Apparel`, `RC Weapon`, `RC Combined
 - [ ] With hauling allowed and work active, verify an unequipped pawn prepares once, completes the original haul, and does not alternate between preparation and restoration for the same target.
 - [ ] Observe a haul with a visible delay toil; verify the advancing delay is not mistaken for finished work and the pawn completes the original haul before restoration.
 - [ ] While a pawn is returning or restoring after a haul, verify it appears only under **Workers** and is not duplicated under **Haulers**.
-- [ ] Place an assigned bed inside an active work area; verify the pawn restores normal gear, reaches the bed, and sleeps instead of repeatedly standing after a rejected **LayDown** job.
+- [ ] Place an assigned bed inside an active work area; verify the pawn equips every requirement, reaches the bed, and sleeps in the complete managed outfit without repeated **LayDown**, restoration, or Standing loops.
 - [ ] With work paused, verify jobs targeted beyond the area do not create a walk-to-boundary/cancel/reselect loop when their shortest route crosses it.
 - [x] With colonist hauling allowed, pause a rule while a pawn is hauling into its area; the pawn finishes without repeatedly changing outfits or restarting the same haul. Verified in-game on 2026-08-23 with RC DLL `687AD839C5B766331FAB4C4D8B0D9CEA1E53490194CF02D5A85AE4ACBC203A81`.
 - [ ] Verify work, hauling, wandering, child-watching, and pawn-category permissions independently.
@@ -82,6 +86,7 @@ Use temporary neutral rule names such as `RC Apparel`, `RC Weapon`, `RC Combined
 - [ ] Verify locker-preferred selection with map-wide fallback.
 - [ ] Verify managed/non-managed apparel and weapon filters, restocking, retained cyan stock, and **Forget** blockers.
 - [ ] Verify temporary items return to the locker when configured.
+- [ ] Draw a locker that overlaps the work area; verify AOM chooses a safe locker or exterior cell and never restores a required item while still inside.
 
 ### RC-10: compatibility smoke test
 

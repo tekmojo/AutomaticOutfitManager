@@ -20,11 +20,12 @@ Area-based apparel, PPE, and exact primary-weapon rules with lockers, task buffe
 
 Create area-based outfit rules using apparel, personal protective equipment (PPE), and optional exact primary-weapon alternatives.
 
-Eligible humanlike workers automatically prepare before qualifying work, retain managed gear through a configurable follow-up task buffer, return items through an optional locker room, and restore the exact apparel and primary weapon they had beforehand.
+Eligible undrafted humanlike pawns automatically equip the complete requirement before entry and retain it through work, hauling, wandering, personal activities, sleep, and pass-through. After leaving and completing any configured follow-up buffer, they return items through an optional locker room and restore the exact apparel and primary weapon they had beforehand.
 
 [h1]Features[/h1]
 [list]
 [*]Ordinary RimWorld areas define where a rule applies
+[*]Every selected apparel item stays equipped for every activity and protected route inside the area
 [*]Require every selected apparel item and optionally one of several exact primary weapons
 [*]Skill-aware ranged or melee preference when both are valid
 [*]Exact apparel and primary-weapon restoration, including returning to an unarmed state

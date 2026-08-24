@@ -60,7 +60,7 @@ namespace AutomaticOutfitManager.UI
                 : "any weapon allowed";
             Widgets.Label(countRect, $"{filtered.Count} weapon(s) — {selectionHint}");
             TooltipHandler.TipRegion(countRect,
-                "A pawn equips one green primary-weapon alternative before work. When both types are selected, higher Shooting prefers ranged and higher Melee prefers melee. The locker and then the map are searched for that type before falling back to the weaker category; tied pawns are distributed across valid selections. Cyan entries are retained managed stock. With nothing selected, there is no primary-weapon requirement: a pawn may remain unarmed or keep any current weapon. Inventory sidearms do not count.");
+                "A pawn equips one green primary-weapon alternative before entry and retains it throughout every activity or protected route inside the active area. When both types are selected, higher Shooting prefers ranged and higher Melee prefers melee. The locker and then the map are searched for that type before falling back to the weaker category; tied pawns are distributed across valid selections. Cyan entries are retained managed stock. With nothing selected, there is no primary-weapon requirement: a pawn may remain unarmed or keep any current weapon. Inventory sidearms do not count.");
 
             Rect outRect = new Rect(
                 inRect.x, countRect.yMax + 4f,
@@ -146,7 +146,7 @@ namespace AutomaticOutfitManager.UI
             {
                 TooltipHandler.TipRegion(
                     new Rect(rect.x + 4f, rect.y, rect.width - 100f, rect.height),
-                    "Selected for this rule. Green weapons are alternatives; a managed worker equips one acceptable primary weapon, not every selected weapon.");
+                    "Selected for this rule. Green weapons are alternatives; an eligible pawn equips and retains one acceptable primary weapon, not every selected weapon, throughout every activity or protected route inside the active area.");
             }
             else if (retainedStock)
             {

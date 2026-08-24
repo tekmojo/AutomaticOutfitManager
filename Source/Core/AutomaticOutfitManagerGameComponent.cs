@@ -52,6 +52,8 @@ namespace AutomaticOutfitManager.Core
         private readonly Dictionary<ThingWithComps, Pawn> managedWeaponAssignmentIndex = new Dictionary<ThingWithComps, Pawn>();
         private readonly Dictionary<string, Pawn> spawnedPawnIdIndex = new Dictionary<string, Pawn>();
         private readonly Dictionary<Pawn, int> jobTransitionFailureTicks = new Dictionary<Pawn, int>();
+        private readonly Dictionary<Pawn, int> occupiedGearRecoveryTicks =
+            new Dictionary<Pawn, int>();
         private readonly Dictionary<Pawn, RestorationProgress> restorationProgress =
             new Dictionary<Pawn, RestorationProgress>();
         private readonly Dictionary<Pawn, RestorationProgress> activeWorkProgress =
@@ -255,13 +257,24 @@ namespace AutomaticOutfitManager.Core
                     }
 
                     Job job = pawn?.jobs?.curJob;
+                    PawnApparelState runtimeState = null;
+                    if (pawn?.Faction == Faction.OfPlayer && !pawn.Drafted)
+                    {
+                        runtimeState = StateFor(pawn);
+                        // Preserve the established native/player and weapon-mod
+                        // override contract before the occupancy safety check
+                        // decides whether a required primary is missing.
+                        DetectExternalWeaponOverride(pawn, runtimeState, job);
+                    }
+                    if (TryEnforceOccupiedAreaGear(pawn, job, currentTick))
+                        continue;
                     if (job == null)
                         continue;
 
                     bool handled = false;
                     if (pawn.Faction == Faction.OfPlayer && !pawn.Drafted)
                     {
-                        PawnApparelState state = StateFor(pawn);
+                        PawnApparelState state = runtimeState;
                         bool managedWorkContext =
                             !Patches.PausedAreaWorkFilter.IsHaulingJob(job) &&
                             (job.workGiverDef != null ||
@@ -272,7 +285,6 @@ namespace AutomaticOutfitManager.Core
                             state = TrackCompliantWorkSession(
                                 pawn, job, RuleEvaluator.MatchingRules(pawn, job));
                         }
-                        DetectExternalWeaponOverride(pawn, state, job);
                         foreach (ApparelRule rule in mapPausedRules)
                         {
                             bool permittedPausedActivity =
@@ -534,8 +546,6 @@ namespace AutomaticOutfitManager.Core
                 {
                     Job returnJob = pawn.jobs?.curJob;
                     bool activeReturnTravel = returnJob?.def == JobDefOf.Goto &&
-                        rule?.ChangingArea?.Map == pawn.Map &&
-                        RuleEvaluator.JobTargetsArea(returnJob, rule.ChangingArea) &&
                         pawn.pather?.Moving == true;
                     if (activeReturnTravel || returnJob?.playerForced == true)
                     {
@@ -931,13 +941,15 @@ namespace AutomaticOutfitManager.Core
             ApparelRule rule,
             int currentTick)
         {
+            bool insideProtectedArea =
+                Patches.PawnJobTracker_StartJob_Patch
+                    .PawnInsideStateProtectedArea(pawn, this, state);
             Area changingArea = rule?.ChangingArea;
-            bool insideChangingArea = changingArea?.Map == pawn?.Map &&
-                pawn.Position.IsValid && pawn.Position.InBounds(pawn.Map) &&
-                changingArea[pawn.Position];
-            if (changingArea?.Map == pawn?.Map && !insideChangingArea &&
-                Patches.PawnJobTracker_StartJob_Patch.TryFindChangingCell(
-                    pawn, changingArea, out IntVec3 changingCell))
+            bool outsidePreferredChangingArea = changingArea?.Map == pawn?.Map &&
+                !changingArea[pawn.Position];
+            if ((insideProtectedArea || outsidePreferredChangingArea) &&
+                Patches.PawnJobTracker_StartJob_Patch.TryFindRestorationCell(
+                    pawn, this, state, out IntVec3 changingCell))
             {
                 return TryJobTransition(pawn, currentTick, "idle locker-return travel", () =>
                 {
@@ -950,10 +962,25 @@ namespace AutomaticOutfitManager.Core
                 });
             }
 
-            // The pawn is already inside the locker, the locker was removed, or
-            // no changing cell is currently reachable. Match the ordinary
-            // StartJob fallback by restoring in place instead of feeding another
-            // Wait through the Returning branch forever.
+            if (insideProtectedArea)
+            {
+                // Keep the managed outfit intact until a reachable exterior
+                // cell exists. Return the state to Active so the next native
+                // selection retries the shared safe-exit path.
+                state.Transition = ApparelTransition.Active;
+                state.ActiveIdleTicks = 0;
+                return TryJobTransition(pawn, currentTick, "safe-area-exit retry", () =>
+                {
+                    Job wait = JobMaker.MakeJob(JobDefOf.Wait);
+                    wait.expiryInterval = 300;
+                    pawn.jobs.StartJob(
+                        wait, JobCondition.InterruptForced, null, false, true);
+                });
+            }
+
+            // The pawn has cleared every protected area. If the locker is
+            // absent or currently unreachable, restoring here is safe and
+            // avoids a repeated Returning/Standing loop.
             state.Transition = ApparelTransition.Restoring;
             state.LastRestorationAttemptTick = -1;
             return StartRestorationRecovery(
@@ -1121,6 +1148,66 @@ namespace AutomaticOutfitManager.Core
                     CancelPendingWork(state, invalidReason, "before save");
                 }
             }
+        }
+
+        private bool TryEnforceOccupiedAreaGear(
+            Pawn pawn, Job currentJob, int currentTick)
+        {
+            List<ApparelRule> occupiedRules =
+                RuleEvaluator.MatchingLocationRules(pawn);
+            if (occupiedRules.Count == 0 ||
+                !occupiedRules.Any(rule =>
+                    RuleEvaluator.HasMissingRequiredGear(pawn, rule)))
+            {
+                if (pawn != null)
+                    occupiedGearRecoveryTicks.Remove(pawn);
+                return false;
+            }
+
+            PawnApparelState state = StateFor(pawn);
+            if (IsAssignedApparelTransitionJob(state, currentJob) ||
+                IsAssignedWeaponTransitionJob(state, currentJob))
+            {
+                return true;
+            }
+
+            // A missing or newly removed item can leave a sleeping, waiting, or
+            // compatibility-controlled pawn inside without another StartJob or
+            // path-cell callback. Re-enter the shared job boundary at a bounded
+            // cadence; it finds every missing piece, preserves the interrupted
+            // native job, and resumes that exact activity after preparation.
+            if (occupiedGearRecoveryTicks.TryGetValue(pawn, out int lastTick) &&
+                currentTick - lastTick < 300)
+            {
+                return true;
+            }
+
+            occupiedGearRecoveryTicks[pawn] = currentTick;
+            bool transitioned = TryJobTransition(
+                pawn, currentTick, "occupied-area gear enforcement", () =>
+                {
+                    if (pawn.jobs?.curJob != null)
+                    {
+                        pawn.jobs.EndCurrentJob(
+                            JobCondition.InterruptForced, true);
+                        return;
+                    }
+
+                    Job trigger = JobMaker.MakeJob(JobDefOf.Wait);
+                    trigger.expiryInterval = 30;
+                    pawn.jobs?.StartJob(
+                        trigger, JobCondition.InterruptForced);
+                });
+            if (transitioned && Prefs.DevMode)
+            {
+                string names = string.Join(", ", occupiedRules
+                    .Where(rule => RuleEvaluator.HasMissingRequiredGear(pawn, rule))
+                    .Select(rule => $"'{rule.Name}'"));
+                Log.Message(
+                    $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
+                    $"rechecking complete required gear while inside {names}.");
+            }
+            return true;
         }
 
         private void CancelPendingWork(
