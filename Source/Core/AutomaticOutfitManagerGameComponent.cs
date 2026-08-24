@@ -547,7 +547,8 @@ namespace AutomaticOutfitManager.Core
                 {
                     Job returnJob = pawn.jobs?.curJob;
                     if (!state.ChangingAreaReturnCell.IsValid &&
-                        returnJob?.def == JobDefOf.Goto &&
+                        Patches.PawnJobTracker_StartJob_Patch
+                            .IsChangingAreaTravelJob(returnJob) &&
                         returnJob.targetA.Cell.IsValid)
                     {
                         // Migrate an in-flight return from an older RC save. The
@@ -972,7 +973,9 @@ namespace AutomaticOutfitManager.Core
                 {
                     state.LastChangingAreaReturnAttemptTick = currentTick;
                     state.ChangingAreaReturnCell = changingCell;
-                    Job returnJob = JobMaker.MakeJob(JobDefOf.Goto, changingCell);
+                    Job returnJob =
+                        Patches.PawnJobTracker_StartJob_Patch
+                            .MakeChangingAreaTravelJob(changingCell);
                     returnJob.expiryInterval = 2000;
                     returnJob.locomotionUrgency = LocomotionUrgency.Jog;
                     pawn.jobs.StartJob(

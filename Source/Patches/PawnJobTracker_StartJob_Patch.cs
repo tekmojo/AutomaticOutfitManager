@@ -710,7 +710,7 @@ namespace AutomaticOutfitManager.Patches
                         // immediately, that stale job can restart and recursively
                         // create hundreds of identical return jobs in one tick.
                         __instance.ClearQueuedJobs(false);
-                        newJob = JobMaker.MakeJob(JobDefOf.Goto, changingCell);
+                        newJob = MakeChangingAreaTravelJob(changingCell);
                         newJob.expiryInterval = 2000;
                         newJob.locomotionUrgency = LocomotionUrgency.Jog;
                         jobGiver = null;
@@ -1206,7 +1206,7 @@ namespace AutomaticOutfitManager.Patches
                         pawn, nestedRule.ChangingArea, new[] { nestedRule },
                         out IntVec3 changingCell))
                 {
-                    removalJobs.Insert(0, JobMaker.MakeJob(JobDefOf.Goto, changingCell));
+                    removalJobs.Insert(0, MakeChangingAreaTravelJob(changingCell));
                 }
 
                 else if (insideNestedArea)
@@ -1694,7 +1694,7 @@ namespace AutomaticOutfitManager.Patches
             return AutomaticOutfitManagerGameComponent.Current?.PawnStates?.All(state =>
                 state?.Pawn == null || state.Pawn == pawn ||
                 state.Transition != ApparelTransition.ReturningToChangingArea ||
-                state.Pawn.jobs?.curJob?.def != JobDefOf.Goto ||
+                !IsChangingAreaTravelJob(state.Pawn.jobs?.curJob) ||
                 state.Pawn.jobs.curJob.targetA.Cell != candidate) != false;
         }
 
@@ -1819,7 +1819,7 @@ namespace AutomaticOutfitManager.Patches
             PawnApparelState state, Job job)
         {
             if (state?.Transition != ApparelTransition.ReturningToChangingArea ||
-                job?.def != JobDefOf.Goto || !job.targetA.Cell.IsValid)
+                !IsChangingAreaTravelJob(job) || !job.targetA.Cell.IsValid)
             {
                 return false;
             }
@@ -1827,6 +1827,17 @@ namespace AutomaticOutfitManager.Patches
             return state.ChangingAreaReturnCell.IsValid &&
                    job.targetA.Cell == state.ChangingAreaReturnCell;
         }
+
+        internal static bool IsChangingAreaTravelJob(Job job)
+            => job?.def == AutomaticOutfitManagerJobDefOf
+                   .AutomaticOutfitManager_LockerReturn ||
+               job?.def == JobDefOf.Goto;
+
+        internal static Job MakeChangingAreaTravelJob(IntVec3 cell)
+            => JobMaker.MakeJob(
+                AutomaticOutfitManagerJobDefOf
+                    .AutomaticOutfitManager_LockerReturn,
+                cell);
 
         private static bool IsExternalWeaponControlJob(Job job)
         {
@@ -1847,7 +1858,7 @@ namespace AutomaticOutfitManager.Patches
                    !defName.StartsWith("Goto", StringComparison.OrdinalIgnoreCase) &&
                    !string.Equals(defName, "TakeInventory", StringComparison.OrdinalIgnoreCase) &&
                    job.def != JobDefOf.Wait &&
-                   job.def != JobDefOf.Goto &&
+                   !IsChangingAreaTravelJob(job) &&
                    job.def != JobDefOf.Wear &&
                    job.def != JobDefOf.RemoveApparel;
         }

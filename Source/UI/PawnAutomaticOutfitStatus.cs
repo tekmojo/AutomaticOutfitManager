@@ -232,7 +232,8 @@ namespace AutomaticOutfitManager.UI
                     if (state.NestedRuleBuffers?.Any(progress =>
                             progress?.Finished == true) == true &&
                         (currentJob?.def == JobDefOf.RemoveApparel ||
-                         currentJob?.def == JobDefOf.Goto))
+                         PawnJobTracker_StartJob_Patch
+                             .IsChangingAreaTravelJob(currentJob)))
                     {
                         return "Returning nested work apparel";
                     }
@@ -281,7 +282,8 @@ namespace AutomaticOutfitManager.UI
                     {
                         return $"Protected transit: {JobActivity(pawn, currentJob)}";
                     }
-                    if (currentJob?.def == JobDefOf.Goto ||
+                    if (PawnJobTracker_StartJob_Patch
+                            .IsChangingAreaTravelJob(currentJob) ||
                         pawn?.pather?.Moving == true)
                     {
                         return $"Traveling: {JobActivity(pawn, currentJob)}";
@@ -319,7 +321,8 @@ namespace AutomaticOutfitManager.UI
                 if (state.NestedRuleBuffers?.Any(progress =>
                         progress?.Finished == true) == true &&
                     (pawn?.CurJob?.def == JobDefOf.RemoveApparel ||
-                     pawn?.CurJob?.def == JobDefOf.Goto))
+                     PawnJobTracker_StartJob_Patch
+                         .IsChangingAreaTravelJob(pawn?.CurJob)))
                 {
                     // The transition title and compact buffer summary already
                     // describe this state; repeating it made the hover grow by
@@ -415,7 +418,8 @@ namespace AutomaticOutfitManager.UI
                 return false;
 
             string defName = job.def.defName ?? string.Empty;
-            return job.def != JobDefOf.Goto &&
+            return !PawnJobTracker_StartJob_Patch
+                       .IsChangingAreaTravelJob(job) &&
                    job.def != JobDefOf.Wait &&
                    job.def != JobDefOf.Wait_Wander &&
                    !defName.StartsWith("Goto", System.StringComparison.OrdinalIgnoreCase) &&
