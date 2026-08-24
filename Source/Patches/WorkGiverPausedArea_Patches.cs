@@ -154,7 +154,7 @@ namespace AutomaticOutfitManager.Patches
                     pawn, targetMap, thing, targetCell))
                 return true;
 
-            bool haulingScanner = scanner?.def?.workType == WorkTypeDefOf.Hauling;
+            bool haulingScanner = ScannerUsesHaulingAccess(scanner);
             bool roamingScanner = IsRobotOrMechanoid(pawn) &&
                 ContainsIgnoreCase(scanner?.GetType().Name, "Clean");
             return AutomaticOutfitManagerGameComponent.Current?.Rules?.Any(rule =>
@@ -169,30 +169,19 @@ namespace AutomaticOutfitManager.Patches
                         : !WorkAllowedFor(rule, pawn))) == true;
         }
 
-        public static bool ShouldRejectJob(Job job, object[] arguments)
+        private static bool ScannerUsesHaulingAccess(WorkGiver_Scanner scanner)
         {
-            ExtractScannerArguments(arguments, out Pawn pawn, out Thing thing,
-                out IntVec3 cellArgument);
-            return ShouldRejectJob(job, pawn, thing, cellArgument);
-        }
-
-        public static bool ShouldRejectJob(Job job, Pawn pawn, Thing thing) =>
-            ShouldRejectJob(job, pawn, thing, IntVec3.Invalid);
-
-        public static bool ShouldRejectJob(Job job, Pawn pawn, IntVec3 cell) =>
-            ShouldRejectJob(job, pawn, null, cell);
-
-        private static bool ShouldRejectJob(
-            Job job, Pawn pawn, Thing thing, IntVec3 cellArgument)
-        {
-            if (job == null || pawn?.Map == null)
-                return false;
-
-            if (ShouldReject(pawn, thing, cellArgument))
+            if (scanner?.def?.workType == WorkTypeDefOf.Hauling)
                 return true;
 
-            return ShouldRejectPausedAreaJob(pawn, job) ||
-                   ShouldRejectHaulingJob(pawn, job);
+            // Vanilla construction resource delivery is exposed through the
+            // Construction work type even though the concrete job uses a haul
+            // driver. Classify the scanner the same way as its generated job so
+            // HasJobOnX and JobOnX cannot disagree when hauling access is off.
+            string scannerName = scanner?.GetType().Name;
+            string defName = scanner?.def?.defName;
+            return ContainsIgnoreCase(scannerName, "DeliverResources") ||
+                   ContainsIgnoreCase(defName, "DeliverResources");
         }
 
         private static void ExtractScannerArguments(
@@ -589,6 +578,36 @@ namespace AutomaticOutfitManager.Patches
         {
             return MatchesPermittedHaulingRule(pawn, job, rule) ||
                    MatchesPermittedWanderingRule(pawn, job, rule);
+        }
+
+        public static bool ActivityAllowedAtRuleBoundary(
+            Pawn pawn, Job job, ApparelRule rule)
+        {
+            if (pawn?.Map == null || job == null || rule == null ||
+                !IsManagedPawn(pawn) || pawn.Drafted || !rule.Enabled ||
+                rule.Area?.Map != pawn.Map)
+            {
+                return false;
+            }
+
+            // Sleeping is the narrowly established personal exception while a
+            // rule is paused. It still passes the complete-gear check at the
+            // caller before the pawn can enter the next protected cell.
+            if (IsEssentialPersonalJob(job))
+                return true;
+
+            if (IsHaulingJob(job))
+                return HaulingAllowedFor(rule, pawn);
+
+            if (IsRestrictedRoamingJob(pawn, job, job.jobGiver))
+                return WanderingAllowedFor(rule, pawn);
+
+            bool ordinaryWork = job.workGiverDef != null ||
+                                job.jobGiver is JobGiver_Work;
+            if (rule.WorkAreaPaused)
+                return false;
+
+            return !ordinaryWork || WorkAllowedFor(rule, pawn);
         }
 
         public static bool IsHaulingOrWanderingActivityForRule(
@@ -1078,7 +1097,7 @@ namespace AutomaticOutfitManager.Patches
             WorkGiver_Scanner __instance, ref Job __result, Pawn __0, Thing __1)
         {
             if (__result != null &&
-                (PausedAreaWorkFilter.ShouldRejectJob(__result, __0, __1) ||
+                (PausedAreaWorkFilter.ShouldReject(__0, __1) ||
                  PausedAreaWorkFilter.ShouldRejectScannerTarget(__instance, __0, __1)))
                 __result = null;
         }
@@ -1097,7 +1116,7 @@ namespace AutomaticOutfitManager.Patches
             WorkGiver_Scanner __instance, ref Job __result, Pawn __0, IntVec3 __1)
         {
             if (__result != null &&
-                (PausedAreaWorkFilter.ShouldRejectJob(__result, __0, __1) ||
+                (PausedAreaWorkFilter.ShouldReject(__0, __1) ||
                  PausedAreaWorkFilter.ShouldRejectScannerTarget(__instance, __0, __1)))
                 __result = null;
         }
@@ -1116,7 +1135,7 @@ namespace AutomaticOutfitManager.Patches
             WorkGiver_Scanner __instance, ref Job __result, object[] __args)
         {
             if (__result != null &&
-                (PausedAreaWorkFilter.ShouldRejectJob(__result, __args) ||
+                (PausedAreaWorkFilter.ShouldReject(__args) ||
                  PausedAreaWorkFilter.ShouldRejectScannerTarget(__instance, __args)))
                 __result = null;
         }

@@ -27,6 +27,8 @@ First Steam Workshop release candidate.
 - Legitimate haul delay toils no longer look like completed or stalled work, disabled activity recalls enter the locker-return path directly, and simultaneous returns avoid occupied or already-targeted locker cells.
 - Invalid destroyed targets are discarded before a pending continuation is saved, preventing new saves from persisting unresolved job references.
 - Paused work is rejected across concrete job-giver overrides and again at job start, preventing boundary cancel/reselect loops when a route crosses the paused area.
+- Construction resource delivery now uses hauling access consistently at both scanner phases, avoiding `CanGiveJob`/`JobOnX` mismatches when hauling is disabled.
+- Recalculated routes now recheck both complete gear and work/hauling/wandering access at the actual protected-cell boundary.
 - New-world weapon generation no longer queries the player faction before that faction exists.
 - Area-based apparel and PPE requirements.
 - Optional locker rooms, task buffers, locker restocking, and exact apparel restoration.

@@ -38,9 +38,6 @@ namespace AutomaticOutfitManager.Patches
 
             Job currentJob = pawn.jobs.curJob;
             PawnApparelState state = AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn);
-            bool essentialPersonalJob =
-                PausedAreaWorkFilter.IsEssentialPersonalJob(currentJob);
-
             // Preparation and recall can legitimately route a pawn through the
             // protected area to reach assigned work or saved apparel. StartJob
             // has already recorded these exact transition targets, so exempt
@@ -53,6 +50,7 @@ namespace AutomaticOutfitManager.Patches
                 return true;
 
             ApparelRule rule = null;
+            bool blockedByActivity = false;
             var rules = AutomaticOutfitManagerGameComponent.Current?.Rules;
             if (rules != null)
             {
@@ -62,19 +60,19 @@ namespace AutomaticOutfitManager.Patches
                         candidate.Area?.Map != pawn.Map || !candidate.Area[nextCell])
                         continue;
 
-                    // Job type never exempts an active area. Sleeping, eating,
-                    // recreation, hauling, wandering, and pass-through all use
-                    // the same complete-gear gate. Paused-area access remains
-                    // governed by its existing activity permissions.
-                    bool blocked = candidate.WorkAreaPaused
-                        ? essentialPersonalJob
-                            ? RuleEvaluator.HasMissingRequiredGear(pawn, candidate)
-                            : !PausedAreaWorkFilter.JobMayEnterPausedRule(
-                                pawn, currentJob, candidate)
-                        : RuleEvaluator.HasMissingRequiredGear(pawn, candidate);
+                    // Recheck both category access and the complete requirement
+                    // at the actual boundary. Routes can change after StartJob,
+                    // and an already-equipped pawn must not use that reroute to
+                    // bypass disabled work, hauling, or wandering access.
+                    bool activityAllowed =
+                        PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(
+                            pawn, currentJob, candidate);
+                    bool blocked = !activityAllowed ||
+                        RuleEvaluator.HasMissingRequiredGear(pawn, candidate);
                     if (blocked)
                     {
                         rule = candidate;
+                        blockedByActivity = !activityAllowed;
                         break;
                     }
                 }
@@ -89,8 +87,8 @@ namespace AutomaticOutfitManager.Patches
                     tick - lastTick >= 600)
                 {
                     LastBlockedLogTick[pawn.thingIDNumber] = tick;
-                    string reason = rule.WorkAreaPaused
-                        ? "while work is paused"
+                    string reason = blockedByActivity
+                        ? "because the rule does not permit this activity"
                         : "without its required apparel or weapon";
                     Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: stopped before entering '{rule.Name}' {reason}; reconsidering {currentJob.def.defName}.");
                 }
