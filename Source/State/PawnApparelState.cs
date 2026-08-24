@@ -39,6 +39,7 @@ namespace AutomaticOutfitManager.State
         public int BufferedTasksCompleted;
         public int LastBufferedJobLoadId = -1;
         public int LastChangingAreaReturnAttemptTick = -1;
+        public IntVec3 ChangingAreaReturnCell = IntVec3.Invalid;
         public int ActiveIdleTicks;
         public Job PendingWorkJob;
         public bool PendingWorkIsManagedWork;
@@ -95,6 +96,8 @@ namespace AutomaticOutfitManager.State
             Scribe_Values.Look(ref BufferedTasksCompleted, "bufferedTasksCompleted", 0);
             Scribe_Values.Look(ref LastBufferedJobLoadId, "lastBufferedJobLoadId", -1);
             Scribe_Values.Look(ref LastChangingAreaReturnAttemptTick, "lastChangingAreaReturnAttemptTick", -1);
+            Scribe_Values.Look(ref ChangingAreaReturnCell,
+                "changingAreaReturnCell", IntVec3.Invalid);
             Scribe_Values.Look(ref ActiveIdleTicks, "activeIdleTicks", 0);
             Scribe_Deep.Look(ref PendingWorkJob, "pendingWorkJob");
             Scribe_Values.Look(ref PendingWorkIsManagedWork, "pendingWorkIsManagedWork", false);
@@ -114,6 +117,11 @@ namespace AutomaticOutfitManager.State
                 RecallInterruptPending = true;
                 LastRecallInterruptAttemptTick = -1;
                 retiredIndividualRecallRequested = false;
+            }
+            if (Scribe.mode == LoadSaveMode.PostLoadInit &&
+                Transition != ApparelTransition.ReturningToChangingArea)
+            {
+                ChangingAreaReturnCell = IntVec3.Invalid;
             }
         }
 

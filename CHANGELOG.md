@@ -31,6 +31,7 @@ First Steam Workshop release candidate.
 - Route-dependent access denials now cool down only the rejected concrete target, letting native task selection immediately choose other legal work instead of repeating visible Standing waits.
 - A prohibited job proposal no longer recalls a pawn from an otherwise valid active work session, avoiding restore/re-equip churn between repeated bills.
 - Jobs with outside targets now keep their native task and take an available route around disabled-access work areas; they are rejected only when the protected area is the sole route.
+- Automatic task-buffer completion now records and protects its exact locker-return destination, preventing shared job or boundary guards from replacing the return with a permanent Standing wait.
 - Recalculated routes now recheck both complete gear and work/hauling/wandering access at the actual protected-cell boundary.
 - New-world weapon generation no longer queries the player faction before that faction exists.
 - Area-based apparel and PPE requirements.

@@ -147,13 +147,10 @@ namespace AutomaticOutfitManager.Patches
                 return state.ManagedWeapons?.Contains(workWeapon) == true;
             }
 
-            if (state.RecallRequested != true)
-                return false;
-
-            if (state.Transition == ApparelTransition.ReturningToChangingArea &&
-                currentJob.def == JobDefOf.Goto)
+            if (PawnJobTracker_StartJob_Patch.IsAssignedChangingAreaReturnJob(
+                    state, currentJob))
             {
-                // Only AOM sets ReturningToChangingArea. The exact Goto may
+                // Only AOM records this return destination. The exact Goto may
                 // target the preferred locker or the nearest safe exterior cell
                 // when no locker exists or the locker overlaps the work area.
                 // It remains exempt only while the full session requirement is
@@ -178,6 +175,9 @@ namespace AutomaticOutfitManager.Patches
                 }
                 return true;
             }
+
+            if (state.RecallRequested != true)
+                return false;
 
             if (state.Transition != ApparelTransition.Restoring ||
                 currentJob.targetA.Thing is not Apparel apparel)

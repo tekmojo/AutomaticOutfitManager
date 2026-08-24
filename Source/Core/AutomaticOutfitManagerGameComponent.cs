@@ -546,7 +546,18 @@ namespace AutomaticOutfitManager.Core
                     state.Transition == ApparelTransition.ReturningToChangingArea)
                 {
                     Job returnJob = pawn.jobs?.curJob;
-                    bool activeReturnTravel = returnJob?.def == JobDefOf.Goto &&
+                    if (!state.ChangingAreaReturnCell.IsValid &&
+                        returnJob?.def == JobDefOf.Goto &&
+                        returnJob.targetA.Cell.IsValid)
+                    {
+                        // Migrate an in-flight return from an older RC save. The
+                        // former state did not persist its AOM-owned destination.
+                        state.ChangingAreaReturnCell = returnJob.targetA.Cell;
+                    }
+                    bool assignedReturnTravel =
+                        Patches.PawnJobTracker_StartJob_Patch
+                            .IsAssignedChangingAreaReturnJob(state, returnJob);
+                    bool activeReturnTravel = assignedReturnTravel &&
                         pawn.pather?.Moving == true;
                     if (activeReturnTravel || returnJob?.playerForced == true)
                     {
@@ -554,7 +565,12 @@ namespace AutomaticOutfitManager.Core
                         continue;
                     }
 
-                    state.ActiveIdleTicks += 30;
+                    bool reachedRecordedDestination =
+                        state.ChangingAreaReturnCell.IsValid &&
+                        pawn.Position == state.ChangingAreaReturnCell;
+                    state.ActiveIdleTicks = reachedRecordedDestination
+                        ? 120
+                        : state.ActiveIdleTicks + 30;
                     if (state.ActiveIdleTicks < 120)
                         continue;
 
@@ -955,6 +971,7 @@ namespace AutomaticOutfitManager.Core
                 return TryJobTransition(pawn, currentTick, "idle locker-return travel", () =>
                 {
                     state.LastChangingAreaReturnAttemptTick = currentTick;
+                    state.ChangingAreaReturnCell = changingCell;
                     Job returnJob = JobMaker.MakeJob(JobDefOf.Goto, changingCell);
                     returnJob.expiryInterval = 2000;
                     returnJob.locomotionUrgency = LocomotionUrgency.Jog;
@@ -969,6 +986,7 @@ namespace AutomaticOutfitManager.Core
                 // cell exists. Return the state to Active so the next native
                 // selection retries the shared safe-exit path.
                 state.Transition = ApparelTransition.Active;
+                state.ChangingAreaReturnCell = IntVec3.Invalid;
                 state.ActiveIdleTicks = 0;
                 return TryJobTransition(pawn, currentTick, "safe-area-exit retry", () =>
                 {
@@ -983,6 +1001,7 @@ namespace AutomaticOutfitManager.Core
             // absent or currently unreachable, restoring here is safe and
             // avoids a repeated Returning/Standing loop.
             state.Transition = ApparelTransition.Restoring;
+            state.ChangingAreaReturnCell = IntVec3.Invalid;
             state.LastRestorationAttemptTick = -1;
             return StartRestorationRecovery(
                 pawn, state, currentTick, "idle locker-return restoration");

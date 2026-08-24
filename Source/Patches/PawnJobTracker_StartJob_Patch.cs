@@ -40,6 +40,14 @@ namespace AutomaticOutfitManager.Patches
             AutomaticOutfitManagerGameComponent component = AutomaticOutfitManagerGameComponent.Current;
             PawnApparelState state = component?.StateFor(pawn);
 
+            // Locker travel is an exact AOM transition, not an ordinary Goto.
+            // Recognize the recorded destination before generic reservation,
+            // paused-area, and activity guards can turn it into Wait. Natural
+            // task-buffer completion does not set RecallRequested, so using the
+            // recall flag as the ownership marker stranded automatic returns.
+            if (IsAssignedChangingAreaReturnJob(state, newJob))
+                return;
+
             // A storage classification can change while a hauling job waits in
             // the think-tree or queue. Recheck the concrete destination at the
             // shared job boundary so an explicit stock-type Forget cannot let
@@ -518,12 +526,6 @@ namespace AutomaticOutfitManager.Patches
                 }
 
                 var activeRule = component.RuleById(state.ActiveRuleId);
-                if (state.Transition == ApparelTransition.ReturningToChangingArea &&
-                    newJob.def == JobDefOf.Goto)
-                {
-                    return;
-                }
-
                 if (state.Transition == ApparelTransition.Restoring &&
                     newJob.def == JobDefOf.HaulToCell &&
                     newJob.targetA.Thing is Apparel returnItem &&
@@ -701,6 +703,7 @@ namespace AutomaticOutfitManager.Patches
 
                         state.Transition = ApparelTransition.ReturningToChangingArea;
                         state.LastChangingAreaReturnAttemptTick = returnTick;
+                        state.ChangingAreaReturnCell = changingCell;
 
                         // Recall invalidates the job chosen before the request.
                         // Do not preserve it behind the Goto: if the Goto ends
@@ -708,6 +711,8 @@ namespace AutomaticOutfitManager.Patches
                         // create hundreds of identical return jobs in one tick.
                         __instance.ClearQueuedJobs(false);
                         newJob = JobMaker.MakeJob(JobDefOf.Goto, changingCell);
+                        newJob.expiryInterval = 2000;
+                        newJob.locomotionUrgency = LocomotionUrgency.Jog;
                         jobGiver = null;
                         tag = null;
                         return;
@@ -727,6 +732,7 @@ namespace AutomaticOutfitManager.Patches
                     }
 
                     state.RequestWeaponRestoration();
+                    state.ChangingAreaReturnCell = IntVec3.Invalid;
                     RestorationPlanner.TryMakeHeldOriginalsAccessible(pawn, state);
                     List<Job> restorationJobs = RestorationPlanner.BuildJobs(
                         pawn, state, activeRule, out bool hasUnavailableOriginal);
@@ -1807,6 +1813,19 @@ namespace AutomaticOutfitManager.Patches
                     (state.WeaponRestorationRequested &&
                      state.WeaponPlayerOverride &&
                      state.Pawn?.equipment?.Primary == weapon));
+        }
+
+        internal static bool IsAssignedChangingAreaReturnJob(
+            PawnApparelState state, Job job)
+        {
+            if (state?.Transition != ApparelTransition.ReturningToChangingArea ||
+                job?.def != JobDefOf.Goto || !job.targetA.Cell.IsValid)
+            {
+                return false;
+            }
+
+            return state.ChangingAreaReturnCell.IsValid &&
+                   job.targetA.Cell == state.ChangingAreaReturnCell;
         }
 
         private static bool IsExternalWeaponControlJob(Job job)
