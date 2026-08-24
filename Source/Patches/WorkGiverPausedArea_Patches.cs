@@ -691,16 +691,19 @@ namespace AutomaticOutfitManager.Patches
             }
 
             // A pawn already inside a managed area must be allowed to leave it.
-            // The path-cell guard continues enforcing every other managed area
-            // and prevents re-entry after the pawn reaches safety.
+            // An essential destination inside the area (most importantly, an
+            // assigned bed) must also remain reachable after normal clothing is
+            // restored; otherwise the only valid destination is rejected on
+            // every think cycle and the pawn stands indefinitely. Preserve the
+            // detour requirement only when the area is unrelated pass-through.
             return AutomaticOutfitManagerGameComponent.Current?.Rules?
                 .Where(rule => rule != null &&
                                rule.Enabled &&
                                rule.Area?.Map == pawn.Map &&
                                !rule.Area[pawn.Position] &&
                                RuleEvaluator.HasMissingRequiredGear(pawn, rule) &&
-                               (RuleEvaluator.JobTargetsArea(job, rule.Area) ||
-                                JobPathCrossesArea(pawn, job, rule.Area)))
+                               !RuleEvaluator.JobTargetsArea(job, rule.Area) &&
+                               JobPathCrossesArea(pawn, job, rule.Area))
                 .ToList() ?? new List<ApparelRule>();
         }
 

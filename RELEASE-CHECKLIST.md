@@ -68,6 +68,7 @@ Use temporary neutral rule names such as `RC Apparel`, `RC Weapon`, `RC Combined
 - [ ] Verify hauling and wandering appear only in their dedicated activity rows, including immediately after managed work and during a task buffer.
 - [ ] With hauling allowed and work active, verify an unequipped pawn prepares once, completes the original haul, and does not alternate between preparation and restoration for the same target.
 - [ ] While a pawn is returning or restoring after a haul, verify it appears only under **Workers** and is not duplicated under **Haulers**.
+- [ ] Place an assigned bed inside an active work area; verify the pawn restores normal gear, reaches the bed, and sleeps instead of repeatedly standing after a rejected **LayDown** job.
 - [ ] With work paused, verify jobs targeted beyond the area do not create a walk-to-boundary/cancel/reselect loop when their shortest route crosses it.
 - [x] With colonist hauling allowed, pause a rule while a pawn is hauling into its area; the pawn finishes without repeatedly changing outfits or restarting the same haul. Verified in-game on 2026-08-23 with RC DLL `687AD839C5B766331FAB4C4D8B0D9CEA1E53490194CF02D5A85AE4ACBC203A81`.
 - [ ] Verify work, hauling, wandering, child-watching, and pawn-category permissions independently.

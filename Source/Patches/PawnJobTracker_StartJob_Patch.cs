@@ -718,9 +718,9 @@ namespace AutomaticOutfitManager.Patches
             }
 
             // Sleeping and bed travel remain outside the task buffer and restore
-            // the pawn's normal clothing first. Once restored, route around any
-            // enabled managed area whose required gear is missing instead of
-            // treating sleep as a blanket exemption from protected transit.
+            // the pawn's normal clothing first. An essential destination inside
+            // a managed area remains reachable; for an unrelated protected area
+            // crossed only in transit, route around it when possible.
             if (RequiresImmediateRestoration(newJob))
             {
                 List<ApparelRule> crossedRules =

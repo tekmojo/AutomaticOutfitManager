@@ -66,7 +66,7 @@ The mod checks actual movement as well as the initial job. If a route changes, a
 
 The exact job that triggered outfitting is preserved while the pawn changes, including direct player assignments and compatible modded work that does not provide RimWorld’s usual work-giver tag. Its concrete targets are temporarily claimed so another outfitting pawn cannot take the same frame, bill ingredients, haul targets, or similar work. Before resuming, the mod confirms that the job and its reservations are still valid; invalid or contested work is released safely for normal reconsideration.
 
-Sleeping and other essential personal jobs do not keep the work outfit through the task buffer. The pawn restores saved clothing first and, when necessary, routes around active protected areas. If no safe route exists, the personal job waits instead of sending an unequipped pawn through the area.
+Sleeping and other essential personal jobs do not keep the work outfit through the task buffer. The pawn restores saved clothing first. An assigned bed or other essential destination inside the work area remains reachable; when the destination is elsewhere, the pawn routes around active protected areas when possible. If no safe transit route exists, the personal job waits instead of taking an unrelated shortcut through the area.
 
 ### Required apparel
 

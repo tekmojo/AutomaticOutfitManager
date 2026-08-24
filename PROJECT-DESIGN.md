@@ -112,7 +112,7 @@ Restrictions evaluate targets and relevant routes. Units inside receive safe exi
 
 ### Path safety
 
-Incoming jobs are evaluated before start, and actual next path cells are checked for eligible humanlike pawns. This catches route changes caused by doors, congestion, reservations, or modded pathing. Essential personal jobs restore saved apparel and the saved primary weapon first, then use a safe detour around protected areas when one exists; an unavailable detour yields through a bounded retry rather than crossing without required apparel or a required weapon.
+Incoming jobs are evaluated before start, and actual next path cells are checked for eligible humanlike pawns. This catches route changes caused by doors, congestion, reservations, or modded pathing. Essential personal jobs restore saved apparel and the saved primary weapon first. A destination inside a protected area, such as an assigned bed, remains reachable; an unrelated pass-through uses a safe detour when one exists, or yields through a bounded retry rather than crossing without required apparel or a required weapon.
 
 Hot-path checks use cached field access, non-allocating missing-item tests, indexed state, and a single periodic pawn traversal. Apparel and weapon stock definitions, exact item IDs, saved owners, and active assignments are indexed rather than rescanning rules or pawn snapshots from storage and reservation hooks. Weapon locker restocking enumerates only definitions selected by active rules and defers reservation and pathfinding until after cheap rule and ownership checks. Requirement edits safely recall affected workers, and queued automatic hauling revalidates its concrete destination at job start.
 

@@ -62,10 +62,15 @@ namespace AutomaticOutfitManager.Patches
                         candidate.Area?.Map != pawn.Map || !candidate.Area[nextCell])
                         continue;
 
-                    // Do not trap a pawn who is already inside this area. Once
-                    // it steps outside, the same job may not re-enter without
-                    // the required apparel and will be replanned safely.
-                    if (essentialPersonalJob && candidate.Area[pawn.Position])
+                    // Do not trap a pawn who is already inside this area. Also
+                    // allow an essential personal job whose actual destination
+                    // is inside it (for example, an assigned bed). Such a job
+                    // has no possible detour that avoids its destination; the
+                    // pawn has already restored normal clothing at StartJob.
+                    // Unrelated pass-through remains protected below.
+                    if (essentialPersonalJob &&
+                        (candidate.Area[pawn.Position] ||
+                         RuleEvaluator.JobTargetsArea(currentJob, candidate.Area)))
                         continue;
 
                     // Pausing a rule stops its work; it does not make sleeping
