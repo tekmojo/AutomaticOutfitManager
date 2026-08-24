@@ -321,9 +321,23 @@ namespace AutomaticOutfitManager.Patches
                 IsHaulingJob(job) || IsRestrictedRoamingJob(pawn, job, job.jobGiver))
                 return null;
 
-            return AutomaticOutfitManagerGameComponent.Current?.Rules?.FirstOrDefault(rule =>
+            List<ApparelRule> restrictedRules =
+                AutomaticOutfitManagerGameComponent.Current?.Rules?.Where(rule =>
                 rule != null && rule.Enabled && rule.Area?.Map == pawn.Map &&
-                !WorkAllowedFor(rule, pawn) && RuleEvaluator.JobTargetsArea(job, rule.Area));
+                !WorkAllowedFor(rule, pawn)).ToList() ?? new List<ApparelRule>();
+            ApparelRule directRule = restrictedRules.FirstOrDefault(rule =>
+                RuleEvaluator.JobTargetsArea(job, rule.Area));
+            if (directRule != null)
+                return directRule;
+
+            List<ApparelRule> crossedRules = restrictedRules.Where(rule =>
+                ProtectedPathAvoidance.JobPathCrossesArea(
+                    pawn, job, rule.Area)).ToList();
+            return crossedRules.Count > 0 &&
+                   ProtectedPathAvoidance.RouteRequiresRestrictedArea(
+                       pawn, job, crossedRules)
+                ? crossedRules[0]
+                : null;
         }
 
         public static ApparelRule DeniedHaulingRule(Pawn pawn, Job job)
@@ -332,13 +346,25 @@ namespace AutomaticOutfitManager.Patches
                 !IsManagedPawn(pawn))
                 return null;
 
-            return AutomaticOutfitManagerGameComponent.Current?.Rules?.FirstOrDefault(rule =>
+            List<ApparelRule> restrictedRules =
+                AutomaticOutfitManagerGameComponent.Current?.Rules?.Where(rule =>
                 rule != null &&
                 rule.Enabled &&
                 rule.Area?.Map == pawn.Map &&
-                !HaulingAllowedFor(rule, pawn) &&
-                (RuleEvaluator.JobTargetsArea(job, rule.Area) ||
-                 HaulingPathCrossesArea(pawn, job, rule.Area)));
+                !HaulingAllowedFor(rule, pawn)).ToList() ?? new List<ApparelRule>();
+            ApparelRule directRule = restrictedRules.FirstOrDefault(rule =>
+                RuleEvaluator.JobTargetsArea(job, rule.Area));
+            if (directRule != null)
+                return directRule;
+
+            List<ApparelRule> crossedRules = restrictedRules.Where(rule =>
+                ProtectedPathAvoidance.JobPathCrossesArea(
+                    pawn, job, rule.Area)).ToList();
+            return crossedRules.Count > 0 &&
+                   ProtectedPathAvoidance.RouteRequiresRestrictedArea(
+                       pawn, job, crossedRules)
+                ? crossedRules[0]
+                : null;
         }
 
         private static bool HaulingPathCrossesArea(Pawn pawn, Job job, Area area)
@@ -495,20 +521,32 @@ namespace AutomaticOutfitManager.Patches
                 AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn)?.RecallRequested == true)
                 return null;
 
-            // A paused rule stops ordinary work, but its hauling toggle may
-            // explicitly permit hauling or wandering. Humanlike pawns still
-            // pass through the normal apparel intervention where applicable.
-            if (MatchingPermittedHaulingRule(pawn, job) != null ||
-                MatchingPermittedWanderingRule(pawn, job) != null)
-                return null;
-
-            return AutomaticOutfitManagerGameComponent.Current?.Rules?.FirstOrDefault(rule =>
+            bool hauling = IsHaulingJob(job);
+            bool wandering = IsRestrictedRoamingJob(pawn, job, job.jobGiver);
+            List<ApparelRule> restrictedRules =
+                AutomaticOutfitManagerGameComponent.Current?.Rules?.Where(rule =>
                 rule != null &&
                 rule.Enabled &&
                 rule.WorkAreaPaused &&
                 rule.Area?.Map == pawn.Map &&
-                (RuleEvaluator.JobTargetsArea(job, rule.Area) ||
-                 JobPathCrossesArea(pawn, job, rule.Area)));
+                (hauling
+                    ? !HaulingAllowedFor(rule, pawn)
+                    : wandering
+                        ? !WanderingAllowedFor(rule, pawn)
+                        : true)).ToList() ?? new List<ApparelRule>();
+            ApparelRule directRule = restrictedRules.FirstOrDefault(rule =>
+                RuleEvaluator.JobTargetsArea(job, rule.Area));
+            if (directRule != null)
+                return directRule;
+
+            List<ApparelRule> crossedRules = restrictedRules.Where(rule =>
+                ProtectedPathAvoidance.JobPathCrossesArea(
+                    pawn, job, rule.Area)).ToList();
+            return crossedRules.Count > 0 &&
+                   ProtectedPathAvoidance.RouteRequiresRestrictedArea(
+                       pawn, job, crossedRules)
+                ? crossedRules[0]
+                : null;
         }
 
         public static ApparelRule MatchingPermittedHaulingRule(Pawn pawn, Job job)
@@ -706,6 +744,12 @@ namespace AutomaticOutfitManager.Patches
                 return false;
             }
 
+            // A disabled activity whose target is outside the rule is routed
+            // around the area. It must not trigger an unnecessary outfit swap
+            // merely because RimWorld's uncustomized shortest path crosses it.
+            if (!ActivityAllowedAtRuleBoundary(pawn, job, rule))
+                return false;
+
             // Direct targets are handled by RuleEvaluator.MatchesRule. This
             // branch covers every unrelated destination whose actual route
             // crosses the protected area, including beds and other essential
@@ -739,16 +783,27 @@ namespace AutomaticOutfitManager.Patches
                 !IsManagedPawn(pawn))
                 return false;
 
-            return AutomaticOutfitManagerGameComponent.Current?.Rules?.Any(rule =>
+            List<ApparelRule> restrictedRules =
+                AutomaticOutfitManagerGameComponent.Current?.Rules?.Where(rule =>
                 rule != null &&
                 rule.Enabled &&
                 !WanderingAllowedFor(rule, pawn) &&
-                rule.Area?.Map == pawn.Map &&
-                (RuleEvaluator.JobTargetsArea(job, rule.Area) ||
-                 WanderingPathCrossesArea(pawn, job, rule.Area) ||
-                 (job.def == JobDefOf.Wait_Wander &&
-                 pawn.Position.IsValid && pawn.Position.InBounds(pawn.Map) &&
-                 rule.Area[pawn.Position]))) == true;
+                rule.Area?.Map == pawn.Map).ToList() ?? new List<ApparelRule>();
+            if (restrictedRules.Any(rule =>
+                    RuleEvaluator.JobTargetsArea(job, rule.Area) ||
+                    (job.def == JobDefOf.Wait_Wander &&
+                     pawn.Position.IsValid && pawn.Position.InBounds(pawn.Map) &&
+                     rule.Area[pawn.Position])))
+            {
+                return true;
+            }
+
+            List<ApparelRule> crossedRules = restrictedRules.Where(rule =>
+                ProtectedPathAvoidance.JobPathCrossesArea(
+                    pawn, job, rule.Area)).ToList();
+            return crossedRules.Count > 0 &&
+                   ProtectedPathAvoidance.RouteRequiresRestrictedArea(
+                       pawn, job, crossedRules);
         }
 
         private static bool WanderingPathCrossesArea(Pawn pawn, Job job, Area area)

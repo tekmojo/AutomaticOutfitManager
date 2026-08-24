@@ -108,6 +108,18 @@ namespace AutomaticOutfitManager.Patches
                     string category = PawnAccessClassifier.IsHostedGuest(pawn) ? "guest work" : "work";
                     Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: blocked from '{deniedWorkRule.Name}'; {category} is disabled.");
                 }
+                if (state?.Transition == ApparelTransition.Active &&
+                    !state.RecallRequested)
+                {
+                    // A valid managed session must not be recalled merely
+                    // because RimWorld's next proposal is a prohibited work
+                    // candidate. Skip that exact proposal and let the native
+                    // thinker keep the outfit active for other legal work.
+                    UnavailableWorkRegistry.Block(pawn, deniedWorkRule, newJob);
+                    __instance.ClearQueuedJobs(false);
+                    ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
+                    return;
+                }
                 if (state != null)
                 {
                     component.RequestRecall(state);
@@ -136,6 +148,17 @@ namespace AutomaticOutfitManager.Patches
                         ? "guest hauling"
                         : "hauling";
                     Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: blocked from '{deniedHaulingRule.Name}'; {category} is disabled.");
+                }
+                if (state?.Transition == ApparelTransition.Active &&
+                    !state.RecallRequested)
+                {
+                    // A denied haul candidate is not a request to end valid
+                    // managed work. Remember only that concrete haul and let
+                    // RimWorld select other work without an outfit round-trip.
+                    UnavailableWorkRegistry.Block(pawn, deniedHaulingRule, newJob);
+                    __instance.ClearQueuedJobs(false);
+                    ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
+                    return;
                 }
                 if (state != null)
                 {

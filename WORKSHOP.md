@@ -33,6 +33,7 @@ Eligible undrafted humanlike pawns automatically equip the complete requirement 
 [*]Compatible nested rules with independent buffers
 [*]Pause work, Recall workers, and release individual saved items
 [*]Work, hauling, wandering, child-watching, and pawn-category access controls
+[*]Native outside jobs route around areas where that activity is disabled
 [*]Managed apparel and weapon storage filters with locker restocking
 [*]Live readiness, worker, hauler, wanderer, and restoration status
 [*]Generic support for vanilla and modded apparel and weapons

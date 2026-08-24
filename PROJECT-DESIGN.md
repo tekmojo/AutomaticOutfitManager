@@ -108,7 +108,7 @@ Pauses use deterministic, safety-first overlap precedence: if any enabled overla
 
 Hauling and wandering permissions are independently configurable for colonists, mechs/robots, animals, guests, slaves, and prisoners. Child work watching has its own toggle.
 
-Restrictions evaluate targets and relevant routes. Units inside receive safe exits; outside wandering attempts use a short wait rather than repeated redirection. Non-humanlike units obey access rules but never enter the apparel intervention system.
+Restrictions evaluate targets and relevant routes. Units inside receive safe exits. Outside work, hauling, and wandering retain their native jobs and use a protected-cell path grid to take an available route around disabled-access areas; exact candidates are rejected only when no avoiding route exists. Non-humanlike units obey access rules but never enter the apparel intervention system.
 
 ### Path safety
 

@@ -140,7 +140,7 @@ When enabled work areas overlap, the most restrictive pause wins in their shared
 
 Each rule has separate **Hauling** and **Wandering** permissions for colonists, mechs/robots, animals, guests, slaves, and prisoners.
 
-These permissions govern travel into or through the area; they do not outfit non-humanlike units. Disallowed units inside receive an exit job. Units already outside briefly wait instead of repeatedly selecting a route through the restriction. The **Haulers** and **Wanderers** rows show current relevant activity.
+These permissions govern travel into or through the area; they do not outfit non-humanlike units. Disallowed units inside receive an exit job. For a job whose targets are outside, RimWorld keeps the native task and routes around the restricted area when another path exists. The exact task is rejected only when the protected area is the sole route. The **Haulers** and **Wanderers** rows show current relevant activity.
 
 ### Children and work watching
 

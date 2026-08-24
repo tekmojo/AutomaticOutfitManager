@@ -70,6 +70,7 @@ namespace AutomaticOutfitManager.Core
 
         public AutomaticOutfitManagerGameComponent(Game game)
         {
+            Patches.ProtectedPathAvoidance.ResetForLoadedGame();
         }
 
         public override void GameComponentTick()
@@ -1058,6 +1059,7 @@ namespace AutomaticOutfitManager.Core
                 SeedManagedStockCatalogs();
                 RebuildRuntimeIndexes();
                 ManagedWorkClaimRegistry.ResetForLoadedGame();
+                Patches.ProtectedPathAvoidance.ResetForLoadedGame();
 
                 if (Prefs.DevMode && PawnStates.Count > 0)
                     Log.Message($"[AutomaticOutfitManager] Loaded {PawnStates.Count} pawn outfit snapshot(s).");

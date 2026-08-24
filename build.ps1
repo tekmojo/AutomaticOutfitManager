@@ -64,6 +64,7 @@ $references = @(
     (Join-Path $managedDir "UnityEngine.CoreModule.dll"),
     (Join-Path $managedDir "UnityEngine.IMGUIModule.dll"),
     (Join-Path $managedDir "UnityEngine.TextRenderingModule.dll"),
+    (Join-Path $managedDir "Unity.Collections.dll"),
     $HarmonyDll
 ) | ForEach-Object { "/reference:$_" }
 
