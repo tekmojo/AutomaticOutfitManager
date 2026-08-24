@@ -28,6 +28,7 @@ First Steam Workshop release candidate.
 - Invalid destroyed targets are discarded before a pending continuation is saved, preventing new saves from persisting unresolved job references.
 - Paused work is rejected across concrete job-giver overrides and again at job start, preventing boundary cancel/reselect loops when a route crosses the paused area.
 - Construction resource delivery now uses hauling access consistently at both scanner phases, avoiding `CanGiveJob`/`JobOnX` mismatches when hauling is disabled.
+- Route-dependent access denials now cool down only the rejected concrete target, letting native task selection immediately choose other legal work instead of repeating visible Standing waits.
 - Recalculated routes now recheck both complete gear and work/hauling/wandering access at the actual protected-cell boundary.
 - New-world weapon generation no longer queries the player faction before that faction exists.
 - Area-based apparel and PPE requirements.

@@ -150,6 +150,16 @@ namespace AutomaticOutfitManager.Patches
             if (!targetCell.IsValid || targetMap == null || !targetCell.InBounds(targetMap))
                 return false;
 
+            // StartJob can discover a route-dependent access denial that the
+            // scanner could not know from the destination alone. Remember that
+            // exact concrete candidate briefly so the next native scan skips it
+            // and can select unrelated legal work instead of repeating Wait.
+            if (UnavailableWorkRegistry.ShouldReject(
+                    pawn, targetMap, thing, targetCell))
+            {
+                return true;
+            }
+
             if (ManagedWorkClaimRegistry.IsClaimedByOther(
                     pawn, targetMap, thing, targetCell))
                 return true;
@@ -474,26 +484,31 @@ namespace AutomaticOutfitManager.Patches
 
         public static bool ShouldRejectPausedAreaJob(Pawn pawn, Job job)
         {
+            return DeniedPausedAreaRule(pawn, job) != null;
+        }
+
+        public static ApparelRule DeniedPausedAreaRule(Pawn pawn, Job job)
+        {
             if (pawn?.Map == null || job == null || pawn.Drafted ||
                 !IsManagedPawn(pawn) ||
                 IsEssentialPersonalJob(job) ||
                 AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn)?.RecallRequested == true)
-                return false;
+                return null;
 
             // A paused rule stops ordinary work, but its hauling toggle may
             // explicitly permit hauling or wandering. Humanlike pawns still
             // pass through the normal apparel intervention where applicable.
             if (MatchingPermittedHaulingRule(pawn, job) != null ||
                 MatchingPermittedWanderingRule(pawn, job) != null)
-                return false;
+                return null;
 
-            return AutomaticOutfitManagerGameComponent.Current?.Rules?.Any(rule =>
+            return AutomaticOutfitManagerGameComponent.Current?.Rules?.FirstOrDefault(rule =>
                 rule != null &&
                 rule.Enabled &&
                 rule.WorkAreaPaused &&
                 rule.Area?.Map == pawn.Map &&
                 (RuleEvaluator.JobTargetsArea(job, rule.Area) ||
-                 JobPathCrossesArea(pawn, job, rule.Area))) == true;
+                 JobPathCrossesArea(pawn, job, rule.Area)));
         }
 
         public static ApparelRule MatchingPermittedHaulingRule(Pawn pawn, Job job)

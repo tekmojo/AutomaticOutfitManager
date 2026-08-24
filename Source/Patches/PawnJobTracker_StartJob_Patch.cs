@@ -118,8 +118,9 @@ namespace AutomaticOutfitManager.Patches
                 }
                 else
                 {
+                    UnavailableWorkRegistry.Block(pawn, deniedWorkRule, newJob);
                     __instance.ClearQueuedJobs(false);
-                    ReplaceWithWait(pawn, 180, ref newJob, ref jobGiver, ref tag);
+                    ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
                     return;
                 }
             }
@@ -144,8 +145,9 @@ namespace AutomaticOutfitManager.Patches
                 }
                 else
                 {
+                    UnavailableWorkRegistry.Block(pawn, deniedHaulingRule, newJob);
                     __instance.ClearQueuedJobs(false);
-                    ReplaceWithWait(pawn, 180, ref newJob, ref jobGiver, ref tag);
+                    ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
                     return;
                 }
             }
@@ -158,7 +160,9 @@ namespace AutomaticOutfitManager.Patches
             // cancelled by the path guard, and immediately select the same job
             // again. A bounded wait also prevents a no-job retry storm when no
             // safe alternative work is currently available.
-            if (PausedAreaWorkFilter.ShouldRejectPausedAreaJob(pawn, newJob))
+            ApparelRule deniedPausedAreaRule =
+                PausedAreaWorkFilter.DeniedPausedAreaRule(pawn, newJob);
+            if (deniedPausedAreaRule != null)
             {
                 if (Prefs.DevMode && ShouldLogRepeatedDiagnostic(
                         pawn, $"paused-work-start:{newJob.def?.defName}"))
@@ -177,8 +181,10 @@ namespace AutomaticOutfitManager.Patches
                 }
                 else
                 {
+                    UnavailableWorkRegistry.Block(
+                        pawn, deniedPausedAreaRule, newJob);
                     __instance.ClearQueuedJobs(false);
-                    ReplaceWithWait(pawn, 180, ref newJob, ref jobGiver, ref tag);
+                    ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
                     return;
                 }
             }
