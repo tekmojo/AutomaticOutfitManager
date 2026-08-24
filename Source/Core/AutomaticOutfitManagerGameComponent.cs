@@ -254,6 +254,14 @@ namespace AutomaticOutfitManager.Core
                     if (pawn.Faction == Faction.OfPlayer && !pawn.Drafted)
                     {
                         PawnApparelState state = StateFor(pawn);
+                        bool managedWorkContext = job.workGiverDef != null ||
+                            job.jobGiver is JobGiver_Work ||
+                            job.playerForced;
+                        if (state == null && managedWorkContext)
+                        {
+                            state = TrackCompliantWorkSession(
+                                pawn, job, RuleEvaluator.MatchingRules(pawn, job));
+                        }
                         DetectExternalWeaponOverride(pawn, state, job);
                         foreach (ApparelRule rule in mapPausedRules)
                         {
@@ -1430,6 +1438,54 @@ namespace AutomaticOutfitManager.Core
         public ApparelRule RuleById(string ruleId) =>
             Rules.FirstOrDefault(rule => rule != null && rule.Id == ruleId);
 
+        public PawnApparelState TrackCompliantWorkSession(
+            Pawn pawn,
+            Job job,
+            IEnumerable<ApparelRule> matchingRules)
+        {
+            if (pawn?.RaceProps?.Humanlike != true || pawn.apparel == null ||
+                pawn.Drafted || job?.def == null)
+            {
+                return null;
+            }
+
+            List<ApparelRule> rules = matchingRules?
+                .Where(rule => rule?.Enabled == true &&
+                               !rule.WorkAreaPaused &&
+                               rule.Area?.Map == pawn.Map)
+                .GroupBy(rule => rule.Id)
+                .Select(group => group.First())
+                .ToList() ?? new List<ApparelRule>();
+            if (rules.Count == 0 ||
+                rules.Any(rule => RuleEvaluator.HasMissingRequiredGear(pawn, rule)))
+            {
+                return null;
+            }
+
+            PawnApparelState state = StateFor(pawn);
+            if (state == null)
+            {
+                // The pawn already owns every requirement. Track the work so it
+                // receives the same status and Recall control as an outfitted
+                // worker, but capture and claim none of its personal gear.
+                state = BeginIntervention(
+                    pawn, rules[0], Enumerable.Empty<RimWorld.Apparel>(), null);
+            }
+
+            if (state == null || state.RecallRequested ||
+                state.Transition == ApparelTransition.ReturningToChangingArea ||
+                state.Transition == ApparelTransition.Restoring)
+            {
+                return state;
+            }
+
+            state.CurrentRuleIds = rules.Select(rule => rule.Id).ToList();
+            state.Transition = ApparelTransition.Active;
+            state.LastManagedWorkJobDefName = job.def.defName;
+            state.ActiveIdleTicks = 0;
+            return state;
+        }
+
         public PawnApparelState BeginIntervention(
             Pawn pawn,
             ApparelRule rule,
@@ -1484,12 +1540,20 @@ namespace AutomaticOutfitManager.Core
 
             if (Prefs.DevMode)
             {
-                string apparel = state.OriginalApparel.Count == 0
-                    ? "none"
-                    : string.Join(", ", state.OriginalApparel
-                        .Where(item => item != null)
-                        .Select(item => item.LabelCap.ToString()));
-                Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: captured apparel snapshot for '{rule.Name}': {apparel}.");
+                if (!state.ApparelInterventionActive &&
+                    !state.WeaponInterventionActive)
+                {
+                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: started compliant work session for '{rule.Name}'; no personal gear was claimed.");
+                }
+                else
+                {
+                    string apparel = state.OriginalApparel.Count == 0
+                        ? "none"
+                        : string.Join(", ", state.OriginalApparel
+                            .Where(item => item != null)
+                            .Select(item => item.LabelCap.ToString()));
+                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: captured apparel snapshot for '{rule.Name}': {apparel}.");
+                }
             }
 
             return state;
@@ -1549,12 +1613,18 @@ namespace AutomaticOutfitManager.Core
             if (state == null)
                 return;
 
+            bool trackedOnly = !state.ApparelInterventionActive &&
+                !state.WeaponInterventionActive;
             PawnStates.Remove(state);
             pawnStateIndex.Remove(pawn);
             indexedPawnStateCount = PawnStates.Count;
             InvalidateWeaponStateIndex();
             if (Prefs.DevMode)
-                Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: outfit restoration complete; snapshot cleared.");
+            {
+                Log.Message(trackedOnly
+                    ? $"[AutomaticOutfitManager] {pawn.LabelShortCap}: compliant work session cleared; personal gear was unchanged."
+                    : $"[AutomaticOutfitManager] {pawn.LabelShortCap}: outfit restoration complete; snapshot cleared.");
+            }
         }
 
         public static AutomaticOutfitManagerGameComponent Current =>

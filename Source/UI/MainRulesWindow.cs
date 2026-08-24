@@ -448,8 +448,12 @@ namespace AutomaticOutfitManager.UI
                     Rect returnWorkerRect = new Rect(rect.xMax - 70f, workerY, 60f, 22f);
                     if (Widgets.ButtonText(returnWorkerRect, "Recall"))
                         ReturnWorker(state);
+                    bool ownsManagedGear = state.ApparelInterventionActive ||
+                        state.WeaponInterventionActive;
                     TooltipHandler.TipRegion(returnWorkerRect,
-                        $"Recall only {state.Pawn.LabelShortCap} from managed work. They return to the locker room when one is configured, return managed apparel and weapons, and restore their exact saved apparel and primary weapon. Work remains active for other workers.");
+                        ownsManagedGear
+                            ? $"Recall only {state.Pawn.LabelShortCap} from managed work. They return to the locker room when one is configured, return managed apparel and weapons, and restore their exact saved apparel and primary weapon. Work remains active for other workers."
+                            : $"Recall only {state.Pawn.LabelShortCap} from managed work. They already owned every required item, so AOM interrupts the work without changing, claiming, or restoring their personal outfit. Work remains active for other workers.");
                 }
 
                 for (int workerIndex = 0;
@@ -476,25 +480,35 @@ namespace AutomaticOutfitManager.UI
                     if (Widgets.ButtonInvisible(workerRect))
                         CameraJumper.TryJumpAndSelect(worker);
 
-                    Rect readyRect = new Rect(
+                    Rect fallbackRecallRect = new Rect(
                         rect.xMax - 78f, workerY, 68f, 22f);
-                    Color readyColor = GUI.color;
-                    GUI.color = entry.MissingRequiredGear
-                        ? Color.red
-                        : Color.gray;
-                    TextAnchor readyPreviousAnchor = Text.Anchor;
-                    Text.Anchor = TextAnchor.MiddleCenter;
-                    Widgets.Label(readyRect,
-                        entry.MissingRequiredGear ? "Untracked" : "Ready");
-                    Text.Anchor = readyPreviousAnchor;
-                    GUI.color = readyColor;
+                    if (entry.MissingRequiredGear)
+                    {
+                        Color untrackedColor = GUI.color;
+                        GUI.color = Color.red;
+                        TextAnchor untrackedPreviousAnchor = Text.Anchor;
+                        Text.Anchor = TextAnchor.MiddleCenter;
+                        Widgets.Label(fallbackRecallRect, "Untracked");
+                        Text.Anchor = untrackedPreviousAnchor;
+                        GUI.color = untrackedColor;
+                    }
+                    else if (Widgets.ButtonText(fallbackRecallRect, "Recall"))
+                    {
+                        State.PawnApparelState tracked =
+                            component.TrackCompliantWorkSession(
+                                worker,
+                                worker.CurJob,
+                                RuleEvaluator.MatchingRules(worker, worker.CurJob));
+                        activityCache.Remove(rule.Id);
+                        ReturnWorker(tracked);
+                    }
 
                     string status = entry.MissingRequiredGear
                         ? "This qualifying worker is missing required gear but has no active AOM outfit session. This indicates a protection failure and should be reported with the player log."
-                        : "This pawn was already wearing and carrying every requirement when qualifying work began. AOM did not change or save their outfit, so there is nothing for Recall to restore.";
+                        : $"Recall only {worker.LabelShortCap} from managed work. They already owned every required item, so AOM interrupts the work without changing, claiming, or restoring their personal outfit.";
                     TooltipHandler.TipRegion(workerRect,
                         $"{status}\n\nClick to select and jump to {worker.LabelShortCap}.");
-                    TooltipHandler.TipRegion(readyRect, status);
+                    TooltipHandler.TipRegion(fallbackRecallRect, status);
                 }
             }
 
@@ -574,6 +588,9 @@ namespace AutomaticOutfitManager.UI
             if (activityCache.TryGetValue(key, out CachedRuleActivity cached) &&
                 cached.Map == map && now - cached.CreatedAt < ActivityCacheSeconds)
             {
+                cached.QualifyingWorkers.RemoveAll(entry =>
+                    AutomaticOutfitManagerGameComponent.Current?
+                        .StateFor(entry?.Pawn) != null);
                 return cached;
             }
 

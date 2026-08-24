@@ -149,7 +149,7 @@ These permissions govern travel into or through the area; they do not outfit non
 
 Readiness reports whether a rule currently accepts work, is configured, and has the required apparel, weapons, and storage available. **Work paused** means the rule was paused and remains closed until resumed. **Active — shared cells paused** means only the overlap is closed; **Blocked — work area covered** means paused overlaps cover the entire rule. Returning workers do not make an active rule appear paused. Availability is a map-level summary with each selected exact weapon counted separately; an item can still become reserved, unreachable, worn, equipped, or moved.
 
-The **Workers** section includes both active AOM outfit sessions and qualifying workers who already had every required item before work began. Already-compliant workers are marked **Ready** because AOM did not change or save their outfit; only workers with an AOM-managed outfit session have a **Recall** action.
+The **Workers** section includes every qualifying worker, including pawns who already had every required item before work began. All receive the same **Recall** action. An already-compliant session tracks the work without changing, claiming, or restoring the pawn's personal outfit.
 
 Worker rows and hover tooltips expose the current transition:
 

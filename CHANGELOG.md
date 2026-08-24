@@ -16,7 +16,7 @@ First Steam Workshop release candidate.
 
 ### Retained and hardened
 
-- The Workers list now shows qualifying pawns who were already fully equipped, while distinguishing them from recallable AOM outfit sessions.
+- Already-equipped qualifying pawns now receive the same tracked worker status and Recall control as workers outfitted by AOM, without claiming their personal gear.
 - Permitted hauling now continues through outfit preparation while ordinary work is paused, without restarting the same haul indefinitely.
 - Paused work is rejected across concrete job-giver overrides and again at job start, preventing boundary cancel/reselect loops when a route crosses the paused area.
 - New-world weapon generation no longer queries the player faction before that faction exists.

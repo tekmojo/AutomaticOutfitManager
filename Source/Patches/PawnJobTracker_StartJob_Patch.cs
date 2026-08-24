@@ -571,6 +571,23 @@ namespace AutomaticOutfitManager.Patches
                     state.LastBufferedJobLoadId = -1;
                 }
                 bool shouldLeaveRule = state.RecallRequested || !matchesActiveRule;
+                if (shouldLeaveRule &&
+                    !state.ApparelInterventionActive &&
+                    !state.WeaponInterventionActive)
+                {
+                    // Already-compliant workers have a real Phase 3 session so
+                    // the native Workers row and Recall control stay identical,
+                    // but AOM owns no part of their personal outfit. End that
+                    // lightweight session directly instead of routing through a
+                    // locker or manufacturing a restoration cycle.
+                    bool recalled = state.RecallRequested;
+                    __instance.ClearQueuedJobs(false);
+                    component.EndIntervention(pawn);
+                    if (recalled)
+                        ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
+                    return;
+                }
+
                 if (shouldLeaveRule && state.Transition == ApparelTransition.Preparing &&
                     !state.RecallRequested)
                     return;
@@ -819,6 +836,11 @@ namespace AutomaticOutfitManager.Patches
             if (missing.Count == 0 && !missingWeapon)
             {
                 PawnApparelState activeState = component?.StateFor(pawn);
+                if (activeState == null && matchingWorkRules.Count > 0)
+                {
+                    activeState = component?.TrackCompliantWorkSession(
+                        pawn, newJob, matchingWorkRules);
+                }
                 if (activeState != null &&
                     applicableRules.Any(candidate => candidate.Id == activeState.ActiveRuleId) &&
                     activeState.Transition == ApparelTransition.Preparing &&
