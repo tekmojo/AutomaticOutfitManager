@@ -56,6 +56,7 @@ Use temporary neutral rule names such as `RC Apparel`, `RC Weapon`, `RC Combined
 ### RC-07: save/load continuity
 
 - [ ] Save and reload while a pawn is preparing, performing preserved work, buffered, returning gear, and waiting for a saved item.
+- [ ] Invalidate or destroy a queued pending-work target before saving; verify the continuation is discarded before serialization and the next load has no unresolved-object error from AOM's pending job.
 - [ ] Verify the concrete job resumes only while still valid and contested or invalid work cancels cleanly.
 - [ ] Confirm no retry loop, repeated Standing job, or `10 jobs in one tick` warning appears.
 
@@ -65,8 +66,10 @@ Use temporary neutral rule names such as `RC Apparel`, `RC Weapon`, `RC Combined
 - [ ] Verify an already-compliant pawn doing qualifying work appears under **Workers** with **Recall**, while their personal apparel and weapon remain unchanged and unclaimed.
 - [ ] Recall one worker while the rule remains active; verify the current managed task is cancelled, the pawn immediately returns to the configured locker, saved gear is restored, the AOM session clears, another worker may continue, and native task selection resumes without a waiting-for-reassignment state.
 - [ ] Interrupt or otherwise invalidate a pawn's locker-return movement; verify a visible **Standing** state is detected within a few in-game seconds, the locker route or restoration is rebuilt, and the pawn does not remain under **Workers** indefinitely.
+- [ ] Recall multiple workers together with one locker cell occupied or already targeted; verify they choose separate usable cells or restore in place without repeating **Returning to locker room**.
 - [ ] Verify hauling and wandering appear only in their dedicated activity rows, including immediately after managed work and during a task buffer.
 - [ ] With hauling allowed and work active, verify an unequipped pawn prepares once, completes the original haul, and does not alternate between preparation and restoration for the same target.
+- [ ] Observe a haul with a visible delay toil; verify the advancing delay is not mistaken for finished work and the pawn completes the original haul before restoration.
 - [ ] While a pawn is returning or restoring after a haul, verify it appears only under **Workers** and is not duplicated under **Haulers**.
 - [ ] Place an assigned bed inside an active work area; verify the pawn restores normal gear, reaches the bed, and sleeps instead of repeatedly standing after a rejected **LayDown** job.
 - [ ] With work paused, verify jobs targeted beyond the area do not create a walk-to-boundary/cancel/reselect loop when their shortest route crosses it.

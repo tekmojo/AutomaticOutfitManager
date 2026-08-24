@@ -22,6 +22,8 @@ First Steam Workshop release candidate.
 - Hauling and wandering remain in their dedicated activity rows instead of being promoted to Workers by work-giver metadata or a retained outfit session.
 - Permitted hauling now remains part of its active outfit session until the haul completes, including while ordinary work is paused, without repeatedly changing outfits and reacquiring the same haul.
 - Assigned beds and other essential personal destinations inside a managed work area remain reachable after normal gear is restored, preventing repeated rejected sleep jobs and standing pawns.
+- Legitimate haul delay toils no longer look like completed or stalled work, disabled activity recalls enter the locker-return path directly, and simultaneous returns avoid occupied or already-targeted locker cells.
+- Invalid destroyed targets are discarded before a pending continuation is saved, preventing new saves from persisting unresolved job references.
 - Paused work is rejected across concrete job-giver overrides and again at job start, preventing boundary cancel/reselect loops when a route crosses the paused area.
 - New-world weapon generation no longer queries the player faction before that faction exists.
 - Area-based apparel and PPE requirements.

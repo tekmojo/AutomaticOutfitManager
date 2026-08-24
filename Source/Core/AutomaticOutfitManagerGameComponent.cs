@@ -12,6 +12,7 @@ namespace AutomaticOutfitManager.Core
     public sealed class AutomaticOutfitManagerGameComponent : GameComponent
     {
         private const int RestorationNoProgressTimeoutTicks = 600;
+        private const int ActiveWorkNoProgressTimeoutTicks = 600;
         private const int ManagedGearWakeCoalesceTicks = 120;
 
         private sealed class RestorationProgress
@@ -52,6 +53,8 @@ namespace AutomaticOutfitManager.Core
         private readonly Dictionary<string, Pawn> spawnedPawnIdIndex = new Dictionary<string, Pawn>();
         private readonly Dictionary<Pawn, int> jobTransitionFailureTicks = new Dictionary<Pawn, int>();
         private readonly Dictionary<Pawn, RestorationProgress> restorationProgress =
+            new Dictionary<Pawn, RestorationProgress>();
+        private readonly Dictionary<Pawn, RestorationProgress> activeWorkProgress =
             new Dictionary<Pawn, RestorationProgress>();
         private readonly Dictionary<Pawn, int> rejectedManagedGearWakeTicks =
             new Dictionary<Pawn, int>();
@@ -524,6 +527,8 @@ namespace AutomaticOutfitManager.Core
                         rejectedManagedGearWakeTicks.Remove(pawn);
                     }
                 }
+                if (state?.Transition != ApparelTransition.Active && pawn != null)
+                    activeWorkProgress.Remove(pawn);
                 if (pawn?.Spawned == true && !pawn.Drafted &&
                     state.Transition == ApparelTransition.ReturningToChangingArea)
                 {
@@ -652,30 +657,114 @@ namespace AutomaticOutfitManager.Core
                 }
 
                 Job job = pawn.jobs?.curJob;
-                bool idle = IsIdleRecoveryJob(pawn, job) ||
-                    ((job.def == JobDefOf.HaulToCell || job.def == JobDefOf.HaulToContainer) &&
-                     pawn.carryTracker?.CarriedThing == null &&
-                     pawn.pather?.Moving != true);
+                bool haulingJob = job?.def == JobDefOf.HaulToCell ||
+                    job?.def == JobDefOf.HaulToContainer;
+                // A haul delay toil can report "Standing" while its timer is
+                // advancing. Never feed hauling through the generic visible-job
+                // heuristic; it has the progress-aware detector below.
+                bool idleRecoveryJob = !haulingJob &&
+                    IsIdleRecoveryJob(pawn, job);
+                bool stalledHaul = haulingJob &&
+                    ActiveHaulHasStalled(pawn, state, currentTick);
 
-                if (!idle)
+                if (!idleRecoveryJob && !stalledHaul)
                 {
                     state.ActiveIdleTicks = 0;
                     continue;
                 }
 
-                state.ActiveIdleTicks += 30;
-                if (state.ActiveIdleTicks < 240)
-                    continue;
+                if (!stalledHaul)
+                {
+                    state.ActiveIdleTicks += 30;
+                    if (state.ActiveIdleTicks < 240)
+                        continue;
+                }
 
-                // Some haul drivers can finish their final toil without promptly
-                // yielding a new StartJob call. That leaves the apparel state
-                // active and the pawn visibly standing forever. After a short
-                // grace period, request the normal locker-room restoration path.
+                // A true Wait/Standing job gets a short grace period. Hauling is
+                // different: vanilla and modded haul drivers legitimately stand
+                // without carrying while a delay toil advances. Recall a haul
+                // only after its job, toil timer, position, target, queue, and
+                // carried item have all stopped changing for the full timeout.
                 state.ActiveIdleTicks = 0;
+                activeWorkProgress.Remove(pawn);
                 RequestRecall(state);
                 if (Prefs.DevMode)
                     Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: finished work and became idle; returning to locker room.");
             }
+        }
+
+        private bool ActiveHaulHasStalled(
+            Pawn pawn, PawnApparelState state, int currentTick)
+        {
+            Job job = pawn?.jobs?.curJob;
+            bool idleHaul = job != null &&
+                (job.def == JobDefOf.HaulToCell || job.def == JobDefOf.HaulToContainer) &&
+                pawn.carryTracker?.CarriedThing == null &&
+                pawn.pather?.Moving != true;
+            if (!idleHaul)
+            {
+                if (pawn != null)
+                    activeWorkProgress.Remove(pawn);
+                return false;
+            }
+
+            JobDriver driver = pawn.jobs.curDriver;
+            Thing target = job.targetA.Thing;
+            int jobLoadId = job.loadID;
+            int toilIndex = driver?.CurToilIndex ?? -1;
+            int ticksLeftThisToil = driver?.ticksLeftThisToil ?? -1;
+            int queueCount = pawn.jobs.jobQueue?.Count ?? 0;
+            IntVec3 targetPosition = target?.PositionHeld ??
+                (job.targetA.IsValid ? job.targetA.Cell : IntVec3.Invalid);
+            int wornOriginalCount = CountWornApparel(
+                pawn, state?.OriginalApparel);
+            int wornManagedCount = CountWornApparel(
+                pawn, state?.ManagedApparel);
+            int primaryThingId = pawn.equipment?.Primary?.thingIDNumber ?? -1;
+            int carriedThingId = pawn.carryTracker?.CarriedThing?.thingIDNumber ?? -1;
+
+            if (!activeWorkProgress.TryGetValue(
+                    pawn, out RestorationProgress progress))
+            {
+                progress = new RestorationProgress();
+                activeWorkProgress[pawn] = progress;
+                CaptureRestorationProgress(
+                    progress, currentTick, jobLoadId, job.def, toilIndex,
+                    ticksLeftThisToil, queueCount, pawn.Position, target,
+                    targetPosition, wornOriginalCount, wornManagedCount,
+                    primaryThingId, carriedThingId);
+                return false;
+            }
+
+            bool toilTimerAdvanced = ticksLeftThisToil >= 0 &&
+                progress.TicksLeftThisToil >= 0 &&
+                ticksLeftThisToil != progress.TicksLeftThisToil;
+            bool changed = progress.JobLoadId != jobLoadId ||
+                progress.JobDef != job.def ||
+                progress.ToilIndex != toilIndex ||
+                toilTimerAdvanced ||
+                progress.QueueCount != queueCount ||
+                progress.PawnPosition != pawn.Position ||
+                progress.TargetThingId != (target?.thingIDNumber ?? -1) ||
+                progress.TargetPosition != targetPosition ||
+                progress.TargetSpawned != (target?.Spawned == true) ||
+                progress.WornOriginalCount != wornOriginalCount ||
+                progress.WornManagedCount != wornManagedCount ||
+                progress.PrimaryThingId != primaryThingId ||
+                progress.CarriedThingId != carriedThingId;
+
+            if (changed)
+            {
+                CaptureRestorationProgress(
+                    progress, currentTick, jobLoadId, job.def, toilIndex,
+                    ticksLeftThisToil, queueCount, pawn.Position, target,
+                    targetPosition, wornOriginalCount, wornManagedCount,
+                    primaryThingId, carriedThingId);
+                return false;
+            }
+
+            return currentTick - progress.LastProgressTick >=
+                   ActiveWorkNoProgressTimeoutTicks;
         }
 
         private bool RestorationHasStalled(
@@ -906,6 +995,8 @@ namespace AutomaticOutfitManager.Core
         public override void ExposeData()
         {
             base.ExposeData();
+            if (Scribe.mode == LoadSaveMode.Saving)
+                DiscardInvalidPendingWorkBeforeSave();
             Scribe_Collections.Look(ref Rules, "automaticOutfitManagerRules", LookMode.Deep);
             Scribe_Collections.Look(ref PawnStates, "automaticOutfitManagerPawnStates", LookMode.Deep);
             Scribe_Collections.Look(ref ManagedApparelIds, "automaticOutfitManagerManagedIds", LookMode.Value);
@@ -950,6 +1041,7 @@ namespace AutomaticOutfitManager.Core
         {
             base.LoadedGame();
             restorationProgress.Clear();
+            activeWorkProgress.Clear();
             rejectedManagedGearWakeTicks.Clear();
             RebuildRuntimeIndexes();
             foreach (PawnApparelState state in PawnStates)
@@ -994,7 +1086,7 @@ namespace AutomaticOutfitManager.Core
                 if (!Patches.PawnJobTracker_StartJob_Patch.PendingWorkJobIsViable(
                         state.Pawn, state.PendingWorkJob, out string invalidReason))
                 {
-                    CancelLoadedPendingWork(state, invalidReason);
+                    CancelPendingWork(state, invalidReason, "after load");
                     continue;
                 }
 
@@ -1006,18 +1098,33 @@ namespace AutomaticOutfitManager.Core
                     continue;
                 }
 
-                CancelLoadedPendingWork(
+                CancelPendingWork(
                     state,
                     claimed
                         ? "the saved job no longer has a claimable target"
-                        : "another pawn now claims one of its targets");
+                        : "another pawn now claims one of its targets",
+                    "after load");
             }
 
             return restoredClaims;
         }
 
-        private void CancelLoadedPendingWork(
-            PawnApparelState state, string reason)
+        private void DiscardInvalidPendingWorkBeforeSave()
+        {
+            foreach (PawnApparelState state in PawnStates.Where(state =>
+                         state?.Pawn?.Spawned == true &&
+                         state.PendingWorkJob != null).ToList())
+            {
+                if (!Patches.PawnJobTracker_StartJob_Patch.PendingWorkJobIsViable(
+                        state.Pawn, state.PendingWorkJob, out string invalidReason))
+                {
+                    CancelPendingWork(state, invalidReason, "before save");
+                }
+            }
+        }
+
+        private void CancelPendingWork(
+            PawnApparelState state, string reason, string stage)
         {
             Pawn pawn = state?.Pawn;
             if (pawn == null)
@@ -1032,8 +1139,8 @@ namespace AutomaticOutfitManager.Core
             if (Prefs.DevMode)
             {
                 Log.Warning(
-                    $"[AutomaticOutfitManager] {pawn.LabelShortCap}: discarded saved " +
-                    $"{jobName} continuation after load ({reason}); returning saved apparel and weapon.");
+                    $"[AutomaticOutfitManager] {pawn.LabelShortCap}: discarded " +
+                    $"{jobName} continuation {stage} ({reason}); returning saved apparel and weapon.");
             }
         }
 
@@ -1686,6 +1793,7 @@ namespace AutomaticOutfitManager.Core
         {
             ManagedWorkClaimRegistry.ReleaseAll(pawn);
             restorationProgress.Remove(pawn);
+            activeWorkProgress.Remove(pawn);
             rejectedManagedGearWakeTicks.Remove(pawn);
             PawnApparelState state = StateFor(pawn);
             if (state == null)

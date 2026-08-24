@@ -108,11 +108,20 @@ namespace AutomaticOutfitManager.Patches
                     string category = PawnAccessClassifier.IsHostedGuest(pawn) ? "guest work" : "work";
                     Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: blocked from '{deniedWorkRule.Name}'; {category} is disabled.");
                 }
-                if (state != null && PawnAccessClassifier.IsHostedGuest(pawn))
+                if (state != null)
+                {
                     component.RequestRecall(state);
-                __instance.ClearQueuedJobs(false);
-                ReplaceWithWait(pawn, 180, ref newJob, ref jobGiver, ref tag);
-                return;
+                    // Continue through the shared transition path below. Replacing
+                    // the denied job with Wait here strands an already-managed
+                    // pawn for the whole wait, and repeated denied candidates can
+                    // displace every locker-return recovery attempt.
+                }
+                else
+                {
+                    __instance.ClearQueuedJobs(false);
+                    ReplaceWithWait(pawn, 180, ref newJob, ref jobGiver, ref tag);
+                    return;
+                }
             }
 
             ApparelRule deniedHaulingRule =
@@ -127,11 +136,18 @@ namespace AutomaticOutfitManager.Patches
                         : "hauling";
                     Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: blocked from '{deniedHaulingRule.Name}'; {category} is disabled.");
                 }
-                if (state != null && PawnAccessClassifier.IsHostedGuest(pawn))
+                if (state != null)
+                {
                     component.RequestRecall(state);
-                __instance.ClearQueuedJobs(false);
-                ReplaceWithWait(pawn, 180, ref newJob, ref jobGiver, ref tag);
-                return;
+                    // Let the active state replace this denied haul with its real
+                    // locker/restoration transition instead of a Standing wait.
+                }
+                else
+                {
+                    __instance.ClearQueuedJobs(false);
+                    ReplaceWithWait(pawn, 180, ref newJob, ref jobGiver, ref tag);
+                    return;
+                }
             }
 
             // Most autonomous jobs are rejected by the work-scanner and
@@ -152,9 +168,19 @@ namespace AutomaticOutfitManager.Patches
                         $"{newJob.def?.defName ?? "job"} before it could enter a paused work area.");
                 }
 
-                __instance.ClearQueuedJobs(false);
-                ReplaceWithWait(pawn, 180, ref newJob, ref jobGiver, ref tag);
-                return;
+                if (state != null)
+                {
+                    component.RequestRecall(state);
+                    // The managed-state block below performs the exact return
+                    // and restoration. A state-less pawn still receives the
+                    // bounded retry used for ordinary paused-area rejection.
+                }
+                else
+                {
+                    __instance.ClearQueuedJobs(false);
+                    ReplaceWithWait(pawn, 180, ref newJob, ref jobGiver, ref tag);
+                    return;
+                }
             }
 
             // Keep guests and other non-colony pawns from reserving, hauling,
@@ -1492,10 +1518,35 @@ namespace AutomaticOutfitManager.Patches
 
             cell = area.ActiveCells
                 .Where(candidate => candidate.Standable(pawn.Map) &&
-                                    pawn.CanReach(candidate, PathEndMode.OnCell, Danger.Deadly))
+                                    pawn.CanReach(candidate, PathEndMode.OnCell, Danger.Deadly) &&
+                                    ChangingCellIsAvailable(pawn, candidate))
                 .OrderBy(candidate => candidate.DistanceToSquared(pawn.Position))
                 .FirstOrDefault();
             return cell.IsValid;
+        }
+
+        private static bool ChangingCellIsAvailable(Pawn pawn, IntVec3 candidate)
+        {
+            if (pawn?.Map == null || !candidate.IsValid)
+                return false;
+
+            Pawn occupant = candidate.GetFirstPawn(pawn.Map);
+            if (occupant != null && occupant != pawn)
+                return false;
+            if (!pawn.CanReserve(
+                    new LocalTargetInfo(candidate), 1, -1, null, false))
+            {
+                return false;
+            }
+
+            // Goto does not reserve its destination. Exclude cells already
+            // assigned to another returning pawn so simultaneous recalls do not
+            // repeatedly choose the same otherwise-free locker square.
+            return AutomaticOutfitManagerGameComponent.Current?.PawnStates?.All(state =>
+                state?.Pawn == null || state.Pawn == pawn ||
+                state.Transition != ApparelTransition.ReturningToChangingArea ||
+                state.Pawn.jobs?.curJob?.def != JobDefOf.Goto ||
+                state.Pawn.jobs.curJob.targetA.Cell != candidate) != false;
         }
 
         private static bool JobTargetsArea(Job job, Area area)

@@ -94,7 +94,7 @@ Drafting pauses management. A player-forced equipment job, a Simple Sidearms pre
 The optional locker room controls where restoration occurs and where shared apparel and weapons should be stored.
 
 - Required apparel and weapons in the locker are preferred; suitable map-wide items are a fallback.
-- After the task buffer is exhausted, the pawn returns there before restoring saved clothing and any managed primary weapon.
+- After the task buffer is exhausted, the pawn returns there before restoring saved clothing and any managed primary weapon. Simultaneous returns choose separate usable cells; if the locker has no free reachable cell, recovery restores in place rather than leaving the pawn Standing indefinitely.
 - Low-priority apparel- and weapon-specific hauling work givers return loose selected apparel and weapons to valid locker storage whenever their rule is enabled, including during normal active operation and while work is paused.
 - Rules without a locker still change outfits without a dedicated return trip.
 
