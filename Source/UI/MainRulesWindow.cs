@@ -390,7 +390,8 @@ namespace AutomaticOutfitManager.UI
             List<State.PawnApparelState> managedWorkers = component.PawnStates
                 .Where(state => state?.Pawn?.RaceProps?.Humanlike == true &&
                                 state.Pawn.apparel != null &&
-                                TracksRule(state, rule.Id))
+                                TracksRule(state, rule.Id) &&
+                                !DisplaysAsAccessActivity(state, rule))
                 .ToList();
             CachedRuleActivity activity = RuleActivity(rule);
             int workerCount = managedWorkers.Count + activity.QualifyingWorkers.Count;
@@ -560,6 +561,34 @@ namespace AutomaticOutfitManager.UI
                        progress != null && progress.RuleId == ruleId) == true;
         }
 
+        private static bool DisplaysAsAccessActivity(
+            State.PawnApparelState state, ApparelRule rule)
+        {
+            if (state?.Pawn == null || rule == null ||
+                state.Transition == State.ApparelTransition.ReturningToChangingArea ||
+                state.Transition == State.ApparelTransition.Restoring)
+            {
+                return false;
+            }
+
+            Job job = ActivityJobFor(state);
+            return Patches.PausedAreaWorkFilter
+                       .IsHaulingActivityForRule(state.Pawn, job, rule) ||
+                   Patches.PausedAreaWorkFilter
+                       .IsWanderingActivityForRule(state.Pawn, job, rule);
+        }
+
+        private static Job ActivityJobFor(State.PawnApparelState state)
+        {
+            if (state?.Transition == State.ApparelTransition.Preparing &&
+                state.PendingWorkJob != null)
+            {
+                return state.PendingWorkJob;
+            }
+
+            return state?.Pawn?.CurJob;
+        }
+
         private float RuleHeight(
             ApparelRule rule,
             AutomaticOutfitManagerGameComponent component)
@@ -569,7 +598,8 @@ namespace AutomaticOutfitManager.UI
 
             int managedWorkerCount = component.PawnStates.Count(state =>
                 state?.Pawn?.RaceProps?.Humanlike == true && state.Pawn.apparel != null &&
-                TracksRule(state, rule.Id));
+                TracksRule(state, rule.Id) &&
+                !DisplaysAsAccessActivity(state, rule));
             CachedRuleActivity activity = RuleActivity(rule);
             int workerCount = managedWorkerCount + activity.QualifyingWorkers.Count;
             int haulerCount = activity.Haulers.Count;
@@ -609,21 +639,39 @@ namespace AutomaticOutfitManager.UI
                     if (job == null)
                         continue;
 
-                    // A tracked worker's headline already includes its hauling,
-                    // wandering, transit, or buffered activity. Keep the lower
-                    // activity rows for untracked actors so the same pawn is not
-                    // displayed twice and large rules remain compact.
-                    if (TracksRule(
-                            AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn),
-                            rule.Id))
+                    State.PawnApparelState trackedState =
+                        AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn);
+                    Job activityJob = ActivityJobFor(trackedState) ?? job;
+                    bool hauling = Patches.PausedAreaWorkFilter
+                        .IsHaulingActivityForRule(pawn, activityJob, rule);
+                    bool wandering = !hauling && Patches.PausedAreaWorkFilter
+                        .IsWanderingActivityForRule(pawn, activityJob, rule);
+                    if (hauling || wandering)
                     {
+                        string activityReport = activityJob.GetReport(pawn);
+                        if (string.IsNullOrEmpty(activityReport))
+                            activityReport = activityJob.def?.label ?? "Idle";
+                        var activityEntry = new CachedActivityEntry
+                        {
+                            Pawn = pawn,
+                            Report = activityReport.CapitalizeFirst()
+                        };
+                        (hauling ? cached.Haulers : cached.Wanderers)
+                            .Add(activityEntry);
                         continue;
                     }
 
+                    // Tracked work and transition states already have a Worker
+                    // headline. Hauling and wandering are classified first so
+                    // access activity never appears as ordinary managed work.
+                    if (TracksRule(trackedState, rule.Id))
+                        continue;
+
                     bool managedWorkContext =
-                        job.workGiverDef != null ||
-                        job.jobGiver is JobGiver_Work ||
-                        job.playerForced;
+                        !Patches.PausedAreaWorkFilter.IsHaulingJob(job) &&
+                        (job.workGiverDef != null ||
+                         job.jobGiver is JobGiver_Work ||
+                         job.playerForced);
                     if (managedWorkContext &&
                         RuleEvaluator.MatchesRule(pawn, job, rule))
                     {
@@ -640,22 +688,6 @@ namespace AutomaticOutfitManager.UI
                         continue;
                     }
 
-                    bool hauling = Patches.PausedAreaWorkFilter
-                        .IsHaulingActivityForRule(pawn, job, rule);
-                    bool wandering = !hauling && Patches.PausedAreaWorkFilter
-                        .IsWanderingActivityForRule(pawn, job, rule);
-                    if (!hauling && !wandering)
-                        continue;
-
-                    string report = job.GetReport(pawn);
-                    if (string.IsNullOrEmpty(report))
-                        report = job.def?.label ?? "Idle";
-                    var entry = new CachedActivityEntry
-                    {
-                        Pawn = pawn,
-                        Report = report.CapitalizeFirst()
-                    };
-                    (hauling ? cached.Haulers : cached.Wanderers).Add(entry);
                 }
             }
 
@@ -1031,7 +1063,8 @@ namespace AutomaticOutfitManager.UI
             if (state?.Pawn == null)
                 return;
 
-            AutomaticOutfitManagerGameComponent.Current?.RequestRecall(state);
+            AutomaticOutfitManagerGameComponent.Current?
+                .RequestRecall(state, holdUntilReassigned: true);
         }
 
         private static void ShowAreaMenu(ApparelRule rule)

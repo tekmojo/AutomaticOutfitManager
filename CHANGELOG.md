@@ -17,6 +17,8 @@ First Steam Workshop release candidate.
 ### Retained and hardened
 
 - Already-equipped qualifying pawns now receive the same tracked worker status and Recall control as workers outfitted by AOM, without claiming their personal gear.
+- Individual Recall now prevents the same managed job from being recreated on the next AI think cycle and holds only until the pawn starts a different meaningful activity.
+- Hauling and wandering remain in their dedicated activity rows instead of being promoted to Workers by work-giver metadata or a retained outfit session.
 - Permitted hauling now continues through outfit preparation while ordinary work is paused, without restarting the same haul indefinitely.
 - Paused work is rejected across concrete job-giver overrides and again at job start, preventing boundary cancel/reselect loops when a route crosses the paused area.
 - New-world weapon generation no longer queries the player faction before that faction exists.

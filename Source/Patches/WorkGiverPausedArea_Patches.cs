@@ -1019,7 +1019,7 @@ namespace AutomaticOutfitManager.Patches
                    defName.IndexOf("GotoBed", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        private static bool IsHaulingJob(Job job)
+        public static bool IsHaulingJob(Job job)
         {
             if (job?.def == null)
                 return false;
@@ -1290,6 +1290,13 @@ namespace AutomaticOutfitManager.Patches
             }
 
             if (UnavailableWorkRegistry.ShouldReject(pawn, __result.Job))
+            {
+                __result = default;
+                return;
+            }
+
+            if (AutomaticOutfitManagerGameComponent.Current?
+                    .RecallBlocksWorkJob(pawn, __result.Job) == true)
             {
                 __result = default;
                 return;

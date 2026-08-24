@@ -100,9 +100,12 @@ namespace AutomaticOutfitManager.UI
                 .Select(group => group.First())
                 .ToList();
             string transition = state.RecallInterruptPending
-                ? "Return pending"
-                : TransitionLabel(
-                    pawn, state, requiredSessionRules, returnTaskBuffer);
+                ? "Recall pending"
+                : state.RecallRequested && state.IndividualRecallRequested &&
+                  state.Transition == ApparelTransition.Active
+                    ? "Recalled — waiting for reassignment"
+                    : TransitionLabel(
+                        pawn, state, requiredSessionRules, returnTaskBuffer);
             string text = $"Automatic Outfit Manager: {transition}";
             if (currentRules.Count > 1)
                 text += $"\nRules: {string.Join(" → ", currentRules.Select(current => current.Name))}";
@@ -268,6 +271,8 @@ namespace AutomaticOutfitManager.UI
                         return $"Buffered task {completed} of {maximum}: " +
                                JobActivity(pawn, currentJob);
                     }
+                    if (PausedAreaWorkFilter.IsHaulingJob(currentJob))
+                        return $"Hauling: {JobActivity(pawn, currentJob)}";
                     if (IsManagedWorkStatusJob(currentJob, state) &&
                         RuleEvaluator.MatchingRules(pawn, currentJob).Count > 0)
                     {
@@ -424,7 +429,8 @@ namespace AutomaticOutfitManager.UI
         private static bool IsManagedWorkStatusJob(
             Job job, PawnApparelState state)
         {
-            if (job?.def == null || !IsMeaningfulActivity(job))
+            if (job?.def == null || !IsMeaningfulActivity(job) ||
+                PausedAreaWorkFilter.IsHaulingJob(job))
                 return false;
 
             bool isPendingContinuation = state?.PendingWorkJob != null &&

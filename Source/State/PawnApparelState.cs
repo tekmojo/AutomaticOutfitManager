@@ -34,6 +34,7 @@ namespace AutomaticOutfitManager.State
         public int LastRestorationAttemptTick = -1;
         public int UnavailableRestorationAttempts;
         public bool RecallRequested;
+        public bool IndividualRecallRequested;
         public bool RecallInterruptPending;
         public int LastRecallInterruptAttemptTick = -1;
         public int BufferedTasksCompleted;
@@ -84,6 +85,8 @@ namespace AutomaticOutfitManager.State
             Scribe_Values.Look(ref LastRestorationAttemptTick, "lastRestorationAttemptTick", -1);
             Scribe_Values.Look(ref UnavailableRestorationAttempts, "unavailableRestorationAttempts");
             Scribe_Values.Look(ref RecallRequested, "recallRequested", false);
+            Scribe_Values.Look(ref IndividualRecallRequested,
+                "individualRecallRequested", false);
             Scribe_Values.Look(ref RecallInterruptPending, "recallInterruptPending", false);
             Scribe_Values.Look(ref LastRecallInterruptAttemptTick, "lastRecallInterruptAttemptTick", -1);
             Scribe_Values.Look(ref BufferedTasksCompleted, "bufferedTasksCompleted", 0);

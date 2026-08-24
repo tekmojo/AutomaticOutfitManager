@@ -182,6 +182,16 @@ namespace AutomaticOutfitManager.Patches
                 return;
             }
 
+            // Individual Recall is a reassignment request, not merely a job
+            // interrupt. Reject the same managed work while the recalled state
+            // waits for native AI to choose a different meaningful activity.
+            if (component?.RecallBlocksWorkJob(pawn, newJob) == true)
+            {
+                __instance.ClearQueuedJobs(false);
+                ReplaceWithWait(pawn, 60, ref newJob, ref jobGiver, ref tag);
+                return;
+            }
+
             if (state?.WeaponInterventionActive == true &&
                 IsExternalWeaponControlJob(newJob))
             {
@@ -384,7 +394,9 @@ namespace AutomaticOutfitManager.Patches
             // stop/reselect loop.
             bool hasManagedWorkContext = HasManagedWorkContext(
                 newJob, jobGiver, state);
-            List<ApparelRule> matchingWorkRules = hasManagedWorkContext
+            bool haulingActivity = PausedAreaWorkFilter.IsHaulingJob(newJob);
+            List<ApparelRule> matchingWorkRules =
+                hasManagedWorkContext && !haulingActivity
                 ? RuleEvaluator.MatchingRules(pawn, newJob)
                 : new List<ApparelRule>();
             bool canPrepareForMatchingWork = state == null ||
@@ -534,7 +546,8 @@ namespace AutomaticOutfitManager.Patches
                 // but they are not fresh work and must not reset or indefinitely
                 // hold open the task buffer.
                 bool startsMeaningfulWorkInArea = targetsActiveWorkArea &&
-                    IsBufferableJob(newJob) && hasManagedWorkContext;
+                    IsBufferableJob(newJob) && hasManagedWorkContext &&
+                    !haulingActivity;
                 bool matchesActiveRule = startsMeaningfulWorkInArea ||
                     PausedAreaWorkFilter.MatchesPermittedHaulingRule(pawn, newJob, activeRule) ||
                     PausedAreaWorkFilter.MatchesProtectedTransitRule(pawn, newJob, activeRule);
@@ -575,15 +588,22 @@ namespace AutomaticOutfitManager.Patches
                     !state.ApparelInterventionActive &&
                     !state.WeaponInterventionActive)
                 {
-                    // Already-compliant workers have a real Phase 3 session so
-                    // the native Workers row and Recall control stay identical,
-                    // but AOM owns no part of their personal outfit. End that
-                    // lightweight session directly instead of routing through a
-                    // locker or manufacturing a restoration cycle.
-                    bool recalled = state.RecallRequested;
-                    __instance.ClearQueuedJobs(false);
+                    // An individual Recall holds this gear-free session through
+                    // connective Wait/Goto jobs. The ThinkNode guard rejects the
+                    // same managed work, and the first different meaningful job
+                    // releases the hold without a fake locker/restoration cycle.
+                    if (state.RecallRequested &&
+                        state.IndividualRecallRequested &&
+                        !IsBufferableJob(newJob))
+                    {
+                        return;
+                    }
+
+                    bool replaceRecalledCandidate =
+                        state.RecallRequested &&
+                        !state.IndividualRecallRequested;
                     component.EndIntervention(pawn);
-                    if (recalled)
+                    if (replaceRecalledCandidate)
                         ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
                     return;
                 }
