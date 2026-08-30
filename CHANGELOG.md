@@ -1,6 +1,19 @@
 # Changelog
 
-## Unreleased
+## 0.3.3 - 2026-08-30
+
+### Added
+
+- Added a persisted global logging level under **Options → Mod settings → Automatic Outfit Manager**: Quiet, Basic (recommended), or Detailed. New installations and upgrades from earlier versions default to Basic; an explicitly saved choice persists.
+
+### Changed
+
+- Made detailed AOM diagnostics explicitly opt-in and independent of RimWorld Developer Mode.
+- Centralized AOM log output so genuine warnings and errors remain visible while routine pawn decisions stay out of Quiet and Basic logs.
+- Coalesced repeated managed-gear rejections by pawn, item, and outfit session; removed candidate-start chatter; and limited task-buffer progress to its first and final milestones.
+- Prevented automatic sidearm or loadout jobs from repeatedly reacquiring another pawn's exact saved weapon during restoration, with a rate-limited fallback diagnostic for integrations that bypass normal job selection.
+- Moved expected unavailable-gear, access, apparel-conflict, and protected-player-weapon states from warning spam to rate-limited Detailed diagnostics.
+- Skipped detailed message construction and diagnostic-cache work entirely in Quiet and Basic mode, and bounded the cache to active sessions.
 
 - Licensed the original Automatic Outfit Manager software and associated documentation under the MIT License, with separate notices for RimWorld/Ludeon, Harmony, and game-derived material.
 - Added `LICENSE` and `NOTICE.md` to future Workshop package inputs.

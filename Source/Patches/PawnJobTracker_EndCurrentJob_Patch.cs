@@ -154,9 +154,9 @@ namespace AutomaticOutfitManager.Patches
                 state.BufferedTasksCompleted < rule.ReturnTaskBuffer;
             if (!accepted)
             {
-                if (Prefs.DevMode && condition != JobCondition.Succeeded)
+                if (AomLog.DetailedEnabled && condition != JobCondition.Succeeded)
                 {
-                    Log.Message(
+                    AomLog.Detailed(
                         $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                         $"task buffer candidate {endingJob.def?.defName ?? "job"} " +
                         $"ended {condition}; not counted.");
@@ -166,9 +166,11 @@ namespace AutomaticOutfitManager.Patches
 
             state.BufferedTasksCompleted++;
             state.LastBufferedJobLoadId = endingJob.loadID;
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled &&
+                (state.BufferedTasksCompleted == 1 ||
+                 state.BufferedTasksCompleted >= rule.ReturnTaskBuffer))
             {
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: task buffer " +
                     $"{state.BufferedTasksCompleted}/{rule.ReturnTaskBuffer} " +
                     $"completed by {endingJob.def?.defName ?? "job"}.");
@@ -198,9 +200,9 @@ namespace AutomaticOutfitManager.Patches
                     progress.Completed < rule.ReturnTaskBuffer;
                 if (!accepted)
                 {
-                    if (Prefs.DevMode && condition != JobCondition.Succeeded)
+                    if (AomLog.DetailedEnabled && condition != JobCondition.Succeeded)
                     {
-                        Log.Message(
+                        AomLog.Detailed(
                             $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                             $"nested task buffer candidate {endingJob.def?.defName ?? "job"} " +
                             $"for '{rule?.Name ?? "missing rule"}' ended {condition}; " +
@@ -218,9 +220,11 @@ namespace AutomaticOutfitManager.Patches
                     (string.IsNullOrEmpty(progress.LastJobLabel)
                         ? "."
                         : $"; last: {progress.LastJobLabel}.");
-                if (Prefs.DevMode)
+                if (AomLog.DetailedEnabled &&
+                    (progress.Completed == 1 ||
+                     progress.Completed >= rule.ReturnTaskBuffer))
                 {
-                    Log.Message(
+                    AomLog.Detailed(
                         $"[AutomaticOutfitManager] {pawn.LabelShortCap}: nested " +
                         $"task buffer {progress.Completed}/{rule.ReturnTaskBuffer} " +
                         $"completed by {endingJob.def?.defName ?? "job"} after " +

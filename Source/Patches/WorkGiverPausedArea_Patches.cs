@@ -268,7 +268,8 @@ namespace AutomaticOutfitManager.Patches
                 return true;
             }
 
-            ThingWithComps weapon = ManagedWeaponTarget(job);
+            ThingWithComps weapon = ManagedWeaponTarget(
+                job, component, pawn);
             if (weapon == null ||
                 PawnJobTracker_StartJob_Patch.IsAssignedTransitionWeaponJob(
                     state, job) ||
@@ -282,22 +283,37 @@ namespace AutomaticOutfitManager.Patches
             return true;
         }
 
-        private static ThingWithComps ManagedWeaponTarget(Job job)
+        private static ThingWithComps ManagedWeaponTarget(
+            Job job,
+            AutomaticOutfitManagerGameComponent component,
+            Pawn pawn)
         {
             if (job == null)
                 return null;
 
-            return ManagedWeaponTarget(job.targetA) ??
-                   ManagedWeaponTarget(job.targetB) ??
-                   ManagedWeaponTarget(job.targetC);
+            return ManagedWeaponTarget(job.targetA, component, pawn) ??
+                   ManagedWeaponTarget(job.targetB, component, pawn) ??
+                   ManagedWeaponTarget(job.targetC, component, pawn);
         }
 
         private static ThingWithComps ManagedWeaponTarget(
-            LocalTargetInfo target)
+            LocalTargetInfo target,
+            AutomaticOutfitManagerGameComponent component,
+            Pawn pawn)
         {
-            return target.Thing is ThingWithComps weapon &&
-                   weapon.def?.IsWeapon == true &&
-                   ManagedWeaponClassifier.Matches(weapon.def)
+            if (target.Thing is not ThingWithComps weapon ||
+                weapon.def?.IsWeapon != true)
+            {
+                return null;
+            }
+
+            // Exact saved weapons remain owned even when their definition is
+            // not selected by an active work rule. Reject automatic sidearm or
+            // loadout pickup before another pawn can repeatedly move the exact
+            // item into inventory and force the ownership pulse to drop it.
+            return ManagedWeaponClassifier.Matches(weapon.def) ||
+                   component?.IsSavedWeaponForOtherPawn(weapon, pawn) == true ||
+                   component?.IsManagedWeaponAssignedToOtherPawn(weapon, pawn) == true
                 ? weapon
                 : null;
         }
@@ -883,11 +899,11 @@ namespace AutomaticOutfitManager.Patches
             if (restrictedRules == null || restrictedRules.Count == 0)
                 return false;
 
-            if (Prefs.DevMode && IsFriendlyGuest(pawn) &&
-                PawnJobTracker_StartJob_Patch.ShouldLogRepeatedDiagnostic(
+            if (AomLog.DetailedEnabled && IsFriendlyGuest(pawn) &&
+                AomLog.ShouldLogDetailed(
                     pawn, $"guest-roaming-disabled:{restrictedRules[0].Id}"))
             {
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: redirected " +
                     $"autonomous guest {job.def?.defName ?? "movement"} away from " +
                     $"'{restrictedRules[0].Name}'; guest wandering is disabled.");

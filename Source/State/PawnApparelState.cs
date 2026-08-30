@@ -197,7 +197,7 @@ namespace AutomaticOutfitManager.State
                 int overlapCount = RemoveOriginalsFromManagedApparel();
                 if (overlapCount > 0)
                 {
-                    Log.Warning(
+                    AomLog.Warning(
                         $"[AutomaticOutfitManager] {Pawn?.LabelShortCap ?? "Pawn"}: " +
                         $"repaired {overlapCount} saved apparel item(s) recorded as both " +
                         "personal and managed work gear; personal ownership was retained.");
@@ -207,7 +207,7 @@ namespace AutomaticOutfitManager.State
                     ReleaseRejectedSpawnedWeaponAssignments();
                 if (releasedWeaponCount > 0)
                 {
-                    Log.Message(
+                    AomLog.Basic(
                         $"[AutomaticOutfitManager] {Pawn?.LabelShortCap ?? "Pawn"}: " +
                         $"released {releasedWeaponCount} abandoned work weapon " +
                         "candidate(s) left on the map after a rejected Equip attempt.");
@@ -410,9 +410,9 @@ namespace AutomaticOutfitManager.State
 
             AutomaticOutfitManagerGameComponent.Current?
                 .InvalidateWeaponStateIndex();
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {Pawn?.LabelShortCap ?? "Pawn"}: " +
                     $"released rejected work weapon candidate {weapon.LabelCap}; " +
                     "it remains shared locker stock for other pawns.");

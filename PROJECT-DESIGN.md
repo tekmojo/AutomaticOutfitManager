@@ -62,7 +62,7 @@ Runtime indexes accelerate frequent pawn-state and managed-item lookups without 
 
 The interrupted `Job` is deep-saved only in pawn apparel state while preparation runs; it is not duplicated in RimWorld’s job queue. Direct player assignments and modded jobs without `workGiverDef` retain managed-work context explicitly so they reset the rule buffer and display as work rather than as follow-up activity.
 
-Every concrete Thing target in A/B/C and both target queues receives one atomic, short-lived claim. Jobs without Thing targets fall back to a cell claim. Pending claims are rebuilt deterministically after a save finishes loading, before pawn AI can take the preserved targets. Before saving and again after loading, target existence, map membership, real RimWorld reservations, rule applicability, recall/urgency, and claim contention are revalidated so destroyed queued targets are never newly persisted. A valid job replaces the next thinker candidate exactly. An invalid or contested continuation is released safely and logs its bounded cancellation reason in developer mode.
+Every concrete Thing target in A/B/C and both target queues receives one atomic, short-lived claim. Jobs without Thing targets fall back to a cell claim. Pending claims are rebuilt deterministically after a save finishes loading, before pawn AI can take the preserved targets. Before saving and again after loading, target existence, map membership, real RimWorld reservations, rule applicability, recall/urgency, and claim contention are revalidated so destroyed queued targets are never newly persisted. A valid job replaces the next thinker candidate exactly. An invalid or contested continuation is released safely and logs its bounded cancellation reason when Detailed AOM logging is enabled.
 
 ### Restoration
 
@@ -140,9 +140,9 @@ The **Automatic Outfit Manager** main tab provides:
 - Drafted and forced behavior takes priority where practical.
 - Sleeping outside active protected contexts begins restoration instead of consuming an ordinary buffer slot; sleeping inside retains the complete requirement.
 - A missing item can delay restoration but cannot cause unbounded retries.
-- A lost, destroyed, recalled, urgent, reserved, or contested continuation falls back to normal job selection with a specific developer-mode reason.
+- A lost, destroyed, recalled, urgent, reserved, or contested continuation falls back to normal job selection with a specific Detailed-log reason.
 - Compatible overlapping and nested rules combine requirements and track separate buffers. Known incompatible selector combinations are blocked, but genuinely conflicting overlaps have no configurable manual priority.
-- Debug logging is tied to RimWorld developer mode. Repeated guest diagnostics use a one-day per-pawn/category interval; colony diagnostics retain the shorter stabilization interval.
+- AOM logging is controlled independently through its normal mod settings. Basic is the default; Quiet retains only warnings/errors, while Detailed enables coalesced transition diagnostics. Repeated guest diagnostics use a one-day per-pawn/category interval; colony diagnostics retain the shorter stabilization interval.
 
 ## Phase 3 — Exact primary weapons (implemented; RC playtested)
 
@@ -171,7 +171,7 @@ The **Automatic Outfit Manager** main tab provides:
 - Copy/duplicate and reorder rules
 - Presets or import/export if useful
 - Localization
-- Dedicated diagnostic/logging option
+- Quiet, Basic, and Detailed diagnostic levels (implemented in 0.3.3)
 - Clearer visual severity for blocked transitions
 
 ## Compatibility strategy
@@ -220,4 +220,4 @@ The project references local RimWorld and Harmony assemblies; copyrighted game a
 
 `main` represents the stable development baseline. Significant changes should be validated in a live modded colony, checked for log loops and exceptions, built successfully, and reviewed through a branch or pull request before merging.
 
-The current 0.3.2 release candidate combines exact primary-weapon requirements with the tested Phase 2 foundation and RC hardening for successful-completion buffers, condition and quality standards, tattered saved-apparel improvement, visitor departures, hazardous-route protection retention, gravship area continuity, Simple Sidearms, and large modded colonies. It has been exercised through repeated rule edits, pause/resume, drafting, saved-item contention, nested work, long sessions, large-map scaling, and save/load transitions. Manual priority and pawn-eligibility prototypes remain deferred; ammunition, inventory sidearms, offhands, shields, and automatic drafted switching are outside this weapon scope.
+The current 0.3.3 release combines exact primary-weapon requirements with the tested Phase 2 foundation, RC hardening for successful-completion buffers, condition and quality standards, tattered saved-apparel improvement, visitor departures, hazardous-route protection retention, gravship area continuity, Simple Sidearms, and large modded colonies, plus player-configurable log levels that keep routine diagnostics out of ordinary sessions. It has been exercised through repeated rule edits, pause/resume, drafting, saved-item contention, nested work, long sessions, large-map scaling, and save/load transitions. Manual priority and pawn-eligibility prototypes remain deferred; ammunition, inventory sidearms, offhands, shields, and automatic drafted switching are outside this weapon scope.

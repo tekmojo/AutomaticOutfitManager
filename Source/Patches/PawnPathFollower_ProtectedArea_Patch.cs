@@ -129,7 +129,7 @@ namespace AutomaticOutfitManager.Patches
             if (rule == null)
                 return true;
 
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
                 int tick = Find.TickManager?.TicksGame ?? 0;
                 if (!LastBlockedLogTick.TryGetValue(pawn.thingIDNumber, out int lastTick) ||
@@ -139,7 +139,7 @@ namespace AutomaticOutfitManager.Patches
                     string reason = blockedByActivity
                         ? "because the rule does not permit this activity"
                         : "without its required apparel or weapon";
-                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: stopped before entering '{rule.Name}' {reason}; reconsidering {currentJob.def.defName}.");
+                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: stopped before entering '{rule.Name}' {reason}; reconsidering {currentJob.def.defName}.");
                 }
             }
 

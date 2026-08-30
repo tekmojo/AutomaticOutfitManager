@@ -215,9 +215,9 @@ namespace AutomaticOutfitManager.Core
             activeWorkProgress.Remove(pawn);
             jobTransitionFailureTicks.Remove(pawn);
 
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: work resumed " +
                     $"for '{resumedRule.Name}' before locker return; cancelled " +
                     "the pause-generated recall and retained the managed outfit.");
@@ -308,9 +308,9 @@ namespace AutomaticOutfitManager.Core
             activeWorkProgress.Remove(pawn);
             jobTransitionFailureTicks.Remove(pawn);
 
-            if (firstSuspension && Prefs.DevMode)
+            if (firstSuspension && AomLog.DetailedEnabled)
             {
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: pawn is downed; " +
                     "suspending locker travel and saved-outfit restoration until recovery.");
             }
@@ -378,9 +378,9 @@ namespace AutomaticOutfitManager.Core
             activeWorkProgress.Remove(pawn);
             jobTransitionFailureTicks.Remove(pawn);
 
-            if (firstSuspension && Prefs.DevMode)
+            if (firstSuspension && AomLog.DetailedEnabled)
             {
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: pawn was drafted; " +
                     "cancelled the civilian continuation and suspended saved-outfit " +
                     "restoration until undrafted.");
@@ -414,9 +414,9 @@ namespace AutomaticOutfitManager.Core
             restorationProgress.Remove(pawn);
             activeWorkProgress.Remove(pawn);
 
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: pawn was " +
                     "undrafted; resuming the task buffer with the complete " +
                     "work outfit before locker return.");
@@ -817,12 +817,12 @@ namespace AutomaticOutfitManager.Core
 
             MakeReleasedSavedGearAvailable(savedGear, savedOwner);
 
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
                 string action = releasedFromPossession
                     ? "released"
                     : $"yielded {job.def?.defName ?? "automatic job"} targeting";
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: {action} saved gear " +
                     $"{savedGear.LabelCap} so {savedOwner.LabelShortCap} can finish outfit restoration.");
             }
@@ -846,8 +846,8 @@ namespace AutomaticOutfitManager.Core
                 return;
 
             state.MarkWeaponPlayerOverride();
-            if (Prefs.DevMode)
-                Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: external weapon change detected; the current choice is retained until saved-outfit restoration.");
+            if (AomLog.DetailedEnabled)
+                AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: external weapon change detected; the current choice is retained until saved-outfit restoration.");
         }
 
         private void EnforceSavedGearOwnership(
@@ -928,9 +928,9 @@ namespace AutomaticOutfitManager.Core
                 if (billedWeapon.Spawned)
                     MakeReleasedSavedGearAvailable(billedWeapon, owner);
                 WakeRestoringSavedGearOwner(owner);
-                if (Prefs.DevMode)
+                if (AomLog.DetailedEnabled)
                 {
-                    Log.Message(
+                    AomLog.Detailed(
                         $"[AutomaticOutfitManager] {pawn.LabelShortCap}: interrupted " +
                         $"automatic bill carrying saved weapon {billedWeapon.LabelCap} " +
                         $"for {owner.LabelShortCap} before releasing it.");
@@ -952,9 +952,9 @@ namespace AutomaticOutfitManager.Core
                         pawn.Position, ThingPlaceMode.Near, out Thing dropped))
                 {
                     MakeReleasedSavedGearAvailable(dropped, owner);
-                    if (Prefs.DevMode)
+                    if (AomLog.DetailedEnabled)
                     {
-                        Log.Message(
+                        AomLog.Detailed(
                             $"[AutomaticOutfitManager] {pawn.LabelShortCap}: released saved weapon " +
                             $"{dropped.LabelCap} from carry tracker for {owner.LabelShortCap}.");
                     }
@@ -990,9 +990,14 @@ namespace AutomaticOutfitManager.Core
                         out Thing dropped))
                 {
                     MakeReleasedSavedGearAvailable(dropped, owner);
-                    if (Prefs.DevMode)
+                    if (AomLog.DetailedEnabled &&
+                        AomLog.ShouldLogDetailed(
+                            pawn,
+                            $"saved-gear-inventory-release:{item.thingIDNumber}:" +
+                            $"{owner.thingIDNumber}",
+                            60000))
                     {
-                        Log.Message(
+                        AomLog.Detailed(
                             $"[AutomaticOutfitManager] {pawn.LabelShortCap}: released saved gear " +
                             $"{dropped.LabelCap} from inventory for {owner.LabelShortCap}.");
                     }
@@ -1024,9 +1029,9 @@ namespace AutomaticOutfitManager.Core
 
             Pawn owner = SavedPawnForWeapon(weapon);
             MakeReleasedSavedGearAvailable(weapon, owner);
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {hauler.LabelShortCap}: completed " +
                     $"hauling saved weapon {weapon.LabelCap}; waking " +
                     $"{owner.LabelShortCap} to resume outfit restoration.");
@@ -1093,7 +1098,7 @@ namespace AutomaticOutfitManager.Core
             catch (System.Exception exception)
             {
                 jobTransitionFailureTicks[pawn] = currentTick;
-                Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {context} job transition failed; retrying later. {exception.GetType().Name}: {exception.Message}");
+                AomLog.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {context} job transition failed; retrying later. {exception.GetType().Name}: {exception.Message}");
                 return false;
             }
         }
@@ -1135,9 +1140,9 @@ namespace AutomaticOutfitManager.Core
                     restorationProgress.Remove(pawn);
                     bool recoveryStarted = StartRestorationRecovery(
                         pawn, state, currentTick, "post-medical restoration recovery");
-                    if (recoveryStarted && StateFor(pawn) != null && Prefs.DevMode)
+                    if (recoveryStarted && StateFor(pawn) != null && AomLog.DetailedEnabled)
                     {
-                        Log.Message(
+                        AomLog.Detailed(
                             $"[AutomaticOutfitManager] {pawn.LabelShortCap}: pawn can move again; " +
                             "resuming saved-outfit restoration.");
                     }
@@ -1172,12 +1177,11 @@ namespace AutomaticOutfitManager.Core
                         pawn, currentTick, "hazardous apparel restoration", () =>
                             pawn.jobs.EndCurrentJob(
                                 JobCondition.InterruptForced, true));
-                    if (interrupted && Prefs.DevMode &&
-                        Patches.PawnJobTracker_StartJob_Patch
-                            .ShouldLogRepeatedDiagnostic(
-                                pawn, "environmental-removal-interrupt"))
+                    if (interrupted && AomLog.DetailedEnabled &&
+                        AomLog.ShouldLogDetailed(
+                            pawn, "environmental-removal-interrupt"))
                     {
-                        Log.Message(
+                        AomLog.Detailed(
                             $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                             $"environment changed to {environmentalReason}; " +
                             "interrupted managed-apparel removal and retained protection.");
@@ -1247,9 +1251,9 @@ namespace AutomaticOutfitManager.Core
                             .TryRecoverIdlePreparation(
                                 pawn, state, out string recoveryDescription);
                     if (preparationRecovered && StateFor(pawn) != null &&
-                        Prefs.DevMode)
+                        AomLog.DetailedEnabled)
                     {
-                        Log.Message(
+                        AomLog.Detailed(
                             $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                             $"preparation became idle; {recoveryDescription}.");
                     }
@@ -1305,9 +1309,9 @@ namespace AutomaticOutfitManager.Core
                     state.ActiveIdleTicks = 0;
                     bool recoveryStarted = StartChangingAreaReturnRecovery(
                         pawn, state, rule, currentTick);
-                    if (recoveryStarted && StateFor(pawn) != null && Prefs.DevMode)
+                    if (recoveryStarted && StateFor(pawn) != null && AomLog.DetailedEnabled)
                     {
-                        Log.Message(
+                        AomLog.Detailed(
                             $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                             "locker return became idle; rebuilding the return or restoration path.");
                     }
@@ -1364,9 +1368,9 @@ namespace AutomaticOutfitManager.Core
                         bool stalledRecoveryStarted = StartRestorationRecovery(
                             pawn, state, currentTick, "stalled restoration recovery");
                         if (stalledRecoveryStarted && StateFor(pawn) != null &&
-                            Prefs.DevMode)
+                            AomLog.DetailedEnabled)
                         {
-                            Log.Message(
+                            AomLog.Detailed(
                                 $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                                 "restoration stopped making progress; rebuilding " +
                                 $"saved-apparel and weapon jobs ({stalledJobDescription}; " +
@@ -1431,9 +1435,9 @@ namespace AutomaticOutfitManager.Core
                         pawn, restorationJob);
                     bool recoveryStarted = StartRestorationRecovery(
                         pawn, state, currentTick, "idle restoration recovery");
-                    if (recoveryStarted && StateFor(pawn) != null && Prefs.DevMode)
+                    if (recoveryStarted && StateFor(pawn) != null && AomLog.DetailedEnabled)
                     {
-                        Log.Message(
+                        AomLog.Detailed(
                             $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                             "restoration became idle; rebuilding saved-apparel " +
                             $"and weapon jobs ({idleJobDescription}).");
@@ -1505,9 +1509,9 @@ namespace AutomaticOutfitManager.Core
 
                     state.ActiveIdleTicks = 0;
                     RequestRecall(state);
-                    if (Prefs.DevMode)
+                    if (AomLog.DetailedEnabled)
                     {
-                        Log.Message(
+                        AomLog.Detailed(
                             $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                             "remained idle inside a safe active work area; " +
                             "returning through the locker room.");
@@ -1554,12 +1558,12 @@ namespace AutomaticOutfitManager.Core
                 state.ActiveIdleTicks = 0;
                 activeWorkProgress.Remove(pawn);
                 RequestRecall(state);
-                if (Prefs.DevMode)
+                if (AomLog.DetailedEnabled)
                 {
                     string reason = stalledActiveWork
                         ? $"{job?.def?.defName ?? "managed work"} stopped making progress"
                         : "finished work and became idle";
-                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {reason}; returning to locker room.");
+                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {reason}; returning to locker room.");
                 }
             }
         }
@@ -1979,9 +1983,9 @@ namespace AutomaticOutfitManager.Core
                     portalReturnJob, JobCondition.InterruptForced,
                     null, false, true);
 
-                if (Prefs.DevMode)
+                if (AomLog.DetailedEnabled)
                 {
-                    Log.Message(
+                    AomLog.Detailed(
                         $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                         $"entering {returnPortal.LabelCap} to reach the locker map.");
                 }
@@ -2070,25 +2074,25 @@ namespace AutomaticOutfitManager.Core
                 UnavailableWorkRegistry.ResetForLoadedGame();
                 RuleEvaluator.ResetRuntimeCache();
                 PawnAccessClassifier.ResetRuntimeCache();
-                Patches.PawnJobTracker_StartJob_Patch.ResetRuntimeCache();
+                AomLog.ResetRuntimeCache();
                 Patches.PawnPathFollower_ProtectedArea_Patch.ResetRuntimeCache();
                 UI.PawnAutomaticOutfitStatus.ResetRuntimeCache();
                 Patches.ProtectedPathAvoidance.ResetForLoadedGame();
 
-                if (Prefs.DevMode && inactiveSavedOwners > 0)
+                if (AomLog.BasicEnabled && inactiveSavedOwners > 0)
                 {
-                    Log.Message(
+                    AomLog.Basic(
                         $"[AutomaticOutfitManager] Released {inactiveSavedOwners} " +
                         "inactive saved-apparel ownership record(s) after load.");
                 }
-                if (Prefs.DevMode && repairedManagedJobContexts > 0)
+                if (AomLog.BasicEnabled && repairedManagedJobContexts > 0)
                 {
-                    Log.Message(
+                    AomLog.Basic(
                         $"[AutomaticOutfitManager] Repaired thinker context for " +
                         $"{repairedManagedJobContexts} managed current job(s) after load.");
                 }
-                if (Prefs.DevMode && PawnStates.Count > 0)
-                    Log.Message($"[AutomaticOutfitManager] Loaded {PawnStates.Count} pawn outfit snapshot(s).");
+                if (AomLog.DetailedEnabled && PawnStates.Count > 0)
+                    AomLog.Detailed($"[AutomaticOutfitManager] Loaded {PawnStates.Count} pawn outfit snapshot(s).");
             }
         }
 
@@ -2185,13 +2189,13 @@ namespace AutomaticOutfitManager.Core
                 state.ActiveIdleTicks = System.Math.Max(state.ActiveIdleTicks, 240);
             }
             int restoredClaims = RebuildPendingWorkClaims();
-            if (Prefs.DevMode && restoredClaims > 0)
+            if (AomLog.DetailedEnabled && restoredClaims > 0)
             {
-                Log.Message($"[AutomaticOutfitManager] Restored {restoredClaims} pending work claim(s) after load.");
+                AomLog.Detailed($"[AutomaticOutfitManager] Restored {restoredClaims} pending work claim(s) after load.");
             }
-            if (Prefs.DevMode && repairedGuestSessions > 0)
+            if (AomLog.BasicEnabled && repairedGuestSessions > 0)
             {
-                Log.Message(
+                AomLog.Basic(
                     $"[AutomaticOutfitManager] Repaired {repairedGuestSessions} " +
                     "hosted-guest outfit session marker(s) after load.");
             }
@@ -2292,6 +2296,7 @@ namespace AutomaticOutfitManager.Core
                     ManagedApparelOwners.Remove(itemId);
                 }
                 ClearPendingWork(state);
+                AomLog.ClearPawn(state?.Pawn);
                 PawnStates.Remove(state);
             }
 
@@ -2324,7 +2329,7 @@ namespace AutomaticOutfitManager.Core
                 restorationProgress.Remove(state.Pawn);
                 restorationRecoveryBackoff.Remove(state.Pawn);
                 changed = true;
-                Log.Warning(
+                AomLog.Warning(
                     $"[AutomaticOutfitManager] {state.Pawn?.LabelShortCap ?? "Pawn"}: " +
                     $"saved weapon {label} remained inside {holder}, whose holder " +
                     "chain is not save-persistent. AOM released the exact " +
@@ -2650,7 +2655,7 @@ namespace AutomaticOutfitManager.Core
                                 true));
                     }
 
-                    Log.Warning(
+                    AomLog.Warning(
                         $"[AutomaticOutfitManager] {pawn.LabelShortCap}: cancelled " +
                         $"unsafe saved-outfit restoration inside remapped work area " +
                         $"'{occupiedRules[0].Name}' {reason}; required protection " +
@@ -2745,7 +2750,7 @@ namespace AutomaticOutfitManager.Core
             state.UnavailableRestorationAttempts = 0;
             restorationProgress.Remove(pawn);
             restorationRecoveryBackoff.Remove(pawn);
-            Log.Warning(
+            AomLog.Warning(
                 $"[AutomaticOutfitManager] {pawn.LabelShortCap}: saved gear " +
                 $"{string.Join(", ", releasedLabels)} remained on another map " +
                 $"after {strandedAttemptLimit} restoration attempts. The gear " +
@@ -2941,9 +2946,9 @@ namespace AutomaticOutfitManager.Core
                 restorationProgress.Remove(pawn);
                 activeWorkProgress.Remove(pawn);
 
-                if (Prefs.DevMode)
+                if (AomLog.DetailedEnabled)
                 {
-                    Log.Message(
+                    AomLog.Detailed(
                         $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                         "restoration lost its assigned transition inside an " +
                         "active work area; retargeting complete area protection.");
@@ -3048,9 +3053,9 @@ namespace AutomaticOutfitManager.Core
                 ManagedWorkClaimRegistry.ReleaseAll(pawn);
                 restorationProgress.Remove(pawn);
                 activeWorkProgress.Remove(pawn);
-                if (Prefs.DevMode)
+                if (AomLog.DetailedEnabled)
                 {
-                    Log.Message(
+                    AomLog.Detailed(
                         $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                         $"discarded stale preparation for '{previousRuleName}' " +
                         $"after entering or targeting '{protectedRules[0].Name}'.");
@@ -3083,12 +3088,12 @@ namespace AutomaticOutfitManager.Core
                             null, false, true);
                     }
                 });
-            if (transitioned && Prefs.DevMode)
+            if (transitioned && AomLog.DetailedEnabled)
             {
                 string names = string.Join(", ", protectedRules
                     .Where(rule => RuleEvaluator.HasMissingRequiredGear(pawn, rule))
                     .Select(rule => $"'{rule.Name}'"));
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                     $"rechecking complete required gear for {names}.");
             }
@@ -3116,7 +3121,7 @@ namespace AutomaticOutfitManager.Core
 
             ThingWithComps savedWeapon = state.OriginalWeapon;
             state.CompleteWeaponRestoration();
-            Log.Warning(
+            AomLog.Warning(
                 $"[AutomaticOutfitManager] {pawn.LabelShortCap}: RimWorld rejected " +
                 $"{attemptLimit} actual Equip attempts for saved weapon " +
                 $"{savedWeapon.LabelCap}. It remains available on the map; " +
@@ -3180,7 +3185,7 @@ namespace AutomaticOutfitManager.Core
             }
 
             state.CompleteWeaponRestoration();
-            Log.Warning(
+            AomLog.Warning(
                 $"[AutomaticOutfitManager] {pawn.LabelShortCap}: saved weapon " +
                 $"{savedWeapon.LabelCap} remained unavailable after " +
                 $"{unavailableAttemptLimit} recovery attempts because " +
@@ -3270,9 +3275,9 @@ namespace AutomaticOutfitManager.Core
             ClearPendingWork(state);
             RequestRecall(state);
 
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
-                Log.Warning(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: discarded " +
                     $"{jobName} continuation {stage} ({reason}); returning saved apparel and weapon.");
             }
@@ -3484,9 +3489,9 @@ namespace AutomaticOutfitManager.Core
                 ManagedWorkClaimRegistry.ReleaseAll(state.Pawn);
                 ClearPendingWork(state);
                 RequestRecall(state);
-                if (Prefs.DevMode)
+                if (AomLog.DetailedEnabled)
                 {
-                    Log.Message(
+                    AomLog.Detailed(
                         $"[AutomaticOutfitManager] {state.Pawn.LabelShortCap}: " +
                         $"rule requirements changed ({reason}); returning managed gear " +
                         "before normal work is reconsidered.");
@@ -3833,13 +3838,13 @@ namespace AutomaticOutfitManager.Core
                 new[] { replacement }, pawn);
             WakeRestoringSavedGearOwner(pawn);
 
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
                 string released = displaced.Count == 0
                     ? "an empty personal apparel slot"
                     : string.Join(", ", displaced.Select(item =>
                         item?.LabelCap.ToString() ?? "missing apparel"));
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: adopted " +
                     $"{replacement.LabelCap} as saved personal apparel and " +
                     $"released {released} from the saved outfit after a " +
@@ -4016,12 +4021,12 @@ namespace AutomaticOutfitManager.Core
             pawnStateIndex[pawn] = state;
             indexedPawnStateCount = PawnStates.Count;
 
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
                 if (!state.ApparelInterventionActive &&
                     !state.WeaponInterventionActive)
                 {
-                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: started compliant work session for '{rule.Name}'; no personal gear was claimed.");
+                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: started compliant work session for '{rule.Name}'; no personal gear was claimed.");
                 }
                 else
                 {
@@ -4030,7 +4035,7 @@ namespace AutomaticOutfitManager.Core
                         : string.Join(", ", state.OriginalApparel
                             .Where(item => item != null)
                             .Select(item => item.LabelCap.ToString()));
-                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: captured apparel snapshot for '{rule.Name}': {apparel}.");
+                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: captured apparel snapshot for '{rule.Name}': {apparel}.");
                 }
             }
 
@@ -4108,20 +4113,21 @@ namespace AutomaticOutfitManager.Core
                 ClearSavedOwner(savedItem);
             }
             PawnStates.Remove(state);
+            AomLog.ClearPawn(pawn);
             pawnStateIndex.Remove(pawn);
             indexedPawnStateCount = PawnStates.Count;
             InvalidateWeaponStateIndex();
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
                 if (!string.IsNullOrEmpty(releaseReason))
                 {
-                    Log.Message(
+                    AomLog.Detailed(
                         $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                         $"{releaseReason}; released AOM state without interrupting native behavior.");
                 }
                 else
                 {
-                    Log.Message(trackedOnly
+                    AomLog.Detailed(trackedOnly
                         ? $"[AutomaticOutfitManager] {pawn.LabelShortCap}: compliant work session cleared; personal gear was unchanged."
                         : $"[AutomaticOutfitManager] {pawn.LabelShortCap}: outfit restoration complete; snapshot cleared.");
                 }

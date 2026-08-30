@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using AutomaticOutfitManager.Core;
 using AutomaticOutfitManager.Patches;
 using AutomaticOutfitManager.Rules;
 using AutomaticOutfitManager.State;
@@ -63,8 +64,8 @@ namespace AutomaticOutfitManager.Detection
                         if (droppedApparel.IsForbidden(pawn))
                             droppedApparel.SetForbidden(false, false);
                         droppedAny = true;
-                        if (Prefs.DevMode)
-                            Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: recovered saved apparel {droppedApparel.LabelCap} from an inventory or container.");
+                        if (AomLog.DetailedEnabled)
+                            AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: recovered saved apparel {droppedApparel.LabelCap} from an inventory or container.");
                         // Release one exact item at a time. Its Wear job can
                         // reserve it immediately, avoiding a pile of saved gear
                         // that storage or inventory mods may collect again while
@@ -74,8 +75,10 @@ namespace AutomaticOutfitManager.Detection
                 }
                 catch (System.Exception exception)
                 {
-                    if (Prefs.DevMode)
-                        Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: could not release saved apparel {item.LabelCap} from its holder. {exception.GetType().Name}: {exception.Message}");
+                    AomLog.WarningOnce(
+                        pawn,
+                        $"release-saved-apparel:{item.thingIDNumber}",
+                        () => $"[AutomaticOutfitManager] {pawn.LabelShortCap}: could not release saved apparel {item.LabelCap} from its holder. {exception.GetType().Name}: {exception.Message}");
                 }
             }
 
@@ -111,18 +114,18 @@ namespace AutomaticOutfitManager.Detection
                                 droppedWeapon.SetForbidden(false, false);
                             }
                             droppedAny = true;
-                            if (Prefs.DevMode)
+                            if (AomLog.DetailedEnabled)
                             {
-                                Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: returned temporary primary weapon {currentWeapon.LabelCap} for saved-outfit restoration.");
+                                AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: returned temporary primary weapon {currentWeapon.LabelCap} for saved-outfit restoration.");
                             }
                         }
                     }
                     catch (System.Exception exception)
                     {
-                        if (Prefs.DevMode)
-                        {
-                            Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: could not return temporary primary weapon {currentWeapon.LabelCap}; retrying safely. {exception.GetType().Name}: {exception.Message}");
-                        }
+                        AomLog.WarningOnce(
+                            pawn,
+                            $"return-temporary-weapon:{currentWeapon.thingIDNumber}",
+                            () => $"[AutomaticOutfitManager] {pawn.LabelShortCap}: could not return temporary primary weapon {currentWeapon.LabelCap}; retrying safely. {exception.GetType().Name}: {exception.Message}");
                     }
                 }
 
@@ -186,9 +189,9 @@ namespace AutomaticOutfitManager.Detection
 
                 if (droppedWeapon.IsForbidden(pawn))
                     droppedWeapon.SetForbidden(false, false);
-                if (Prefs.DevMode)
+                if (AomLog.DetailedEnabled)
                 {
-                    Log.Message(
+                    AomLog.Detailed(
                         $"[AutomaticOutfitManager] {pawn.LabelShortCap}: recovered " +
                         $"{context} {droppedWeapon.LabelCap} from " +
                         $"{HolderDescription(holder)}.");
@@ -197,8 +200,10 @@ namespace AutomaticOutfitManager.Detection
             }
             catch (System.Exception exception)
             {
-                if (Prefs.DevMode)
-                    Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: could not release {context} {weapon.LabelCap} from its holder. {exception.GetType().Name}: {exception.Message}");
+                AomLog.WarningOnce(
+                    pawn,
+                    $"release-held-weapon:{weapon.thingIDNumber}:{context}",
+                    () => $"[AutomaticOutfitManager] {pawn.LabelShortCap}: could not release {context} {weapon.LabelCap} from its holder. {exception.GetType().Name}: {exception.Message}");
             }
 
             return false;
@@ -394,9 +399,9 @@ namespace AutomaticOutfitManager.Detection
                     replacementJob.playerForced = true;
                     jobs.Add(replacementJob);
                     plannedReplacements.Add(replacement);
-                    if (Prefs.DevMode)
+                    if (AomLog.DetailedEnabled)
                     {
-                        Log.Message(
+                        AomLog.Detailed(
                             $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                             $"replacing tattered saved apparel {item.LabelCap} " +
                             $"with better available {replacement.LabelCap} " +

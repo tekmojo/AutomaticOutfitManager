@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using AutomaticOutfitManager.Core;
 using HarmonyLib;
 using Verse;
 
@@ -46,10 +47,10 @@ namespace AutomaticOutfitManager.Detection
             }
             catch (Exception exception)
             {
-                if (!failureLogged && Prefs.DevMode)
+                if (!failureLogged)
                 {
                     failureLogged = true;
-                    Log.Warning($"[AutomaticOutfitManager] Simple Sidearms preference check failed; leaving weapon control to Simple Sidearms. {exception.GetType().Name}: {exception.Message}");
+                    AomLog.Warning($"[AutomaticOutfitManager] Simple Sidearms preference check failed; leaving weapon control to Simple Sidearms. {exception.GetType().Name}: {exception.Message}");
                 }
                 return true;
             }
@@ -109,9 +110,9 @@ namespace AutomaticOutfitManager.Detection
                 }
             }
 
-            if (!available && Prefs.DevMode)
+            if (!available)
             {
-                Log.Warning("[AutomaticOutfitManager] Simple Sidearms is active but its preference API was not found; Automatic Outfit Manager will not replace weapons while that mod is active.");
+                AomLog.Warning("[AutomaticOutfitManager] Simple Sidearms is active but its preference API was not found; Automatic Outfit Manager will not replace weapons while that mod is active.");
             }
         }
     }

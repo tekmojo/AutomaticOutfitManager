@@ -15,7 +15,7 @@ The compact technical identity is `AutomaticOutfitManager`, including the reposi
 - RimWorld 1.6
 - Harmony
 
-Current release candidate: version `0.3.2`, combining the playtested area/outfit foundation and exact primary-weapon requirements with the RC hardening described below.
+Current release: version `0.3.3`, combining the playtested area/outfit foundation and exact primary-weapon requirements with quieter, player-configurable diagnostics.
 
 Dubs Rimatomics inspired the original radiation-PPE scenario, but it is not a dependency. Automatic Outfit Manager does not detect radiation automatically.
 
@@ -243,6 +243,7 @@ Work, Hauling, and Wandering permissions can be configured independently for eac
 - Weapon selection uses RimWorld's normal equipment eligibility checks, including ideology and biocoding restrictions. Persona weapons are excluded from automatic selection.
 - Apparel and weapon storage classification uses cached definition and exact-item indexes. Locker hauling scans only exact definitions selected by active rules before attempting pathfinding.
 - Cooldowns, idle recovery, and continuation validation prevent broken jobs or unavailable saved items from causing retry storms or permanent Standing states.
+- Quiet, Basic, and Detailed log levels are available in RimWorld's normal Automatic Outfit Manager mod settings. Basic is the default.
 - Compatible overlapping and nested rules combine apparel and weapon requirements and maintain separate task buffers. The selectors reject known incompatible combinations. There is no configurable manual priority for genuinely conflicting overlaps.
 
 ## Troubleshooting
@@ -265,9 +266,17 @@ Confirm the rule is **Enabled** and work is resumed, the pawn is inside or its j
 
 Check its Work, Hauling, and Wandering columns for the activity that brought it into the area. These units obey access permissions but do not equip apparel or primary weapons.
 
-### Developer logs
+### Logging and bug reports
 
-With developer mode enabled, successful interceptions, exact-job resumptions, load-time pending-claim restoration, buffer changes, apparel and weapon restoration, managed-item protection, Simple Sidearms overrides, idle recovery, and safety redirects are logged. A cancelled continuation includes its reason, such as an invalid target, reservation conflict, pause request, or urgent personal job. Identical guest-access diagnostics are limited to once per pawn per in-game day, and task-buffer reset diagnostics are rate-limited per pawn and rule. Repeated task transitions, repeated Standing jobs, or `10 jobs in one tick` warnings still indicate a bug worth reporting with the current log and a short video.
+Open **Options → Mod settings → Automatic Outfit Manager** to choose a logging level:
+
+- **Quiet** writes only genuine warnings and errors.
+- **Basic (recommended)** adds the loaded version and rare one-time repair or compatibility summaries.
+- **Detailed** adds coalesced pawn transitions, buffer milestones, restoration decisions, managed-item protection, compatibility choices, idle recovery, and safety redirects while reproducing a problem.
+
+New installations and upgrades from versions without this setting start on **Basic**. After a player explicitly chooses another level, that choice persists across relaunches.
+
+Detailed AOM logging is independent of RimWorld Developer Mode and takes effect immediately. Repeated job rejections and access diagnostics are rate-limited by pawn and state, task buffers log only meaningful milestones, and runtime diagnostic caches are discarded when a game loads, a pawn's AOM session ends, or the logging level changes. Switch back to Basic after collecting a player log. Repeated task transitions, repeated Standing jobs, or `10 jobs in one tick` warnings still indicate a bug worth reporting with the current log and a short video.
 
 ## Current limitations
 

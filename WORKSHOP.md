@@ -87,6 +87,12 @@ Automatic Outfit Manager's original source code and documentation are licensed u
 Portions of the materials used to create this content/mod are trademarks and/or copyrighted works of Ludeon Studios Inc. All rights reserved by Ludeon. This content/mod is not official and is not endorsed by Ludeon.
 ```
 
+## Version 0.3.3 change note
+
+```text
+Adds Quiet, Basic (recommended), and Detailed logging under RimWorld's normal Automatic Outfit Manager mod settings. New installations and upgrades from earlier versions default to Basic; explicit choices persist. Routine pawn decisions no longer flood the player log: expected access and unavailable-gear states are Detailed-only, repeated managed-gear rejections are coalesced per pawn/item/session, and task buffers report only meaningful milestones. Automatic sidearm or loadout jobs no longer churn another pawn's exact saved weapon during restoration. Quiet and Basic skip detailed message construction and rate-limit bookkeeping; genuine warnings and errors remain visible.
+```
+
 ## Version 0.3.2 change note
 
 ```text

@@ -188,7 +188,7 @@ namespace AutomaticOutfitManager.Detection
             bool? preferredRanged,
             string source)
         {
-            if (weapon == null || !Prefs.DevMode)
+            if (weapon == null || !AomLog.DetailedEnabled)
                 return weapon;
 
             int shooting = CombatSkillLevel(pawn, SkillDefOf.Shooting);
@@ -204,7 +204,7 @@ namespace AutomaticOutfitManager.Detection
                 ? "; preferred category had no reachable, equippable selection"
                 : string.Empty;
 
-            Log.Message(
+            AomLog.Detailed(
                 $"[AutomaticOutfitManager] {pawn.LabelShortCap}: selected " +
                 $"{weapon.LabelCap} [{weapon.def.defName}] from {source}; " +
                 $"Shooting {shooting}, Melee {melee}, preference {preference}" +

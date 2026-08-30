@@ -16,19 +16,12 @@ namespace AutomaticOutfitManager.Patches
     [HarmonyPatch(typeof(Pawn_JobTracker), nameof(Pawn_JobTracker.StartJob))]
     public static class PawnJobTracker_StartJob_Patch
     {
-        private const int RepeatedDiagnosticInterval = 6000;
-        private const int GuestRepeatedDiagnosticInterval = 60000;
         private const int ApparelPreparationRetryInterval = 300;
         private const int WeaponPreparationRetryInterval = 300;
         private const int EssentialPersonalFallbackRetryInterval = 2500;
         private const int NaturalLockerDwellTicks = 300;
-        private static readonly Dictionary<string, int> LastRepeatedDiagnosticTick =
-            new Dictionary<string, int>();
         private static readonly AccessTools.FieldRef<Pawn_JobTracker, Pawn> PawnField =
             AccessTools.FieldRefAccess<Pawn_JobTracker, Pawn>("pawn");
-
-        internal static void ResetRuntimeCache() =>
-            LastRepeatedDiagnosticTick.Clear();
 
         public static void Prefix(
             Pawn_JobTracker __instance,
@@ -195,21 +188,21 @@ namespace AutomaticOutfitManager.Patches
                     return;
 
                 component.PrepareForMapDeparture(state);
-                if (Prefs.DevMode && ShouldLogRepeatedDiagnostic(
+                if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                         pawn, "map-departure-restoration"))
                 {
-                    Log.Message(
+                    AomLog.Detailed(
                         $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                         "native map departure requested; returning managed gear " +
                         "and restoring the saved outfit before leaving.");
                 }
             }
 
-            if (Prefs.DevMode && IsDesignationSensitiveWork(newJob) &&
+            if (AomLog.DetailedEnabled && IsDesignationSensitiveWork(newJob) &&
                 state?.Transition == ApparelTransition.Preparing &&
                 state.PendingWorkJob == null)
             {
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: starting preserved " +
                     $"native {newJob.def.defName} after preparation " +
                     $"(fromQueue={fromQueue}, giver=" +
@@ -255,11 +248,11 @@ namespace AutomaticOutfitManager.Patches
                 component?.RestoringOwnerForJobTarget(
                     pawn, newJob, out Thing restoringSavedGear) is Pawn restoringOwner)
             {
-                if (Prefs.DevMode && ShouldLogRepeatedDiagnostic(
+                if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                         pawn,
                         $"saved-gear-restoring:{restoringSavedGear.GetUniqueLoadID()}"))
                 {
-                    Log.Message(
+                    AomLog.Detailed(
                         $"[AutomaticOutfitManager] {pawn.LabelShortCap}: ignored automatic " +
                         $"{newJob.def.defName} for {restoringSavedGear.LabelCap}; " +
                         $"{restoringOwner.LabelShortCap} is restoring that exact saved item.");
@@ -285,11 +278,11 @@ namespace AutomaticOutfitManager.Patches
                 component?.SavedOwnerForBillTarget(
                     pawn, newJob, out Thing billedSavedGear) is Pawn billOwner)
             {
-                if (Prefs.DevMode && ShouldLogRepeatedDiagnostic(
+                if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                         pawn,
                         $"saved-gear-bill:{billedSavedGear.GetUniqueLoadID()}"))
                 {
-                    Log.Message(
+                    AomLog.Detailed(
                         $"[AutomaticOutfitManager] {pawn.LabelShortCap}: ignored automatic " +
                         $"{newJob.def.defName} for saved personal gear " +
                         $"{billedSavedGear.LabelCap} owned by {billOwner.LabelShortCap}.");
@@ -341,11 +334,11 @@ namespace AutomaticOutfitManager.Patches
                     : PausedAreaWorkFilter.DeniedOrdinaryWorkRule(pawn, newJob);
             if (deniedWorkRule != null)
             {
-                if (ShouldLogRepeatedDiagnostic(
+                if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                         pawn, $"work-disabled:{deniedWorkRule.Id}"))
                 {
                     string category = PawnAccessClassifier.IsHostedGuest(pawn) ? "guest work" : "work";
-                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: blocked from '{deniedWorkRule.Name}'; {category} is disabled.");
+                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: blocked from '{deniedWorkRule.Name}'; {category} is disabled.");
                 }
                 if (state?.Transition == ApparelTransition.Active &&
                     !state.RecallRequested)
@@ -382,13 +375,13 @@ namespace AutomaticOutfitManager.Patches
                     : PausedAreaWorkFilter.DeniedHaulingRule(pawn, newJob);
             if (deniedHaulingRule != null)
             {
-                if (ShouldLogRepeatedDiagnostic(
+                if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                         pawn, $"hauling-disabled:{deniedHaulingRule.Id}"))
                 {
                     string category = PawnAccessClassifier.IsHostedGuest(pawn)
                         ? "guest hauling"
                         : "hauling";
-                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: blocked from '{deniedHaulingRule.Name}'; {category} is disabled.");
+                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: blocked from '{deniedHaulingRule.Name}'; {category} is disabled.");
                 }
                 if (state?.Transition == ApparelTransition.Active &&
                     !state.RecallRequested)
@@ -430,10 +423,10 @@ namespace AutomaticOutfitManager.Patches
                     : PausedAreaWorkFilter.DeniedPausedAreaRule(pawn, newJob);
             if (deniedPausedAreaRule != null)
             {
-                if (Prefs.DevMode && ShouldLogRepeatedDiagnostic(
+                if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                         pawn, $"paused-work-start:{newJob.def?.defName}"))
                 {
-                    Log.Message(
+                    AomLog.Detailed(
                         $"[AutomaticOutfitManager] {pawn.LabelShortCap}: blocked " +
                         $"{newJob.def?.defName ?? "job"} before it could enter a paused work area.");
                 }
@@ -484,8 +477,8 @@ namespace AutomaticOutfitManager.Patches
                     state.AbandonWeaponManagementForOverride();
                 else
                     state.MarkWeaponPlayerOverride();
-                if (Prefs.DevMode)
-                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {newJob.def.defName} is controlling weapons; the current choice is retained and the saved primary remains available for outfit restoration.");
+                if (AomLog.DetailedEnabled)
+                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {newJob.def.defName} is controlling weapons; the current choice is retained and the saved primary remains available for outfit restoration.");
                 return;
             }
 
@@ -526,8 +519,8 @@ namespace AutomaticOutfitManager.Patches
                         state.AbandonWeaponManagementForOverride();
                     else
                         state.MarkWeaponPlayerOverride();
-                    if (Prefs.DevMode)
-                        Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {newJob.def.defName} selected by the player or another mod; the choice is retained until saved-outfit restoration.");
+                    if (AomLog.DetailedEnabled)
+                        AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {newJob.def.defName} selected by the player or another mod; the choice is retained until saved-outfit restoration.");
                 }
 
                 if (assignedTransition && state?.WeaponPlayerOverride == true &&
@@ -575,8 +568,8 @@ namespace AutomaticOutfitManager.Patches
                 !state.IsManagedWeapon(pawn.equipment?.Primary))
             {
                 state.MarkWeaponPlayerOverride();
-                if (Prefs.DevMode)
-                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: weapon changed outside Automatic Outfit Manager; the new choice is retained until saved-outfit restoration.");
+                if (AomLog.DetailedEnabled)
+                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: weapon changed outside Automatic Outfit Manager; the new choice is retained until saved-outfit restoration.");
             }
 
             if (newJob.def == JobDefOf.Wear &&
@@ -698,15 +691,15 @@ namespace AutomaticOutfitManager.Patches
                     pawn, state, newJob);
                 if (cancellationReason != null)
                 {
-                    if (Prefs.DevMode)
-                        Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: pending work continuation was cancelled ({cancellationReason}); returning to normal transition logic.");
+                    if (AomLog.DetailedEnabled)
+                        AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: pending work continuation was cancelled ({cancellationReason}); returning to normal transition logic.");
                     AutomaticOutfitManagerGameComponent.ClearPendingWork(state);
                     ManagedWorkClaimRegistry.ReleaseAll(pawn);
                 }
                 else if (StructurallyEquivalentWorkJob(newJob, pendingWork))
                 {
-                    if (Prefs.DevMode)
-                        Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: using RimWorld's fresh {newJob.def.defName} job for the prepared target instead of replaying the captured continuation.");
+                    if (AomLog.DetailedEnabled)
+                        AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: using RimWorld's fresh {newJob.def.defName} job for the prepared target instead of replaying the captured continuation.");
                     AutomaticOutfitManagerGameComponent.ClearPendingWork(state);
                     ManagedWorkClaimRegistry.ReleaseAll(pawn);
                 }
@@ -726,9 +719,9 @@ namespace AutomaticOutfitManager.Patches
                         string refreshedReport = refreshedWork.GetReport(pawn);
                         ReplaceWithBriefWait(
                             pawn, ref newJob, ref jobGiver, ref tag);
-                        if (Prefs.DevMode)
+                        if (AomLog.DetailedEnabled)
                         {
-                            Log.Message(
+                            AomLog.Detailed(
                                 $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                                 $"native {preservedJobName} remains valid for " +
                                 $"'{refreshedReport}' after preparation; queued the " +
@@ -749,9 +742,9 @@ namespace AutomaticOutfitManager.Patches
                     {
                         if (targetRejected)
                             BlockPendingWorkRetry(pawn, pendingWork);
-                        if (Prefs.DevMode)
+                        if (AomLog.DetailedEnabled)
                         {
-                            Log.Message(
+                            AomLog.Detailed(
                                 $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                                 $"native refresh rejected {pendingWork.def.defName} " +
                                 $"after preparation ({refreshReason}); " +
@@ -773,8 +766,8 @@ namespace AutomaticOutfitManager.Patches
                     jobGiver = resumedJob.jobGiver;
                     thinkTree = resumedJob.jobGiverThinkTree;
                     tag = null;
-                    if (Prefs.DevMode)
-                        Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: resuming exact prepared job {newJob.def.defName} for '{ManagedWorkClaimRegistry.DescribeActiveClaim(pawn)}'.");
+                    if (AomLog.DetailedEnabled)
+                        AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: resuming exact prepared job {newJob.def.defName} for '{ManagedWorkClaimRegistry.DescribeActiveClaim(pawn)}'.");
                 }
             }
 
@@ -804,10 +797,10 @@ namespace AutomaticOutfitManager.Patches
                         30, ApparelPreparationRetryInterval - elapsed);
                     ReplaceWithWait(
                         pawn, remaining, ref newJob, ref jobGiver, ref tag);
-                    if (Prefs.DevMode && ShouldLogRepeatedDiagnostic(
+                    if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                             pawn, "apparel-preparation-retry"))
                     {
-                        Log.Message(
+                        AomLog.Detailed(
                             $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                             "required apparel Wear did not complete; yielding " +
                             "before one bounded preparation retry.");
@@ -834,10 +827,10 @@ namespace AutomaticOutfitManager.Patches
                         30, WeaponPreparationRetryInterval - elapsed);
                     ReplaceWithWait(
                         pawn, remaining, ref newJob, ref jobGiver, ref tag);
-                    if (Prefs.DevMode && ShouldLogRepeatedDiagnostic(
+                    if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                             pawn, "weapon-preparation-retry"))
                     {
-                        Log.Message(
+                        AomLog.Detailed(
                             $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                             "required weapon Equip did not complete; yielding " +
                             "before one bounded preparation retry.");
@@ -964,9 +957,9 @@ namespace AutomaticOutfitManager.Patches
                     state.LastApparelPreparationThingId = -1;
                     state.ClearWeaponPreparationRetry();
                     state.ActiveIdleTicks = 0;
-                    if (Prefs.DevMode)
+                    if (AomLog.DetailedEnabled)
                     {
-                        Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: preparation complete; equipped rule set is active.");
+                        AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: preparation complete; equipped rule set is active.");
                     }
                 }
 
@@ -1163,10 +1156,10 @@ namespace AutomaticOutfitManager.Patches
                     state.LastChangingAreaReturnAttemptTick = -1;
                     state.NaturalLockerDwellUntilTick = -1;
                     state.ActiveIdleTicks = 0;
-                    if (Prefs.DevMode && ShouldLogRepeatedDiagnostic(
+                    if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                             pawn, "natural-locker-dwell-retained"))
                     {
-                        Log.Message(
+                        AomLog.Detailed(
                             $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                             "new protected activity became available during the " +
                             "locker pause; retaining the managed outfit.");
@@ -1206,10 +1199,10 @@ namespace AutomaticOutfitManager.Patches
                 if (startsMeaningfulWorkInArea)
                 {
                     state.LastManagedWorkJobDefName = newJob.def.defName;
-                    if (Prefs.DevMode && state.BufferedTasksCompleted > 0 &&
-                        ShouldLogRepeatedDiagnostic(
+                    if (AomLog.DetailedEnabled && state.BufferedTasksCompleted > 0 &&
+                        AomLog.ShouldLogDetailed(
                             pawn, $"task-buffer-reset:{activeRule?.Id}"))
-                        Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: task buffer reset by {newJob.def.defName} in '{activeRule?.Name}'.");
+                        AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: task buffer reset by {newJob.def.defName} in '{activeRule?.Name}'.");
                     state.BufferedTasksCompleted = 0;
                     state.LastBufferedJobLoadId = -1;
                     state.ClearPendingBufferedTask();
@@ -1253,8 +1246,6 @@ namespace AutomaticOutfitManager.Patches
                     {
                         state.PendingBufferedJobLoadId = newJob.loadID;
                         state.PendingBufferedRuleId = activeRule.Id;
-                        if (Prefs.DevMode)
-                            Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: task buffer candidate {state.BufferedTasksCompleted + 1}/{activeRule.ReturnTaskBuffer} started by {newJob.def.defName}; waiting for successful completion.");
                     }
                     return;
                 }
@@ -1307,10 +1298,10 @@ namespace AutomaticOutfitManager.Patches
                         jobGiver = null;
                         tag = null;
 
-                        if (Prefs.DevMode && ShouldLogRepeatedDiagnostic(
+                        if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                                 pawn, "cross-map-locker-return"))
                         {
-                            Log.Message(
+                            AomLog.Detailed(
                                 $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                                 $"task buffer complete; entering {returnPortal.LabelCap} " +
                                 "to return to the locker map.");
@@ -1402,10 +1393,10 @@ namespace AutomaticOutfitManager.Patches
                             state.LastChangingAreaReturnAttemptTick = -1;
                             state.LastRestorationAttemptTick = -1;
 
-                            if (Prefs.DevMode && ShouldLogRepeatedDiagnostic(
+                            if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                                     pawn, "post-draft-locker-return"))
                             {
-                                Log.Message(
+                                AomLog.Detailed(
                                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                                     "undrafted away from a safe locker return " +
                                     "cell; retaining the complete work outfit.");
@@ -1466,9 +1457,9 @@ namespace AutomaticOutfitManager.Patches
                             ReplaceWithWait(
                                 pawn, NaturalLockerDwellTicks,
                                 ref newJob, ref jobGiver, ref tag);
-                            if (Prefs.DevMode)
+                            if (AomLog.DetailedEnabled)
                             {
-                                Log.Message(
+                                AomLog.Detailed(
                                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                                     "task buffer complete; pausing briefly in the " +
                                     "locker before saved-outfit restoration.");
@@ -1556,8 +1547,8 @@ namespace AutomaticOutfitManager.Patches
                             : 0;
                         QueueRestorationJobs(__instance, ref newJob, ref jobGiver, ref tag, restorationJobs);
 
-                        if (Prefs.DevMode)
-                            Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: restoring saved apparel and primary weapon with {restorationJobs.Count} job(s) before {__instance.curJob?.def?.defName ?? "next job"}.");
+                        if (AomLog.DetailedEnabled)
+                            AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: restoring saved apparel and primary weapon with {restorationJobs.Count} job(s) before {__instance.curJob?.def?.defName ?? "next job"}.");
                         return;
                     }
 
@@ -1668,13 +1659,13 @@ namespace AutomaticOutfitManager.Patches
                     : transitConflict != null
                         ? $"required apparel is incompatible: {transitConflict.Label}"
                         : "overlapping rules require different primary weapons";
-                if (ShouldLogRepeatedDiagnostic(
+                if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                         pawn, $"unwearable:{string.Join(",", applicableRules.Select(rule => rule.Id))}"))
                 {
                     string action = unavailableGearFallback
                         ? $"{unavailableGearFallbackAction}; {reason}"
                         : $"delaying {newJob.def.defName}; {reason}";
-                    Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {action}.");
+                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {action}.");
                 }
                 if (unavailableGearFallback)
                     return;
@@ -1732,10 +1723,10 @@ namespace AutomaticOutfitManager.Patches
                         .Distinct()
                         .ToList();
                 }
-                if (ShouldLogRepeatedDiagnostic(
+                if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                         pawn, $"weapon-player-control:{string.Join(",", applicableRules.Select(rule => rule.Id))}"))
                 {
-                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: continuing {newJob.def.defName} with the player's current primary weapon; the weapon requirement is skipped while that choice is protected.");
+                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: continuing {newJob.def.defName} with the player's current primary weapon; the weapon requirement is skipped while that choice is protected.");
                 }
             }
 
@@ -1763,8 +1754,8 @@ namespace AutomaticOutfitManager.Patches
                 {
                     activeState.Transition = ApparelTransition.Active;
                     activeState.ClearWeaponPreparationRetry();
-                    if (Prefs.DevMode)
-                        Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: preparation complete; equipped rule set is active.");
+                    if (AomLog.DetailedEnabled)
+                        AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: preparation complete; equipped rule set is active.");
                 }
 
                 // Assigned/player-forced jobs commonly have no workGiverDef and
@@ -1808,13 +1799,13 @@ namespace AutomaticOutfitManager.Patches
                         UnavailableWorkRegistry.Block(
                             pawn, sourceRule, unavailableBlockTicks);
                     }
-                    if (ShouldLogRepeatedDiagnostic(
+                    if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                             pawn, $"gear-unavailable:{sourceRule.Id}:{def.defName}"))
                     {
                         string action = unavailableGearFallback
                             ? unavailableGearFallbackAction
                             : $"delaying {newJob.def.defName}";
-                        Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {action}; no reachable {def.LabelCap} is available for '{sourceRule.Name}'.");
+                        AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {action}; no reachable {def.LabelCap} is available for '{sourceRule.Name}'.");
                     }
                     if (unavailableGearFallback)
                         return;
@@ -1860,13 +1851,13 @@ namespace AutomaticOutfitManager.Patches
                         UnavailableWorkRegistry.Block(
                             pawn, weaponRule, unavailableBlockTicks);
                     }
-                    if (ShouldLogRepeatedDiagnostic(
+                    if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                             pawn, $"weapon-unavailable:{weaponRule.Id}:{weaponRule.WeaponSummary}"))
                     {
                         string action = unavailableGearFallback
                             ? unavailableGearFallbackAction
                             : $"delaying {newJob.def.defName}";
-                        Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {action}; no reachable {weaponRule.WeaponSummary.ToLowerInvariant()} is available for '{weaponRule.Name}'.");
+                        AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {action}; no reachable {weaponRule.WeaponSummary.ToLowerInvariant()} is available for '{weaponRule.Name}'.");
                     }
                     if (unavailableGearFallback)
                         return;
@@ -1933,14 +1924,14 @@ namespace AutomaticOutfitManager.Patches
                     .ToList();
             }
 
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
                 string ruleNames = string.Join(", ",
                     applicableRules.Select(candidate => $"'{candidate.Name}'"));
                 string weaponAssignment = managedWeapon == null
                     ? "no weapon"
                     : $"weapon {managedWeapon.LabelCap} [{managedWeapon.def.defName}]";
-                Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: intercepted {newJob.def.defName}; preparing {managedApparel.Count} apparel item(s) and {weaponAssignment} for {ruleNames}.");
+                AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: intercepted {newJob.def.defName}; preparing {managedApparel.Count} apparel item(s) and {weaponAssignment} for {ruleNames}.");
             }
 
             if (preparedState != null)
@@ -2059,9 +2050,9 @@ namespace AutomaticOutfitManager.Patches
             jobGiver = null;
             tag = null;
 
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: retrying " +
                     $"the exact required work weapon {candidate.LabelCap} once " +
                     "before considering another locker candidate.");
@@ -2082,8 +2073,8 @@ namespace AutomaticOutfitManager.Patches
                     state.NestedRuleBuffers.Add(new NestedRuleBufferState { RuleId = rule.Id });
                     state.LastNestedBufferStatus =
                         $"{rule.Name}: entered nested work; 0 of {rule.ReturnTaskBuffer} outer tasks used.";
-                    if (Prefs.DevMode)
-                        Log.Message($"[AutomaticOutfitManager] {state.Pawn?.LabelShortCap}: nested task buffer started for '{rule.Name}' (0/{rule.ReturnTaskBuffer}).");
+                    if (AomLog.DetailedEnabled)
+                        AomLog.Detailed($"[AutomaticOutfitManager] {state.Pawn?.LabelShortCap}: nested task buffer started for '{rule.Name}' (0/{rule.ReturnTaskBuffer}).");
                 }
                 else
                 {
@@ -2147,8 +2138,6 @@ namespace AutomaticOutfitManager.Patches
                         (string.IsNullOrEmpty(newJob.GetReport(pawn))
                             ? "."
                             : $"; current: {newJob.GetReport(pawn)}.");
-                    if (Prefs.DevMode)
-                        Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: nested task buffer candidate {progress.Completed + 1}/{nestedRule.ReturnTaskBuffer} started by {newJob.def.defName} after leaving '{nestedRule.Name}'; waiting for successful completion.");
                     continue;
                 }
 
@@ -2222,8 +2211,8 @@ namespace AutomaticOutfitManager.Patches
 
                 state.Transition = ApparelTransition.Preparing;
                 QueueBeforeCurrent(tracker, ref newJob, ref jobGiver, ref tag, removalJobs);
-                if (Prefs.DevMode)
-                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: nested task buffer complete for '{nestedRule.Name}'; removing {removalJobs.Count} nested transition job(s).");
+                if (AomLog.DetailedEnabled)
+                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: nested task buffer complete for '{nestedRule.Name}'; removing {removalJobs.Count} nested transition job(s).");
                 return true;
             }
 
@@ -2291,9 +2280,9 @@ namespace AutomaticOutfitManager.Patches
             state.ActiveIdleTicks = 0;
             ManagedWorkClaimRegistry.ReleaseAll(pawn);
 
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: handing off " +
                     $"directly from '{previousRuleName}' to '{destination.Name}'; " +
                     "retaining the original personal-outfit snapshot.");
@@ -2422,13 +2411,13 @@ namespace AutomaticOutfitManager.Patches
             jobGiver = null;
             tag = null;
 
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
                 string sourceNames = string.Join(", ",
                     sourceRules.Select(rule => $"'{rule.Name}'"));
                 string destinationNames = string.Join(", ",
                     destinationRules.Select(rule => $"'{rule.Name}'"));
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                     $"leaving {sourceNames} through neutral changing cell " +
                     $"{safeCell} before preparing incompatible sequential " +
@@ -2495,14 +2484,14 @@ namespace AutomaticOutfitManager.Patches
             else
                 ProtectedBoundaryRetryRegistry.Clear(pawn, job);
 
-            if (Prefs.DevMode && ShouldLogRepeatedDiagnostic(
+            if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                     pawn,
                     $"incompatible-ingest-fallback:{retainedRule.Id}:" +
                     string.Join(",", bypassedRules.Select(rule => rule.Id))))
             {
                 string bypassedNames = string.Join(", ",
                     bypassedRules.Select(rule => $"'{rule.Name}'"));
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: allowing " +
                     $"essential {job.def.defName} under the currently equipped " +
                     $"'{retainedRule.Name}' outfit; overlapping {bypassedNames} " +
@@ -2808,10 +2797,10 @@ namespace AutomaticOutfitManager.Patches
             if (unwearableRule != null)
             {
                 UnavailableWorkRegistry.Block(pawn, unwearableRule);
-                if (ShouldLogRepeatedDiagnostic(
+                if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                         pawn, $"nested-unwearable:{unwearableRule.Id}"))
                 {
-                    Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: blocked from '{unwearableRule.Name}'; its required apparel cannot be worn by this pawn.");
+                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: blocked from '{unwearableRule.Name}'; its required apparel cannot be worn by this pawn.");
                 }
                 if (TryReplaceUnavailableGearWaitWithEgress(
                         tracker, pawn, ref newJob, ref jobGiver, ref tag))
@@ -2832,13 +2821,13 @@ namespace AutomaticOutfitManager.Patches
             {
                 foreach (ApparelRule rule in rules)
                     UnavailableWorkRegistry.Block(pawn, rule);
-                if (ShouldLogRepeatedDiagnostic(
+                if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                         pawn, $"nested-conflict:{string.Join(",", rules.Select(rule => rule.Id))}"))
                 {
                     string conflictLabel = conflict != null
                         ? conflict.Label
                         : "different primary weapons";
-                    Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: delaying {newJob.def.defName}; incompatible required apparel: {conflictLabel}.");
+                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: delaying {newJob.def.defName}; incompatible required apparel: {conflictLabel}.");
                 }
 
                 if (TryReplaceUnavailableGearWaitWithEgress(
@@ -2896,10 +2885,10 @@ namespace AutomaticOutfitManager.Patches
                         .Distinct()
                         .ToList();
                 }
-                if (ShouldLogRepeatedDiagnostic(
+                if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                         pawn, $"nested-weapon-player-control:{string.Join(",", rules.Select(rule => rule.Id))}"))
                 {
-                    Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: continuing {newJob.def.defName} with the player's current primary weapon; the weapon requirement is skipped while that choice is protected.");
+                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: continuing {newJob.def.defName} with the player's current primary weapon; the weapon requirement is skipped while that choice is protected.");
                 }
             }
             if (missingWeapon && weaponState?.Transition ==
@@ -2958,10 +2947,10 @@ namespace AutomaticOutfitManager.Patches
                 if (apparel == null)
                 {
                     UnavailableWorkRegistry.Block(pawn, sourceRule);
-                    if (ShouldLogRepeatedDiagnostic(
+                    if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                             pawn, $"nested-gear-unavailable:{sourceRule.Id}:{def.defName}"))
                     {
-                        Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: delaying {newJob.def.defName}; no reachable {def.LabelCap} is available for '{sourceRule.Name}'.");
+                        AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: delaying {newJob.def.defName}; no reachable {def.LabelCap} is available for '{sourceRule.Name}'.");
                     }
 
                     // Discard the stale work candidate and give the normal think
@@ -2995,10 +2984,10 @@ namespace AutomaticOutfitManager.Patches
                 if (managedWeapon == null)
                 {
                     UnavailableWorkRegistry.Block(pawn, weaponRule);
-                    if (ShouldLogRepeatedDiagnostic(
+                    if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                             pawn, $"nested-weapon-unavailable:{weaponRule.Id}:{weaponRule.WeaponSummary}"))
                     {
-                        Log.Warning($"[AutomaticOutfitManager] {pawn.LabelShortCap}: delaying {newJob.def.defName}; no reachable {weaponRule.WeaponSummary.ToLowerInvariant()} is available for '{weaponRule.Name}'.");
+                        AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: delaying {newJob.def.defName}; no reachable {weaponRule.WeaponSummary.ToLowerInvariant()} is available for '{weaponRule.Name}'.");
                     }
                     if (TryReplaceUnavailableGearWaitWithEgress(
                             tracker, pawn, ref newJob, ref jobGiver, ref tag))
@@ -3057,7 +3046,7 @@ namespace AutomaticOutfitManager.Patches
                     .ToList();
             }
 
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
                 string ruleNames = string.Join(", ", rules.Select(rule => $"'{rule.Name}'"));
                 string weaponAssignment = managedWeapon == null
@@ -3066,7 +3055,7 @@ namespace AutomaticOutfitManager.Patches
                 string preparationContext = preservePendingWork
                     ? $"intercepted {newJob.def.defName}"
                     : "recovering complete occupied-area protection";
-                Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {preparationContext}; preparing {managedApparel.Count} apparel item(s) and {weaponAssignment} for overlapping rules {ruleNames}.");
+                AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {preparationContext}; preparing {managedApparel.Count} apparel item(s) and {weaponAssignment} for overlapping rules {ruleNames}.");
             }
 
             // PendingWorkJob is the sole owner of the interrupted work job while
@@ -3528,11 +3517,11 @@ namespace AutomaticOutfitManager.Patches
             jobGiver = null;
             tag = null;
 
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
                 string ruleNames = string.Join(
                     ", ", missingOccupiedRules.Select(rule => $"'{rule.Name}'"));
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: complete gear " +
                     $"is unavailable inside {ruleNames}; leaving for safe cell " +
                     $"{safeCell} before reconsidering {interruptedJob.def.defName}.");
@@ -3998,56 +3987,31 @@ namespace AutomaticOutfitManager.Patches
         internal static void LogAutomaticManagedGearRejection(
             Pawn pawn, Job job, Thing gear, string stage)
         {
-            if (!Prefs.DevMode || pawn == null || job?.def == null || gear == null ||
-                !ShouldLogRepeatedDiagnostic(
-                    pawn, $"automatic-managed-gear:{job.def.defName}:{gear.def?.defName}"))
+            if (!AomLog.DetailedEnabled || pawn == null || job?.def == null || gear == null ||
+                !AomLog.ShouldLogDetailed(
+                    pawn, $"automatic-managed-gear:{gear.thingIDNumber}", 60000))
             {
                 return;
             }
 
             string gearKind = gear.def?.IsWeapon == true ? "weapon" : "apparel";
-            Log.Message(
+            AomLog.Detailed(
                 $"[AutomaticOutfitManager] {pawn.LabelShortCap}: ignored automatic " +
                 $"{job.def.defName} for managed {gearKind} {gear.LabelCap} at {stage}; " +
                 "only an Automatic Outfit Manager transition or explicit player order may use it.");
         }
 
-        internal static bool ShouldLogRepeatedDiagnostic(
-            Pawn pawn, string category, int interval = RepeatedDiagnosticInterval)
-        {
-            if (pawn == null || string.IsNullOrEmpty(category))
-                return false;
-
-            // Large visiting groups can retry the same inaccessible transit job
-            // for many hours. Keep one useful diagnostic per guest per in-game
-            // day while retaining the shorter interval for colony pawns.
-            if (PawnAccessClassifier.IsHostedGuest(pawn) ||
-                PawnAccessClassifier.IsColonyPrisoner(pawn))
-                interval = Math.Max(interval, GuestRepeatedDiagnosticInterval);
-
-            int tick = Find.TickManager?.TicksGame ?? 0;
-            string key = $"{pawn.thingIDNumber}:{category}";
-            if (LastRepeatedDiagnosticTick.TryGetValue(key, out int lastTick) &&
-                tick - lastTick < interval)
-            {
-                return false;
-            }
-
-            LastRepeatedDiagnosticTick[key] = tick;
-            return true;
-        }
-
         private static void LogHazardProtectionHold(
             Pawn pawn, string reason, string context)
         {
-            if (!Prefs.DevMode || pawn == null ||
-                !ShouldLogRepeatedDiagnostic(
+            if (!AomLog.DetailedEnabled || pawn == null ||
+                !AomLog.ShouldLogDetailed(
                     pawn, $"environmental-protection:{reason}:{context}"))
             {
                 return;
             }
 
-            Log.Message(
+            AomLog.Detailed(
                 $"[AutomaticOutfitManager] {pawn.LabelShortCap}: retaining " +
                 $"managed protection during {context} because of " +
                 $"{reason ?? "hazardous conditions"}.");

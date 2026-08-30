@@ -76,7 +76,7 @@ namespace AutomaticOutfitManager.Patches
             }
             catch (Exception exception)
             {
-                Log.Error(
+                AomLog.Error(
                     "[AutomaticOutfitManager] Failed to remap gravship Work Area " +
                     $"and Locker Area references {stage}: {exception}");
             }
@@ -151,9 +151,9 @@ namespace AutomaticOutfitManager.Patches
                 destinationMap,
                 "after gravship placement");
 
-            if (Prefs.DevMode)
+            if (AomLog.DetailedEnabled)
             {
-                Log.Message(
+                AomLog.Detailed(
                     $"[AutomaticOutfitManager] Remapped {remappedRuleIds.Count} " +
                     "rule(s) to copied destination-map Work/Locker areas after " +
                     "gravship placement.");
@@ -198,7 +198,7 @@ namespace AutomaticOutfitManager.Patches
 
             if (repairedCount > 0)
             {
-                Log.Message(
+                AomLog.Basic(
                     $"[AutomaticOutfitManager] Repaired {repairedCount} stale " +
                     "gravship Work/Locker area rule reference(s) after load.");
             }
