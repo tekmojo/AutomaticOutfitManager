@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Licensed the original Automatic Outfit Manager software and associated documentation under the MIT License, with separate notices for RimWorld/Ludeon, Harmony, and game-derived material.
+- Added `LICENSE` and `NOTICE.md` to future Workshop package inputs.
+
 ## 0.3.2 - 2026-08-30
 
 First Steam Workshop release.

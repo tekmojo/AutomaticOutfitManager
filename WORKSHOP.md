@@ -80,6 +80,11 @@ Drafted and explicit player-forced behavior is respected. Weapon selection uses 
 
 [h1]Support and source[/h1]
 [url=https://github.com/tekmojo/AutomaticOutfitManager]Documentation, source, and issue reporting on GitHub[/url]
+
+[h1]License and legal notice[/h1]
+Automatic Outfit Manager's original source code and documentation are licensed under the MIT License. Third-party software, RimWorld materials, trademarks, and game-derived screenshots retain their respective rights; see LICENSE and NOTICE.md in the source repository and mod package.
+
+Portions of the materials used to create this content/mod are trademarks and/or copyrighted works of Ludeon Studios Inc. All rights reserved by Ludeon. This content/mod is not official and is not endorsed by Ludeon.
 ```
 
 ## Version 0.3.2 change note

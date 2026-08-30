@@ -44,7 +44,12 @@ $requiredFiles = @(
     "About\Preview.png"
 )
 
-foreach ($relativePath in $requiredFiles) {
+$requiredRootFiles = @(
+    "LICENSE",
+    "NOTICE.md"
+)
+
+foreach ($relativePath in @($requiredFiles) + @($requiredRootFiles)) {
     $sourcePath = Join-Path $PSScriptRoot $relativePath
     if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
         throw "Required Workshop file is missing: $relativePath"
@@ -61,6 +66,10 @@ $stagedAboutDirectory = Join-Path $resolvedStageDirectory "About"
 New-Item -ItemType Directory -Path $stagedAboutDirectory -Force | Out-Null
 foreach ($relativePath in $requiredFiles) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot $relativePath) -Destination $stagedAboutDirectory
+}
+
+foreach ($relativePath in $requiredRootFiles) {
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot $relativePath) -Destination $resolvedStageDirectory
 }
 
 foreach ($directory in @("Defs", "Textures")) {

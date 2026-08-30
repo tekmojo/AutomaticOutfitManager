@@ -307,3 +307,9 @@ The staged mod and its SHA-256 manifest are written below `work\workshop-staging
 Copy the repository folder into RimWorld’s `Mods` directory, enable **Harmony** first, then enable **Automatic Outfit Manager**.
 
 See [`PROJECT-DESIGN.md`](PROJECT-DESIGN.md) for implementation scope and future phases.
+
+## License and notices
+
+Automatic Outfit Manager's original source code and documentation are available under the [MIT License](LICENSE). Third-party software, RimWorld materials, trademarks, and game-derived screenshots are not covered by that grant; see [Third-Party and Game Content Notices](NOTICE.md).
+
+> Portions of the materials used to create this content/mod are trademarks and/or copyrighted works of Ludeon Studios Inc. All rights reserved by Ludeon. This content/mod is not official and is not endorsed by Ludeon.
