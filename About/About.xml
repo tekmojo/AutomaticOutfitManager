@@ -18,7 +18,7 @@
   <loadAfter>
     <li>brrainz.harmony</li>
   </loadAfter>
-  <description>Create area-based outfit rules for apparel, personal protective equipment (PPE), and optional exact primary-weapon alternatives. Eligible undrafted humanlike pawns equip the complete requirement before entry and retain it through work, hauling, wandering, personal activities, sleep, and pass-through. They return items through an optional locker room and restore their exact previous apparel and primary weapon after leaving and completing any configured buffer.
+  <description>Create area-based outfit rules for apparel, personal protective equipment (PPE), and optional exact primary-weapon alternatives, with independent condition and quality standards. Eligible undrafted humanlike pawns equip the complete requirement before entry and retain it through work, hauling, wandering, personal activities, sleep, and pass-through. They return items through an optional locker room and restore their saved apparel and exact previous primary weapon after leaving and successfully completing any configured buffer. Original apparel is restored by default; tattered personal apparel may be replaced by a valid better item after it is successfully worn.
 
-Includes nested rules, pause and Recall controls, access permissions, live status, locker restocking, managed storage filters, and generic vanilla or modded gear support. Harmony is required.</description>
+  Includes nested rules, pause and Recall controls, access permissions, live status, locker restocking, managed storage filters, bounded saved-item recovery, safe retention of already-managed protection across hazardous routes, gravship area remapping, and generic vanilla or modded gear support. Rules remain player-configured rather than automatically triggered by hazards. Harmony is required.</description>
 </ModMetaData>

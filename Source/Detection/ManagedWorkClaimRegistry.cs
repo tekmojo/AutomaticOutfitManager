@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using RimWorld;
 using Verse;
 using Verse.AI;
 
@@ -10,7 +11,9 @@ namespace AutomaticOutfitManager.Detection
     /// caused a pawn to begin changing outfits. RimWorld does not keep the job's
     /// reservations while Wear jobs run, so another pawn could otherwise take a
     /// bill ingredient or queued target even when the primary workstation/frame
-    /// remains claimed by the outfitting pawn.
+    /// remains claimed by the outfitting pawn. HaulToCell also claims its exact
+    /// destination cell: that reservation is just as exclusive as the hauled
+    /// thing and can otherwise be taken while the pawn changes gear.
     /// </summary>
     public static class ManagedWorkClaimRegistry
     {
@@ -165,6 +168,25 @@ namespace AutomaticOutfitManager.Detection
                 }
 
                 targets.Add(new WorkTarget { Map = map, Thing = thing, Cell = cell });
+            }
+
+            // HaulToCell reserves both its source Thing and targetB cell when
+            // the driver starts. Thing-first claiming used to omit targetB, so
+            // another pawn could begin hauling to that cell during outfit
+            // preparation. The preserved job then failed its pre-toil
+            // reservations and emitted a red error when AOM replayed it.
+            if (job.def == JobDefOf.HaulToCell &&
+                job.targetB.IsValid && !job.targetB.HasThing &&
+                job.targetB.Cell.IsValid && job.targetB.Cell.InBounds(pawn.Map) &&
+                !targets.Any(existing =>
+                    Matches(existing, pawn.Map, null, job.targetB.Cell)))
+            {
+                targets.Add(new WorkTarget
+                {
+                    Map = pawn.Map,
+                    Thing = null,
+                    Cell = job.targetB.Cell
+                });
             }
 
             // Thing targets are the reservation-sensitive part of bills, hauls,

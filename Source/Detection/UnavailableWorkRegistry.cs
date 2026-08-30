@@ -23,6 +23,8 @@ namespace AutomaticOutfitManager.Detection
         private static readonly Dictionary<int, List<Entry>> Entries =
             new Dictionary<int, List<Entry>>();
 
+        public static void ResetForLoadedGame() => Entries.Clear();
+
         public static void Block(Pawn pawn, ApparelRule rule, int ticks = 1200)
         {
             if (pawn == null || rule == null)
@@ -118,6 +120,25 @@ namespace AutomaticOutfitManager.Detection
                     ? ExactJobMatches(entry, pawn, job)
                     : RuleEvaluator.JobTargetsArea(job, rule.Area);
             });
+        }
+
+        public static bool HasActiveRuleBlock(Pawn pawn, ApparelRule rule)
+        {
+            if (pawn == null || rule == null ||
+                !Entries.TryGetValue(pawn.thingIDNumber, out List<Entry> pawnEntries))
+            {
+                return false;
+            }
+
+            int now = Find.TickManager?.TicksGame ?? 0;
+            pawnEntries.RemoveAll(entry => entry.UntilTick <= now);
+            if (pawnEntries.Count == 0)
+            {
+                Entries.Remove(pawn.thingIDNumber);
+                return false;
+            }
+
+            return pawnEntries.Any(entry => entry.RuleId == rule.Id);
         }
 
         public static bool ShouldReject(

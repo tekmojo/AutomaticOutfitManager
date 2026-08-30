@@ -30,12 +30,16 @@ namespace AutomaticOutfitManager.UI
             public int WornCount;
             public int BufferedTasksCompleted;
             public int ReturnTaskBuffer;
+            public int PendingBufferedJobLoadId;
             public int CurrentJobLoadId;
+            public int PendingWorkLoadId;
             public bool RecallInterruptPending;
             public bool Drafted;
             public string WornSignature;
             public string Text;
         }
+
+        internal static void ResetRuntimeCache() => StatusCache.Clear();
 
         public static string Build(Pawn pawn)
         {
@@ -54,6 +58,7 @@ namespace AutomaticOutfitManager.UI
             int wornCount = pawn.apparel?.WornApparelCount ?? 0;
             int returnTaskBuffer = rule?.ReturnTaskBuffer ?? 0;
             int currentJobLoadId = pawn.CurJob?.loadID ?? -1;
+            int pendingWorkLoadId = state.PendingWorkJob?.loadID ?? -1;
             string wornSignature = string.Join(",", (pawn.apparel?.WornApparel ??
                     new List<Apparel>())
                 .Where(item => item != null)
@@ -64,7 +69,8 @@ namespace AutomaticOutfitManager.UI
             string currentRuleSignature = string.Join(",", state.CurrentRuleIds ?? new List<string>());
             string nestedBufferSignature = string.Join(",", (state.NestedRuleBuffers ??
                 new List<NestedRuleBufferState>()).Select(item =>
-                    $"{item.RuleId}:{item.Completed}:{item.Finished}:{item.LastJobLoadId}"));
+                    $"{item.RuleId}:{item.Completed}:{item.Finished}:" +
+                    $"{item.LastJobLoadId}:{item.PendingJobLoadId}"));
             if (StatusCache.TryGetValue(pawn, out CachedStatus cached) &&
                 Time.realtimeSinceStartup - cached.CreatedAt < CacheSeconds &&
                 cached.Transition == state.Transition &&
@@ -76,7 +82,9 @@ namespace AutomaticOutfitManager.UI
                 cached.WornCount == wornCount &&
                 cached.BufferedTasksCompleted == state.BufferedTasksCompleted &&
                 cached.ReturnTaskBuffer == returnTaskBuffer &&
+                cached.PendingBufferedJobLoadId == state.PendingBufferedJobLoadId &&
                 cached.CurrentJobLoadId == currentJobLoadId &&
+                cached.PendingWorkLoadId == pendingWorkLoadId &&
                 cached.RecallInterruptPending == state.RecallInterruptPending &&
                 cached.Drafted == pawn.Drafted &&
                 cached.WornSignature == wornSignature)
@@ -128,16 +136,23 @@ namespace AutomaticOutfitManager.UI
                 .Distinct()
                 .ToList();
             var bufferStatuses = new List<string>();
+            Job displayedJob = pawn?.CurJob;
+            bool outerBufferInProgress = state.Transition == ApparelTransition.Active &&
+                displayedJob != null &&
+                state.PendingBufferedJobLoadId >= 0 &&
+                displayedJob.loadID == state.PendingBufferedJobLoadId;
+            int displayedOuterBufferCount = state.BufferedTasksCompleted +
+                (outerBufferInProgress ? 1 : 0);
             if (rule != null)
             {
                 bufferStatuses.Add(BufferStatus(
-                    rule.Name, state.BufferedTasksCompleted,
+                    rule.Name, displayedOuterBufferCount,
                     returnTaskBuffer, false));
             }
             else
             {
                 bufferStatuses.Add(BufferStatus(
-                    null, state.BufferedTasksCompleted,
+                    null, displayedOuterBufferCount,
                     returnTaskBuffer, false));
             }
             foreach (string nestedRuleId in nestedRuleIds)
@@ -147,9 +162,18 @@ namespace AutomaticOutfitManager.UI
                 {
                     bool hasProgress = nestedProgressByRule.TryGetValue(
                         nestedRuleId, out NestedRuleBufferState nested);
+                    bool nestedBufferInProgress = hasProgress &&
+                        !nested.Finished &&
+                        state.Transition == ApparelTransition.Active &&
+                        displayedJob != null &&
+                        nested.PendingJobLoadId >= 0 &&
+                        displayedJob.loadID == nested.PendingJobLoadId;
+                    int displayedNestedBufferCount =
+                        (hasProgress ? nested.Completed : 0) +
+                        (nestedBufferInProgress ? 1 : 0);
                     bufferStatuses.Add(BufferStatus(
                         nestedRule.Name,
-                        hasProgress ? nested.Completed : 0,
+                        displayedNestedBufferCount,
                         nestedRule.ReturnTaskBuffer,
                         hasProgress && nested.Finished));
                 }
@@ -173,7 +197,9 @@ namespace AutomaticOutfitManager.UI
                 WornCount = wornCount,
                 BufferedTasksCompleted = state.BufferedTasksCompleted,
                 ReturnTaskBuffer = returnTaskBuffer,
+                PendingBufferedJobLoadId = state.PendingBufferedJobLoadId,
                 CurrentJobLoadId = currentJobLoadId,
+                PendingWorkLoadId = pendingWorkLoadId,
                 RecallInterruptPending = state.RecallInterruptPending,
                 Drafted = pawn.Drafted,
                 WornSignature = wornSignature,
@@ -210,19 +236,21 @@ namespace AutomaticOutfitManager.UI
 
             if (transition == ApparelTransition.Active &&
                 returnTaskBuffer > 0 &&
-                state.BufferedTasksCompleted > 0 &&
                 currentJob != null &&
-                currentJob.loadID == state.LastBufferedJobLoadId)
+                currentJob.loadID == state.PendingBufferedJobLoadId)
             {
-                int completed = System.Math.Min(
-                    state.BufferedTasksCompleted, returnTaskBuffer);
-                return $"Buffered task {completed} of {returnTaskBuffer}: " +
+                int inProgress = System.Math.Min(
+                    state.BufferedTasksCompleted + 1, returnTaskBuffer);
+                return $"Buffered task {inProgress} of {returnTaskBuffer} in progress: " +
                        JobActivity(pawn, currentJob);
             }
 
             switch (transition)
             {
                 case ApparelTransition.Preparing:
+                    string pendingActivity = state.PendingWorkJob == null
+                        ? null
+                        : JobActivity(pawn, state.PendingWorkJob);
                     if (state.WeaponRestorationRequested &&
                         (currentJob?.def == JobDefOf.Equip ||
                          currentJob?.def == JobDefOf.DropEquipment))
@@ -238,10 +266,18 @@ namespace AutomaticOutfitManager.UI
                         return "Returning nested work apparel";
                     }
                     if (currentJob?.def == JobDefOf.Equip)
-                        return $"Equipping required weapon: {JobActivity(pawn, currentJob)}";
-                    return currentJob?.def == JobDefOf.Wear
-                        ? $"Equipping required apparel: {JobActivity(pawn, currentJob)}"
-                        : PreparingRequirementsLabel(requiredSessionRules);
+                        return pendingActivity == null
+                            ? $"Equipping required weapon: {JobActivity(pawn, currentJob)}"
+                            : $"Equipping required weapon for: {pendingActivity}";
+                    if (currentJob?.def == JobDefOf.Wear)
+                    {
+                        return pendingActivity == null
+                            ? $"Equipping required apparel: {JobActivity(pawn, currentJob)}"
+                            : $"Equipping required apparel for: {pendingActivity}";
+                    }
+                    if (pendingActivity != null)
+                        return $"Preparing for: {pendingActivity}";
+                    return PreparingRequirementsLabel(requiredSessionRules);
                 case ApparelTransition.Active:
                     if (requiredSessionRules.Any(candidate =>
                             RuleEvaluator.HasMissingRequiredApparel(pawn, candidate)) ||
@@ -257,16 +293,17 @@ namespace AutomaticOutfitManager.UI
                         ? null
                         : state.NestedRuleBuffers?.FirstOrDefault(progress =>
                             progress != null && !progress.Finished &&
-                            progress.LastJobLoadId == currentJob.loadID);
+                            progress.PendingJobLoadId == currentJob.loadID);
                     if (currentNestedBuffer != null)
                     {
                         ApparelRule nestedRule = AutomaticOutfitManagerGameComponent.Current?
                             .RuleById(currentNestedBuffer.RuleId);
                         int maximum = System.Math.Max(
                             0, nestedRule?.ReturnTaskBuffer ?? 0);
-                        int completed = System.Math.Max(
-                            0, System.Math.Min(currentNestedBuffer.Completed, maximum));
-                        return $"Buffered task {completed} of {maximum}: " +
+                        int inProgress = System.Math.Max(
+                            0, System.Math.Min(
+                                currentNestedBuffer.Completed + 1, maximum));
+                        return $"Buffered task {inProgress} of {maximum} in progress: " +
                                JobActivity(pawn, currentJob);
                     }
                     if (PausedAreaWorkFilter.IsHaulingJob(currentJob))
@@ -371,6 +408,22 @@ namespace AutomaticOutfitManager.UI
 
             if (state.Transition != ApparelTransition.Restoring)
                 return null;
+
+            AutomaticOutfitManagerGameComponent component =
+                AutomaticOutfitManagerGameComponent.Current;
+            foreach (Apparel worn in pawn.apparel?.WornApparel ??
+                         new List<Apparel>())
+            {
+                if (state.ManagedApparel?.Contains(worn) != true)
+                    continue;
+
+                Pawn savedOwner = component?.RestoringOwnerForSavedGear(worn);
+                if (savedOwner != null && savedOwner != pawn)
+                {
+                    return $"Releasing saved apparel: {worn.LabelCap} for " +
+                           $"{savedOwner.LabelShortCap}.";
+                }
+            }
 
             Apparel missingItem = state.OriginalApparel.FirstOrDefault(item =>
                 item != null && !item.Destroyed &&
@@ -521,6 +574,13 @@ namespace AutomaticOutfitManager.UI
                 return "reserved by another task";
             if (!pawn.CanReach(weapon, PathEndMode.ClosestTouch, Danger.Deadly))
                 return "unreachable";
+            if (!RestorationPlanner.CanAttemptSavedWeaponEquip(
+                    weapon, pawn, out string cantReason))
+            {
+                return string.IsNullOrEmpty(cantReason)
+                    ? "cannot be equipped"
+                    : cantReason;
+            }
             return "ready to retrieve";
         }
 

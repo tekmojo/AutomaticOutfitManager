@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
 using AutomaticOutfitManager.Core;
 using AutomaticOutfitManager.Rules;
 using RimWorld;
 using Verse;
+using AutomaticOutfitManager.Patches;
 using Verse.AI;
 
 namespace AutomaticOutfitManager.Detection
@@ -10,7 +12,10 @@ namespace AutomaticOutfitManager.Detection
     public static class WeaponFinder
     {
         public static ThingWithComps FindBest(
-            Pawn pawn, CombinedWeaponRequirement requirement, Area changingArea = null)
+            Pawn pawn,
+            CombinedWeaponRequirement requirement,
+            Area changingArea = null,
+            ISet<Thing> excludedThings = null)
         {
             if (pawn?.Map == null || requirement?.HasRequirement != true)
                 return null;
@@ -20,7 +25,8 @@ namespace AutomaticOutfitManager.Detection
             if (changingArea != null)
             {
                 ThingWithComps preferred = FindClosest(
-                    pawn, requirement, changingArea, preferredDef);
+                    pawn, requirement, changingArea, preferredDef,
+                    excludedThings: excludedThings);
                 if (preferred != null)
                     return ReportSelection(
                         pawn, preferred, preferredRanged, "locker");
@@ -31,7 +37,8 @@ namespace AutomaticOutfitManager.Detection
                         pawn,
                         requirement,
                         changingArea,
-                        preferredRanged: preferredRanged);
+                        preferredRanged: preferredRanged,
+                        excludedThings: excludedThings);
                     if (categoryPreferred != null)
                     {
                         return ReportSelection(
@@ -46,7 +53,8 @@ namespace AutomaticOutfitManager.Detection
             if (preferredDef != null)
             {
                 ThingWithComps mapPreferred = FindClosest(
-                    pawn, requirement, null, preferredDef);
+                    pawn, requirement, null, preferredDef,
+                    excludedThings: excludedThings);
                 if (mapPreferred != null)
                     return ReportSelection(
                         pawn, mapPreferred, preferredRanged, "map");
@@ -58,7 +66,8 @@ namespace AutomaticOutfitManager.Detection
                     pawn,
                     requirement,
                     null,
-                    preferredRanged: preferredRanged);
+                    preferredRanged: preferredRanged,
+                    excludedThings: excludedThings);
                 if (categoryPreferred != null)
                 {
                     return ReportSelection(
@@ -76,7 +85,8 @@ namespace AutomaticOutfitManager.Detection
             if (changingArea != null)
             {
                 ThingWithComps lockerFallback = FindClosest(
-                    pawn, requirement, changingArea);
+                    pawn, requirement, changingArea,
+                    excludedThings: excludedThings);
                 if (lockerFallback != null)
                 {
                     return ReportSelection(
@@ -84,7 +94,8 @@ namespace AutomaticOutfitManager.Detection
                 }
             }
 
-            ThingWithComps mapFallback = FindClosest(pawn, requirement, null);
+            ThingWithComps mapFallback = FindClosest(
+                pawn, requirement, null, excludedThings: excludedThings);
             return ReportSelection(
                 pawn, mapFallback, preferredRanged, "map fallback");
         }
@@ -94,7 +105,8 @@ namespace AutomaticOutfitManager.Detection
             CombinedWeaponRequirement requirement,
             Area area,
             ThingDef exactDef = null,
-            bool? preferredRanged = null)
+            bool? preferredRanged = null,
+            ISet<Thing> excludedThings = null)
         {
             return GenClosest.ClosestThingReachable(
                 pawn.Position,
@@ -104,6 +116,7 @@ namespace AutomaticOutfitManager.Detection
                 TraverseParms.For(pawn),
                 9999f,
                 thing => thing is ThingWithComps weapon &&
+                         (excludedThings == null || !excludedThings.Contains(weapon)) &&
                          weapon.Spawned &&
                          requirement.Matches(weapon) &&
                          (exactDef == null || weapon.def == exactDef) &&
@@ -120,7 +133,10 @@ namespace AutomaticOutfitManager.Detection
                              .IsSavedWeaponForOtherPawn(weapon, pawn) != true &&
                          AutomaticOutfitManagerGameComponent.Current?
                              .IsManagedWeaponAssignedToOtherPawn(weapon, pawn) != true &&
-                         pawn.CanReserve(weapon)) as ThingWithComps;
+                         AutomaticOutfitManagerGameComponent.Current?
+                             .StateFor(pawn)?.IsTemporarilyRejectedWeapon(weapon) != true &&
+                         ReservationUtility_SavedApparel_Patch
+                             .CanReserveForOutfit(pawn, weapon)) as ThingWithComps;
         }
 
         private static ThingDef PreferredExactDefinition(

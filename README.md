@@ -4,9 +4,9 @@ Automatic Outfit Manager is a RimWorld 1.6 mod for area-based work apparel, pers
 
 Repository: [github.com/tekmojo/AutomaticOutfitManager](https://github.com/tekmojo/AutomaticOutfitManager)
 
-Create a rule, select a work area, require any number of apparel items and optional exact primary-weapon alternatives, and optionally assign a locker room. Eligible undrafted humanlike pawns equip every selected apparel item and one acceptable selected primary weapon before entering, remain fully equipped for every activity and protected route inside the area, then return managed items and restore the exact apparel and primary weapon they had beforehand after leaving and completing any configured buffer.
+Create a rule, select a work area, require any number of apparel items and optional exact primary-weapon alternatives, and optionally assign a locker room. Eligible undrafted humanlike pawns equip every selected apparel item and one acceptable selected primary weapon before entering, remain fully equipped for every activity and protected route inside the area, then return managed items and restore their saved apparel and primary weapon after leaving and completing any configured buffer. The original physical items are restored by default; tattered personal apparel may instead be replaced by a valid better item after that replacement is successfully worn.
 
-The mod uses ordinary RimWorld areas, jobs, apparel, equipment, reservations, and storage. It supports vanilla and modded apparel and weapons without hard-coded hazard or content-mod integrations.
+The mod uses ordinary RimWorld areas, jobs, apparel, equipment, reservations, and storage. It supports vanilla and modded apparel and weapons without named content-mod integrations. Rules remain player-configured rather than hazard-triggered, while a generic safety guard keeps already-managed protective apparel on across vacuum, dangerous temperatures, and toxic exposure until the pawn can reach a safe cell.
 
 The compact technical identity is `AutomaticOutfitManager`, including the repository, package, assembly, namespaces, DefNames, serialized keys, filenames, and asset paths. This breaking rebrand does not preserve saves created under the former product identity.
 
@@ -15,7 +15,7 @@ The compact technical identity is `AutomaticOutfitManager`, including the reposi
 - RimWorld 1.6
 - Harmony
 
-Current release candidate: version `0.3.2`, with the playtested Phase 2 foundation and Phase 3 exact primary-weapon requirements.
+Current release candidate: version `0.3.2`, combining the playtested area/outfit foundation and exact primary-weapon requirements with the RC hardening described below.
 
 Dubs Rimatomics inspired the original radiation-PPE scenario, but it is not a dependency. Automatic Outfit Manager does not detect radiation automatically.
 
@@ -25,14 +25,17 @@ Dubs Rimatomics inspired the original radiation-PPE scenario, but it is not a de
 - All-of apparel requirements and one-of primary-weapon alternatives
 - Continuous full-gear enforcement for work, hauling, wandering, eating, recreation, sleep, waiting, and pass-through
 - Shooting-versus-Melee preference when both ranged and melee alternatives are available
-- Exact saved apparel and primary-weapon restoration, including save/load continuity
+- Saved apparel and exact primary-weapon restoration, including save/load continuity, bounded unavailable-item recovery, and better replacements for tattered personal apparel
 - Exact queued-job continuation with temporary claims for real job targets and queues
 - Optional locker rooms, low-priority restocking, and separate apparel/weapon storage filters
-- Configurable 0–20 task buffers, including compatible nested work-area buffers
+- Configurable 0–20 successful-task buffers, including compatible nested work-area buffers; interrupted or failed jobs do not count
+- Storage-style condition and quality ranges for both required work apparel and primary weapons
 - Rule-wide **Pause work**, per-worker **Recall**, and saved-item **Release item** controls
 - Work, hauling, wandering, child-watching, and pawn-category access controls
 - Live readiness, availability, worker, hauler, wanderer, and restoration diagnostics
-- Generic vanilla and modded apparel/weapon discovery without hazard-specific integrations
+- Generic vanilla and modded apparel/weapon discovery without named content-mod integrations
+- Generic protection retention across vacuum, dangerous temperatures, and toxic exposure while already-managed gear is still needed
+- Gravship Work Area and Locker room references remap to their copied destination-map areas after flight
 
 ## Quick start
 
@@ -43,9 +46,10 @@ Dubs Rimatomics inspired the original radiation-PPE scenario, but it is not a de
 5. Select an optional **Locker room**.
 6. Use **Choose apparel** to add every apparel item the worker must wear. Green apparel entries are cumulative requirements.
 7. Optionally use **Choose weapons** to select one or more acceptable primary weapons. Green weapon entries are alternatives; the pawn equips one.
-8. Configure the task buffer and access permissions.
-9. Put reachable copies of the required apparel and weapons on the map.
-10. For dedicated locker storage, enable **Allow managed apparel** and/or **Allow managed weapons**, and disable the corresponding non-managed filter when the storage should hold only managed stock.
+8. Set the allowed **Condition** and **Quality** ranges for work apparel and weapons. These ranges filter rule gear, not saved personal gear restoration.
+9. Configure the task buffer and access permissions.
+10. Put reachable copies of the required apparel and weapons on the map.
+11. For dedicated locker storage, enable **Allow managed apparel** and/or **Allow managed weapons**, and disable the corresponding non-managed filter when the storage should hold only managed stock.
 
 ### Selector colors and ordering
 
@@ -78,6 +82,8 @@ The searchable selector includes loaded vanilla and modded apparel. Every select
 3. Uses normal RimWorld `Wear` jobs to equip them.
 4. Resumes the exact original job after preparation succeeds and its targets remain valid.
 
+The **Condition** and **Quality** controls work like storage-filter ranges. Required apparel outside either range is not counted as available and does not satisfy the rule. Apparel without a quality level remains eligible. These controls apply only to shared work gear; they do not filter saved personal apparel during restoration.
+
 Humanlike children can participate in assigned work when their category is allowed and the selected apparel supports their developmental stage. A pawn that cannot wear the complete requirement is blocked from that managed work instead of entering an outfit loop. **Allow work watching** separately controls children entering only to observe an adult. Non-humanlike pawns use access controls but do not participate in outfit changes.
 
 ### Required primary weapon
@@ -85,6 +91,8 @@ Humanlike children can participate in assigned work when their category is allow
 A rule can optionally list exact acceptable primary weapons using the same searchable selection pattern as apparel. Selected weapons are alternatives: a pawn needs one of them actively equipped, not every selected weapon. With no weapon selected, there is no primary-weapon requirement—the pawn may remain unarmed or keep any current weapon.
 
 When both ranged and melee alternatives are selected, a pawn whose Shooting skill is higher than Melee prefers ranged, while higher Melee prefers melee; ties use a stable distribution. Automatic Outfit Manager searches the locker and then the map for the skill-preferred type before crossing to the weaker category, so locker proximity cannot reverse the pawn's combat-skill preference. Persona weapons and weapons biocoded to another pawn are never selected automatically; ordinary unbound weapons remain eligible.
+
+Weapons have their own **Condition** and **Quality** ranges. Selected primary weapons outside either range are not counted as available and do not satisfy the rule. Weapons without a quality level remain eligible. Saved personal weapon restoration is not filtered by these work-gear standards.
 
 The exact previous primary weapon and every temporary managed weapon are saved through game saves. At restoration, temporary weapons are released through the pawn's equipment tracker at the locker room when one is configured, bypassing Simple Sidearms' secondary-weapon handling without changing its memories, and the exact original primary is re-equipped. A pawn who started unarmed returns to being unarmed.
 
@@ -101,7 +109,7 @@ The optional locker room controls where restoration occurs and where shared appa
 
 ### Task buffer
 
-The task buffer controls how many ordinary jobs a pawn may start after leaving qualifying work while still wearing the work outfit. It ranges from 0 to 20.
+The task buffer controls how many ordinary jobs a pawn may complete successfully after leaving qualifying work while still wearing the work outfit. It ranges from 0 to 20.
 
 - `0 tasks`: restore saved clothing as soon as managed work ends.
 - `1 task`: allow one follow-up job, such as eating or hauling.
@@ -112,19 +120,20 @@ The task buffer controls how many ordinary jobs a pawn may start after leaving q
 
 The worker row identifies the activity, for example:
 
-`Foto — Buffered task 1 of 3: Consuming fine meal`
+`Foto — Buffered task 1 of 3 in progress: Consuming fine meal`
 
-The worker tooltip summarizes every active buffer, for example `Buffers: Radiation Zone 1/3`. Compatible nested work areas track their own buffer progress instead of consuming the outer rule's buffer. A slot is reserved when its job starts so the same job cannot consume it repeatedly. Interrupted jobs are not currently rolled back.
+The worker tooltip summarizes every active buffer, for example `Buffers: Radiation Zone 1/3`. Compatible nested work areas track their own buffer progress instead of consuming the outer rule's buffer. A candidate is recorded when its job starts and counts only when that exact job ends successfully. Interrupted, failed, or invalidated jobs are cleared without consuming a slot.
 
 ### Saved apparel, weapons, and ownership
 
-The mod restores the exact apparel and primary-weapon instances captured at the start, not merely another item of the same type.
+The mod records the exact apparel and primary-weapon instances captured at the start. It restores those physical items by default rather than choosing arbitrary copies of the same type.
 
 - Saved personal apparel and the saved primary weapon remain claimed for their original pawn.
 - Other pawns cannot optimize into, reserve, process, haul away, wear, or equip claimed items while they are needed.
 - Shared rule-required apparel and weapons are not permanently assigned.
 - A safety check removes wrongly worn saved apparel if another mod bypasses normal wear validation.
-- Destroyed items are skipped; temporarily unavailable items retry with a cooldown.
+- Saved personal apparel below 50% hit points may be replaced with a compatible, outfit-allowed item that is at least 50% healthy and scores better under RimWorld's native apparel optimizer. Ownership changes only after the replacement is successfully worn; the original saved claim is then released.
+- Destroyed items are skipped. Temporarily unavailable items retry with cooldowns instead of creating Standing loops. An exact saved weapon that remains inaccessible after five bounded recovery attempts is released from the snapshot and the pawn finishes restoration unarmed. If a reachable item instead reaches RimWorld's native `Equip` job but is repeatedly rejected, the limit is five actual failed Equip jobs for slaves or prisoners and 30 for other pawns.
 
 Saved personal apparel and primary weapons show their owner in the inspect text. Selecting either item offers **Jump to owner**, **Recall owner**, and **Release item**. **Recall owner** returns the pawn from managed work and restores the whole saved outfit. **Release item** requires confirmation and removes only that exact item from the saved outfit; releasing a primary weapon does not select a replacement and may leave the pawn unarmed after restoration. The same non-destructive action is available as **Recall** beside an active worker in the Automatic Outfit Manager tab.
 
@@ -199,7 +208,7 @@ Create a **Radiation Maintenance** rule over the reactor and machining tables. S
 
 ### Apparel-and-weapon rule
 
-Create an **Industrial Safety** rule for a fabrication room. Select an apron, helmet, and respirator in **Choose apparel**, then select one or more exact work or security weapons in **Choose weapons**. Every eligible pawn wears all selected apparel and equips one acceptable primary weapon before entering, keeps the full set through every activity in the room, then restores the exact clothing and primary weapon used before the protected session.
+Create an **Industrial Safety** rule for a fabrication room. Select an apron, helmet, and respirator in **Choose apparel**, then select one or more exact work or security weapons in **Choose weapons**. Every eligible pawn wears all selected apparel and equips one acceptable primary weapon before entering, keeps the full set through every activity in the room, then restores the saved clothing and exact primary weapon used before the protected session. Tattered saved clothing may be improved under the replacement policy described above.
 
 ### Weapon-only rule
 
@@ -216,11 +225,16 @@ For a hazardous laboratory, disable animal or mech wandering without disabling p
 ## Compatibility and boundaries
 
 - Harmony is the only dependency.
-- No hazard, apparel, robot, storage, or race mod is hard-coded.
+- No hazard, apparel, robot, storage, or race content mod is hard-coded. Rules are never selected automatically from a named hazard or mod.
 - Modded apparel appears automatically when it is a normal wearable `ThingDef`.
 - Modded robots use native mechanoid properties and common mechanical identifiers for access controls.
 - Drafted and player-forced behavior is respected rather than aggressively overridden.
 - Simple Sidearms preferences are detected without changing that mod's weapon memories. Automatic re-equip jobs cannot steal AOM-managed weapons, while an explicit player or weapon-mod choice takes control for the remainder of the active work session. The exact saved primary remains available for restoration.
+- Native gravship area copying is supported: after flight, Work Area and Locker room references are remapped to the copied destination-map areas. Load repair is conservative and does not guess between indistinguishable inactive source/destination copies without an active pawn state to identify the current map.
+- Hosted visitors may use managed gear only when their category permissions allow it. Natural departures bypass the follow-up buffer, restore personal gear through the locker when possible, and use a final exit safeguard so interrupted departures do not take assigned managed stock off-map.
+- Already-managed protective apparel remains equipped while the pawn, destination, hauling endpoints, or route would otherwise be exposed to vacuum, dangerous heat or cold, tox gas, toxic fallout, or noxious haze. This is a removal safety guard, not automatic hazard detection or automatic PPE selection.
+- A narrow RimWorld 1.6 compatibility correction keeps native rearm jobs available for player autocannon and uranium slug turrets when very low maintenance-cost settings make vanilla report an empty turret as full. RimWorld still controls fuel, materials, reservations, work type, and the rearm job; AOM does not manage ammunition.
+- A narrow opportunistic-hauling guard ignores destroyed or zero-stack things before vanilla hauling code can inspect them, avoiding a crash when another content mod briefly leaves malformed haulables registered.
 - Weapon selection uses RimWorld's normal equipment eligibility checks, including ideology and biocoding restrictions. Persona weapons are excluded from automatic selection.
 - Apparel and weapon storage classification uses cached definition and exact-item indexes. Locker hauling scans only exact definitions selected by active rules before attempting pathfinding.
 - Cooldowns, idle recovery, and continuation validation prevent broken jobs or unavailable saved items from causing retry storms or permanent Standing states.
@@ -230,7 +244,7 @@ For a hazardous laboratory, disable animal or mech wandering without disabling p
 
 ### Waiting for saved apparel or weapon
 
-Hover the worker. The tooltip reports whether saved apparel or the saved primary weapon is used by another pawn, carried, in a container, on another map, forbidden, reserved, unreachable, or ready to retrieve. Fix the condition and use **Recall** again, or select an accessible saved item and use the confirmed **Release item** action to remove only that exact item from the saved outfit. AOM also interrupts ordinary hauling jobs that attempt to move an item needed for restoration.
+Hover the worker. The tooltip reports whether saved apparel or the saved primary weapon is used by another pawn, carried, in a container, on another map, forbidden, reserved, unreachable, or ready to retrieve. AOM retries with bounded cooldowns; an exact saved weapon that remains inaccessible after five recovery attempts is released automatically and the pawn finishes unarmed. A reachable weapon that RimWorld repeatedly rejects uses the separate actual-Equip limits described above. You may fix the condition and use **Recall** again, or select an accessible saved item and use the confirmed **Release item** action to remove only that exact item from the saved outfit. AOM also interrupts ordinary hauling jobs that attempt to move an item needed for restoration.
 
 ### Apparel or weapons are not being stored in the locker
 
@@ -240,7 +254,7 @@ Clearing a rule requirement retains its apparel or weapon types as managed locke
 
 ### A pawn does not change apparel or primary weapon
 
-Confirm the rule is **Enabled** and work is resumed, the pawn is inside or its job targets, interacts with, or routes through the area, the pawn is an eligible undrafted humanlike colonist, slave, prisoner, or hosted guest, its category is permitted, and reachable copies of every required apparel item plus at least one acceptable selected primary weapon exist. Inventory sidearms do not satisfy the primary-weapon requirement.
+Confirm the rule is **Enabled** and work is resumed, the pawn is inside or its job targets, interacts with, or routes through the area, the pawn is an eligible undrafted humanlike colonist, slave, prisoner, or hosted guest, its category is permitted, and reachable copies of every required apparel item plus at least one acceptable selected primary weapon exist within the configured Condition and Quality ranges. Inventory sidearms do not satisfy the primary-weapon requirement.
 
 ### A mech, robot, or animal enters
 
@@ -254,11 +268,10 @@ With developer mode enabled, successful interceptions, exact-job resumptions, lo
 
 - No configurable manual priority for conflicting overlapping rules; known incompatible selector combinations are blocked.
 - No per-pawn assignment filters.
-- No direct JobDef, WorkTypeDef, temperature, hediff, or hazard triggers.
+- No direct JobDef, WorkTypeDef, temperature, hediff, or hazard rule triggers. The generic removal safety guard described above only retains already-managed protection; it does not create or activate rules.
 - No strict/warning/best-effort modes.
 - Weapon rules do not manage ammunition, count inventory sidearms, control offhands or shields, or automatically switch weapons while drafted.
 - English-only interface strings.
-- Buffer slots are reserved when jobs start, not after successful completion.
 
 ## Build
 

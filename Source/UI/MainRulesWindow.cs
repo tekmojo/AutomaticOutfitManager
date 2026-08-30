@@ -14,11 +14,16 @@ namespace AutomaticOutfitManager.UI
     {
         private const float ReadinessCacheSeconds = 1f;
         private const float ActivityCacheSeconds = 0.5f;
+        private const float RuleStandardChangeQuietSeconds = 1f;
         private Vector2 scrollPosition;
         private readonly Dictionary<string, CachedRuleReadiness> readinessCache =
             new Dictionary<string, CachedRuleReadiness>();
         private readonly Dictionary<string, CachedRuleActivity> activityCache =
             new Dictionary<string, CachedRuleActivity>();
+        private readonly Dictionary<string, string> pendingRuleStandardChanges =
+            new Dictionary<string, string>();
+        private readonly Dictionary<string, float> pendingRuleStandardChangeTimes =
+            new Dictionary<string, float>();
 
         private sealed class CachedRuleReadiness
         {
@@ -97,6 +102,14 @@ namespace AutomaticOutfitManager.UI
                 rowY += ruleHeight + 10f;
             }
             Widgets.EndScrollView();
+            FlushPendingRuleStandardChanges(component);
+        }
+
+        public override void PostClose()
+        {
+            FlushPendingRuleStandardChanges(
+                AutomaticOutfitManagerGameComponent.Current, true);
+            base.PostClose();
         }
 
         private void DrawRule(ApparelRule rule, int index, Rect rect, AutomaticOutfitManagerGameComponent component)
@@ -189,8 +202,7 @@ namespace AutomaticOutfitManager.UI
             Rect workButtonRect = new Rect(x + 100f, y, 300f, 28f);
             if (Widgets.ButtonText(workButtonRect, areaLabel))
                 ShowAreaMenu(rule);
-            if (rule.Area != null && Mouse.IsOver(workButtonRect))
-                rule.Area.MarkForDraw();
+            MarkConfiguredAreaForDraw(rule.Area, workButtonRect);
             TooltipHandler.TipRegion(workButtonRect, "Select the map area where the configured apparel, personal protective equipment (PPE), or primary weapon is required. For example, select a Freezer area for parkas and warm hats.");
 
             y += 34f;
@@ -308,9 +320,8 @@ namespace AutomaticOutfitManager.UI
             Rect lockerButtonRect = new Rect(x + 100f, y, 300f, 28f);
             if (Widgets.ButtonText(lockerButtonRect, changingAreaLabel))
                 ShowChangingAreaMenu(rule);
-            if (rule.ChangingArea != null && Mouse.IsOver(lockerButtonRect))
-                rule.ChangingArea.MarkForDraw();
-            TooltipHandler.TipRegion(lockerButtonRect, "Selected apparel, PPE, and primary weapons stored here are preferred, with a map-wide fallback. After work, pawns return here, drop temporary weapons, return managed apparel to storage, and restore their exact saved apparel and primary weapon. For example, place radiation suits or guard weapons in lockers beside the work area.");
+            MarkConfiguredAreaForDraw(rule.ChangingArea, lockerButtonRect);
+            TooltipHandler.TipRegion(lockerButtonRect, "Selected apparel, PPE, and primary weapons stored here are preferred, with a map-wide fallback. After work, pawns return here, drop temporary weapons, return managed apparel to storage, and restore their saved apparel and primary weapon. Tattered saved apparel may be replaced by a valid better item after it is successfully worn. For example, place radiation suits or guard weapons in lockers beside the work area.");
 
             y += 34f;
             Rect bufferLabelRect = new Rect(x, y + 4f, 100f, 24f);
@@ -329,7 +340,9 @@ namespace AutomaticOutfitManager.UI
                 rule.ReturnTaskBuffer++;
             GUI.enabled = previousBufferEnabled;
             TooltipHandler.TipRegion(new Rect(bufferLabelRect.x, y, 286f, 28f),
-                "Choose how many ordinary follow-up tasks a pawn may start after leaving managed work before returning to the locker room and restoring the saved outfit. Immediate starts restoration once no active area still applies. Sleep outside every applicable area bypasses the buffer; sleep inside retains the complete requirement. Renewed qualifying work resets the count. Compatible overlapping rules track their own nested buffers. Pause work bypasses remaining buffered tasks.");
+                "Choose how many ordinary follow-up tasks a pawn may complete successfully after leaving managed work before returning to the locker room and restoring the saved outfit. Interrupted or failed tasks do not count. Immediate starts restoration once no active area still applies. Sleep outside every applicable area bypasses the buffer; sleep inside retains the complete requirement. Renewed qualifying work resets the count. Compatible overlapping rules track their own nested buffers. Pause work bypasses remaining buffered tasks.");
+
+            CachedRuleReadiness readiness = RuleReadiness(rule, component);
 
             y += 34f;
             Rect gearLabelRect = new Rect(x, y + 4f, 100f, 24f);
@@ -349,6 +362,53 @@ namespace AutomaticOutfitManager.UI
             }
             TooltipHandler.TipRegion(clearGearRect,
                 "Remove all apparel requirements from this rule. Existing stock types remain classified for managed locker storage; open Choose apparel and use Forget to release an unused stock type.");
+
+            y += 34f;
+            bool previousApparelWordWrap = Text.WordWrap;
+            Text.WordWrap = false;
+            Widgets.Label(new Rect(x, y, 100f, 24f), "Available:");
+            Widgets.Label(new Rect(x + 100f, y, width - 100f, 24f),
+                readiness.ApparelAvailability);
+            Text.WordWrap = previousApparelWordWrap;
+            TooltipHandler.TipRegion(new Rect(x, y, width, 24f),
+                "Unworn required apparel currently spawned on this map. Personal items saved for a specific pawn are not counted. Availability does not guarantee that every item is reachable or currently unreserved.\n\n" +
+                $"Apparel: {readiness.ApparelAvailability}\n" +
+                $"Allowed work apparel: {ApparelStandardsSummary(rule)}");
+
+            y += 26f;
+            Rect conditionLabelRect = new Rect(x, y + 4f, 100f, 24f);
+            Widgets.Label(conditionLabelRect, "Condition:");
+            FloatRange previousHitPoints = rule.AllowedApparelHitPoints;
+            Rect conditionRangeRect = new Rect(x + 100f, y - 2f, 360f, 32f);
+            Widgets.FloatRange(
+                conditionRangeRect, rule.Id.GetHashCode() ^ 0x4A6F11,
+                ref rule.AllowedApparelHitPoints, 0f, 1f, "HitPoints",
+                ToStringStyle.PercentZero, 0f, GameFont.Small, null, 0.01f);
+            if (rule.AllowedApparelHitPoints != previousHitPoints)
+            {
+                QueueRuleStandardChange(
+                    rule, "allowed apparel condition changed");
+            }
+            TooltipHandler.TipRegion(
+                new Rect(x, y, 470f, 30f),
+                "Set the allowed hit-point range for apparel selected by this work-area rule, like a storage filter. Gear outside the range is not counted as available and will not satisfy the work-area requirement. Saved personal apparel restoration is not filtered here.");
+
+            y += 34f;
+            Rect qualityLabelRect = new Rect(x, y + 4f, 100f, 24f);
+            Widgets.Label(qualityLabelRect, "Quality:");
+            QualityRange previousQuality = rule.AllowedApparelQuality;
+            Rect qualityRangeRect = new Rect(x + 100f, y - 2f, 360f, 32f);
+            Widgets.QualityRange(
+                qualityRangeRect, rule.Id.GetHashCode() ^ 0x2D917B,
+                ref rule.AllowedApparelQuality);
+            if (rule.AllowedApparelQuality != previousQuality)
+            {
+                QueueRuleStandardChange(
+                    rule, "allowed apparel quality changed");
+            }
+            TooltipHandler.TipRegion(
+                new Rect(x, y, 470f, 30f),
+                "Set the allowed quality range for apparel selected by this work-area rule, like a storage filter. Apparel without a quality level remains eligible. Saved personal apparel restoration is not filtered here.");
 
             y += 34f;
             Rect weaponLabelRect = new Rect(x, y + 4f, 100f, 24f);
@@ -372,21 +432,55 @@ namespace AutomaticOutfitManager.UI
                 "Remove every primary-weapon requirement from this rule. Existing stock types remain classified for managed locker storage; open Choose weapons and use Forget to release an unused stock type.");
 
             y += 34f;
-            CachedRuleReadiness readiness = RuleReadiness(rule, component);
-            float availabilityY = y;
-            bool previousWordWrap = Text.WordWrap;
+            bool previousWeaponWordWrap = Text.WordWrap;
             Text.WordWrap = false;
-            Widgets.Label(new Rect(x, y, 100f, 24f), "Apparel:");
-            Widgets.Label(new Rect(x + 100f, y, width - 100f, 24f),
-                readiness.ApparelAvailability);
-            y += 24f;
-            Widgets.Label(new Rect(x, y, 100f, 24f), "Weapons:");
+            Widgets.Label(new Rect(x, y, 100f, 24f), "Available:");
             Widgets.Label(new Rect(x + 100f, y, width - 100f, 24f),
                 readiness.WeaponAvailability);
-            Text.WordWrap = previousWordWrap;
-            TooltipHandler.TipRegion(new Rect(x, availabilityY, width, 48f),
-                $"Unworn apparel and unequipped weapons currently spawned on this map. Each exact weapon type is counted separately. Personal items saved for a specific pawn are not counted. Availability does not guarantee that every item is reachable or currently unreserved.\n\n{readiness.AvailabilitySummary}");
+            Text.WordWrap = previousWeaponWordWrap;
+            TooltipHandler.TipRegion(new Rect(x, y, width, 24f),
+                "Unequipped required primary weapons currently spawned on this map. Each exact weapon type is counted separately. Personal items saved for a specific pawn are not counted. Availability does not guarantee that every item is reachable or currently unreserved.\n\n" +
+                $"Weapons: {readiness.WeaponAvailability}\n" +
+                $"Allowed work weapons: {WeaponStandardsSummary(rule)}");
 
+            y += 26f;
+            Rect weaponConditionLabelRect = new Rect(x, y + 4f, 100f, 24f);
+            Widgets.Label(weaponConditionLabelRect, "Condition:");
+            FloatRange previousWeaponHitPoints = rule.AllowedWeaponHitPoints;
+            Rect weaponConditionRangeRect = new Rect(
+                x + 100f, y - 2f, 360f, 32f);
+            Widgets.FloatRange(
+                weaponConditionRangeRect, rule.Id.GetHashCode() ^ 0x61C2B7,
+                ref rule.AllowedWeaponHitPoints, 0f, 1f, "HitPoints",
+                ToStringStyle.PercentZero, 0f, GameFont.Small, null, 0.01f);
+            if (rule.AllowedWeaponHitPoints != previousWeaponHitPoints)
+            {
+                QueueRuleStandardChange(
+                    rule, "allowed weapon condition changed");
+            }
+            TooltipHandler.TipRegion(
+                new Rect(x, y, 470f, 30f),
+                "Set the allowed hit-point range for primary weapons selected by this work-area rule, like a storage filter. Weapons outside the range are not counted as available and will not satisfy the work-area requirement. Saved personal weapon restoration is not filtered here.");
+
+            y += 34f;
+            Rect weaponQualityLabelRect = new Rect(x, y + 4f, 100f, 24f);
+            Widgets.Label(weaponQualityLabelRect, "Quality:");
+            QualityRange previousWeaponQuality = rule.AllowedWeaponQuality;
+            Rect weaponQualityRangeRect = new Rect(
+                x + 100f, y - 2f, 360f, 32f);
+            Widgets.QualityRange(
+                weaponQualityRangeRect, rule.Id.GetHashCode() ^ 0x176D49,
+                ref rule.AllowedWeaponQuality);
+            if (rule.AllowedWeaponQuality != previousWeaponQuality)
+            {
+                QueueRuleStandardChange(
+                    rule, "allowed weapon quality changed");
+            }
+            TooltipHandler.TipRegion(
+                new Rect(x, y, 470f, 30f),
+                "Set the allowed quality range for primary weapons selected by this work-area rule, like a storage filter. Weapons without a quality level remain eligible. Saved personal weapon restoration is not filtered here.");
+
+            y += 34f;
             List<State.PawnApparelState> managedWorkers = component.PawnStates
                 .Where(state => state?.Pawn?.RaceProps?.Humanlike == true &&
                                 state.Pawn.apparel != null &&
@@ -395,7 +489,6 @@ namespace AutomaticOutfitManager.UI
                 .ToList();
             CachedRuleActivity activity = RuleActivity(rule);
             int workerCount = managedWorkers.Count + activity.QualifyingWorkers.Count;
-            y += 28f;
             Widgets.Label(new Rect(x, y, 100f, 22f), "Readiness:");
             Color previousColor = GUI.color;
             GUI.color = readiness.Color;
@@ -565,6 +658,7 @@ namespace AutomaticOutfitManager.UI
             State.PawnApparelState state, ApparelRule rule)
         {
             if (state?.Pawn == null || rule == null ||
+                state.Transition == State.ApparelTransition.Preparing ||
                 state.Transition == State.ApparelTransition.ReturningToChangingArea ||
                 state.Transition == State.ApparelTransition.Restoring)
             {
@@ -606,8 +700,51 @@ namespace AutomaticOutfitManager.UI
             int wandererCount = activity.Wanderers.Count;
             float activityHeight = 8f + Mathf.Max(1, haulerCount) * 22f +
                                    Mathf.Max(1, wandererCount) * 22f;
-            return Mathf.Max(454f, 432f + Mathf.Max(1, workerCount) * 22f +
+            return Mathf.Max(590f, 568f + Mathf.Max(1, workerCount) * 22f +
                 activityHeight);
+        }
+
+        private void QueueRuleStandardChange(
+            ApparelRule rule, string reason)
+        {
+            if (rule == null || string.IsNullOrEmpty(rule.Id))
+                return;
+
+            readinessCache.Remove(rule.Id);
+            pendingRuleStandardChanges[rule.Id] = reason;
+            pendingRuleStandardChangeTimes[rule.Id] = Time.realtimeSinceStartup;
+        }
+
+        private void FlushPendingRuleStandardChanges(
+            AutomaticOutfitManagerGameComponent component, bool force = false)
+        {
+            // Storage-style range widgets update continuously while a handle is
+            // dragged and can emit several distinct mouse releases while their
+            // discrete values settle. Commit only after the editor has been
+            // quiet long enough to represent one finished adjustment, and force
+            // the final value through when the tab closes.
+            if (component == null || pendingRuleStandardChanges.Count == 0)
+            {
+                return;
+            }
+
+            float now = Time.realtimeSinceStartup;
+            foreach (KeyValuePair<string, string> change in
+                     pendingRuleStandardChanges.ToList())
+            {
+                pendingRuleStandardChangeTimes.TryGetValue(
+                    change.Key, out float changedAt);
+                if (!force &&
+                    now - changedAt < RuleStandardChangeQuietSeconds)
+                {
+                    continue;
+                }
+
+                component.NotifyRuleRequirementsChanged(
+                    change.Key, change.Value);
+                pendingRuleStandardChanges.Remove(change.Key);
+                pendingRuleStandardChangeTimes.Remove(change.Key);
+            }
         }
 
         private CachedRuleActivity RuleActivity(ApparelRule rule)
@@ -642,15 +779,16 @@ namespace AutomaticOutfitManager.UI
                     State.PawnApparelState trackedState =
                         AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn);
                     bool trackedTransition = TracksRule(trackedState, rule.Id) &&
-                        (trackedState.Transition ==
+                        (trackedState.Transition == State.ApparelTransition.Preparing ||
+                         trackedState.Transition ==
                              State.ApparelTransition.ReturningToChangingArea ||
                          trackedState.Transition ==
                              State.ApparelTransition.Restoring);
                     if (trackedTransition)
                     {
-                        // Return and restoration have their own Worker headline.
-                        // A stale or transitional haul job must not duplicate the
-                        // same pawn in the Haulers row at the same time.
+                        // Preparation, return, and restoration have their own
+                        // Worker headline. A preserved or transitional haul job
+                        // must not duplicate the pawn in Haulers at the same time.
                         continue;
                     }
 
@@ -788,13 +926,22 @@ namespace AutomaticOutfitManager.UI
             AutomaticOutfitManagerGameComponent component)
         {
             rule.WorkAreaPaused = !rule.WorkAreaPaused;
-            if (!rule.WorkAreaPaused || rule.Area?.Map == null)
+            RuleEvaluator.ResetRuntimeCache();
+            if (rule.Area?.Map == null)
                 return;
 
             List<State.PawnApparelState> areaWorkers = component.PawnStates
                 .Where(state => state?.Pawn != null &&
                     TracksRule(state, rule.Id))
                 .ToList();
+
+            if (!rule.WorkAreaPaused)
+            {
+                foreach (State.PawnApparelState state in areaWorkers)
+                    component.TryCancelRulePauseRecall(state, rule);
+                return;
+            }
+
             foreach (State.PawnApparelState state in areaWorkers)
             {
                 // Pause affects ordinary work only. A haul explicitly allowed
@@ -803,7 +950,7 @@ namespace AutomaticOutfitManager.UI
                 if (!Patches.PausedAreaWorkFilter.HasPermittedHaulingContext(
                         state, rule))
                 {
-                    component.RequestRecall(state);
+                    component.RequestRulePauseRecall(state, rule);
                 }
             }
 
@@ -818,6 +965,33 @@ namespace AutomaticOutfitManager.UI
             AutomaticOutfitManagerGameComponent component)
         {
             ToggleWorkPause(rule, component);
+        }
+
+        private static void MarkConfiguredAreaForDraw(
+            Area configuredArea, Rect buttonRect)
+        {
+            Event currentEvent = Event.current;
+            if (configuredArea == null || currentEvent == null ||
+                !buttonRect.Contains(currentEvent.mousePosition))
+            {
+                return;
+            }
+
+            Map currentMap = Find.CurrentMap;
+            if (currentMap == null)
+                return;
+
+            // Gravship placement creates new Area objects. The placement/load
+            // remapper normally updates the rule immediately, but UI hover must
+            // remain truthful during the small window where an old source-map
+            // reference can still be present. Resolve only an exact signature
+            // match on the map the player is currently viewing; ordinary maps
+            // with merely similar names remain untouched.
+            Area drawArea = configuredArea.Map == currentMap
+                ? configuredArea
+                : Patches.GravshipAreaRemapper.FindSignatureMatch(
+                    currentMap, configuredArea);
+            drawArea?.MarkForDraw();
         }
 
         private CachedRuleReadiness RuleReadiness(
@@ -836,6 +1010,14 @@ namespace AutomaticOutfitManager.UI
                     .OrderBy(candidate => candidate.Id)
                     .Select(candidate =>
                         $"{candidate.Id}:{candidate.Enabled}:{candidate.WorkAreaPaused}:{candidate.RequiredWeapon}:" +
+                        $"{candidate.AllowedApparelHitPoints.min:0.###}-" +
+                        $"{candidate.AllowedApparelHitPoints.max:0.###}:" +
+                        $"{candidate.AllowedApparelQuality.min}-" +
+                        $"{candidate.AllowedApparelQuality.max}:" +
+                        $"{candidate.AllowedWeaponHitPoints.min:0.###}-" +
+                        $"{candidate.AllowedWeaponHitPoints.max:0.###}:" +
+                        $"{candidate.AllowedWeaponQuality.min}-" +
+                        $"{candidate.AllowedWeaponQuality.max}:" +
                         string.Join(".", (candidate.RequiredWeapons ?? new List<ThingDef>())
                             .Where(def => def != null).Select(def => def.defName)) + ":" +
                         string.Join(".", (candidate.RequiredApparel ?? new List<ThingDef>())
@@ -858,7 +1040,8 @@ namespace AutomaticOutfitManager.UI
             Dictionary<ThingDef, int> availableCounts = (rule.RequiredApparel ?? new List<ThingDef>())
                 .Where(def => def != null)
                 .Distinct()
-                .ToDictionary(def => def, def => AvailableGearCount(def, map, component));
+                .ToDictionary(def => def,
+                    def => AvailableGearCount(def, rule, map, component));
             ApparelConflict apparelConflict =
                 ApparelCompatibility.FindConflict(overlappingRules);
             bool compatibleWeaponRequirements =
@@ -872,7 +1055,8 @@ namespace AutomaticOutfitManager.UI
                 .ToList();
             Dictionary<ThingDef, int> availableWeaponCounts = exactWeaponDefs
                 .ToDictionary(def => def,
-                    def => AvailableWeaponCount(def, map, component));
+                    def => AvailableWeaponCount(
+                        def, ruleWeaponRequirement, map, component));
             int availableWeaponCount = exactWeaponDefs.Count > 0
                 ? availableWeaponCounts.Values.Sum()
                 : AvailableWeaponCount(ruleWeaponRequirement, map, component);
@@ -895,7 +1079,10 @@ namespace AutomaticOutfitManager.UI
                     : "Any weapon";
             }
             string availabilitySummary =
-                $"Apparel: {apparelAvailability}\nWeapons: {weaponAvailability}";
+                $"Apparel: {apparelAvailability}\n" +
+                $"Allowed work apparel: {ApparelStandardsSummary(rule)}\n" +
+                $"Weapons: {weaponAvailability}\n" +
+                $"Allowed work weapons: {WeaponStandardsSummary(rule)}";
             if (!rule.Enabled)
             {
                 text = "Disabled";
@@ -924,7 +1111,7 @@ namespace AutomaticOutfitManager.UI
             }
             else if (!compatibleWeaponRequirements)
             {
-                text = "Blocked — overlapping rules require different primary weapons";
+                text = "Blocked — incompatible overlapping primary-weapon requirements or standards";
                 color = Color.red;
             }
             else if (workAreaCoveredByPausedOverlaps)
@@ -944,7 +1131,7 @@ namespace AutomaticOutfitManager.UI
             {
                 List<ThingDef> unavailable = rule.RequiredApparel
                     .Where(def => def != null && availableCounts[def] == 0 &&
-                        !RequiredGearInUse(def, map, component))
+                        !RequiredGearInUse(def, rule, map, component))
                     .ToList();
                 if (unavailable.Count > 0)
                 {
@@ -1011,6 +1198,7 @@ namespace AutomaticOutfitManager.UI
 
         private static int AvailableGearCount(
             ThingDef def,
+            ApparelRule rule,
             Map map,
             AutomaticOutfitManagerGameComponent component)
         {
@@ -1021,21 +1209,58 @@ namespace AutomaticOutfitManager.UI
                 thing is Apparel apparel &&
                 apparel.Spawned &&
                 !apparel.Destroyed &&
+                rule.Allows(apparel) &&
                 component.SavedPawnFor(apparel) == null);
         }
 
         private static bool RequiredGearInUse(
             ThingDef def,
+            ApparelRule rule,
             Map map,
             AutomaticOutfitManagerGameComponent component)
         {
             return component.PawnStates.Any(state => state?.Pawn?.Map == map &&
                 state.Pawn.apparel?.WornApparel.Any(apparel => apparel?.def == def &&
+                    rule.Allows(apparel) &&
                     state.ManagedApparel?.Contains(apparel) == true) == true);
+        }
+
+        private static string ApparelStandardsSummary(ApparelRule rule)
+        {
+            if (rule == null)
+                return "any condition and quality";
+
+            return StandardsSummary(
+                rule.AllowedApparelHitPoints, rule.AllowedApparelQuality);
+        }
+
+        private static string WeaponStandardsSummary(ApparelRule rule)
+        {
+            if (rule == null)
+                return "any condition and quality";
+
+            return StandardsSummary(
+                rule.AllowedWeaponHitPoints, rule.AllowedWeaponQuality);
+        }
+
+        private static string StandardsSummary(
+            FloatRange allowedHitPoints, QualityRange quality)
+        {
+            string hitPoints =
+                $"{Mathf.RoundToInt(allowedHitPoints.min * 100f)}%–" +
+                $"{Mathf.RoundToInt(allowedHitPoints.max * 100f)}% hit points";
+            string qualityLabel = quality == QualityRange.All
+                ? "any quality"
+                : quality.min == quality.max
+                    ? quality.min.ToString().ToLowerInvariant()
+                    : $"{quality.min.ToString().ToLowerInvariant()}–" +
+                      quality.max.ToString().ToLowerInvariant();
+            return $"{hitPoints}, {qualityLabel}";
         }
 
         private static int AvailableWeaponCount(
             ThingDef def,
+            CombinedWeaponRequirement requirement,
             Map map,
             AutomaticOutfitManagerGameComponent component)
         {
@@ -1045,6 +1270,7 @@ namespace AutomaticOutfitManager.UI
             return map.listerThings.ThingsOfDef(def)
                 .Count(thing => thing is ThingWithComps weapon &&
                                  weapon.Spawned && !weapon.Destroyed &&
+                                 requirement?.Matches(weapon) == true &&
                                  component.SavedPawnForWeapon(weapon) == null);
         }
 
@@ -1090,7 +1316,11 @@ namespace AutomaticOutfitManager.UI
             foreach (Area area in map.areaManager.AllAreas.Where(a => a != null))
             {
                 Area captured = area;
-                options.Add(new FloatMenuOption(captured.Label, () => rule.Area = captured));
+                options.Add(new FloatMenuOption(captured.Label, () =>
+                {
+                    rule.Area = captured;
+                    RuleEvaluator.ResetRuntimeCache();
+                }));
             }
 
             Find.WindowStack.Add(new FloatMenu(options));
@@ -1104,12 +1334,20 @@ namespace AutomaticOutfitManager.UI
 
             var options = new List<FloatMenuOption>
             {
-                new FloatMenuOption("No locker room (restore after reaching a safe exterior cell)", () => rule.ChangingArea = null)
+                new FloatMenuOption("No locker room (restore after reaching a safe exterior cell)", () =>
+                {
+                    rule.ChangingArea = null;
+                    RuleEvaluator.ResetRuntimeCache();
+                })
             };
             foreach (Area area in map.areaManager.AllAreas.Where(a => a != null))
             {
                 Area captured = area;
-                options.Add(new FloatMenuOption(captured.Label, () => rule.ChangingArea = captured));
+                options.Add(new FloatMenuOption(captured.Label, () =>
+                {
+                    rule.ChangingArea = captured;
+                    RuleEvaluator.ResetRuntimeCache();
+                }));
             }
 
             Find.WindowStack.Add(new FloatMenu(options));

@@ -23,12 +23,25 @@ namespace AutomaticOutfitManager.Patches
     internal static class ProtectedPathAvoidance
     {
         private const ushort BlockedPathCost = 10000;
+        private static readonly IReadOnlyList<ApparelRule> EmptyRules =
+            Array.Empty<ApparelRule>();
+        // Each entry owns a persistent full-map NativeArray. Keep enough recent
+        // rule combinations for normal nested/access use without allowing area
+        // edits or combinatorial subsets to retain native memory indefinitely.
+        private const int MaxCachedGrids = 32;
 
         private sealed class AreaFingerprint
         {
             public int Tick;
             public int TrueCount;
             public int Hash;
+        }
+
+        private sealed class CachedGrid
+        {
+            public string Fingerprint;
+            public ProtectedAreaGrid Grid;
+            public long LastAccess;
         }
 
         private sealed class ProtectedAreaGrid : PathRequest.IPathGridCustomizer, IDisposable
@@ -63,25 +76,37 @@ namespace AutomaticOutfitManager.Patches
 
         private static readonly Dictionary<Area, AreaFingerprint> Fingerprints =
             new Dictionary<Area, AreaFingerprint>();
-        private static readonly Dictionary<string, ProtectedAreaGrid> Grids =
-            new Dictionary<string, ProtectedAreaGrid>();
+        private static readonly Dictionary<string, CachedGrid> Grids =
+            new Dictionary<string, CachedGrid>();
+        private static long gridAccessSequence;
 
         [ThreadStatic]
         private static bool suppressAutomaticCustomizer;
 
         public static bool SuppressAutomaticCustomizer => suppressAutomaticCustomizer;
 
+        public static bool BeginAutomaticCustomizerSuppression()
+        {
+            bool previous = suppressAutomaticCustomizer;
+            suppressAutomaticCustomizer = true;
+            return previous;
+        }
+
+        public static void EndAutomaticCustomizerSuppression(bool previous) =>
+            suppressAutomaticCustomizer = previous;
+
         public static void ResetForLoadedGame()
         {
-            foreach (ProtectedAreaGrid grid in Grids.Values)
-                grid.Dispose();
+            foreach (CachedGrid cached in Grids.Values)
+                cached?.Grid?.Dispose();
             Grids.Clear();
             Fingerprints.Clear();
+            gridAccessSequence = 0;
         }
 
         public static PathRequest.IPathGridCustomizer CustomizerFor(Pawn pawn, Job job)
         {
-            List<ApparelRule> rules = RestrictedTransitRules(pawn, job);
+            IReadOnlyList<ApparelRule> rules = RestrictedTransitRules(pawn, job);
             return rules.Count == 0 ? null : GridFor(pawn.Map, rules);
         }
 
@@ -131,30 +156,55 @@ namespace AutomaticOutfitManager.Patches
                    SegmentCrossesArea(pawn, pickupCell, destination, area);
         }
 
-        private static List<ApparelRule> RestrictedTransitRules(Pawn pawn, Job job)
+        private static IReadOnlyList<ApparelRule> RestrictedTransitRules(Pawn pawn, Job job)
         {
+            if (PawnJobTracker_StartJob_Patch.IsNativeEmergencySafetyJob(job))
+                return EmptyRules;
+
+            IReadOnlyList<ApparelRule> mapRules =
+                RuleEvaluator.EnabledRulesForMap(pawn?.Map);
+            if (mapRules.Count == 0)
+                return EmptyRules;
+
             Faction playerFaction = Faction.OfPlayerSilentFail;
             bool managedPawn = playerFaction != null && pawn?.Faction == playerFaction ||
                                PawnAccessClassifier.IsHostedGuest(pawn) ||
                                PawnAccessClassifier.IsColonyPrisoner(pawn);
             if (pawn?.Map == null || job == null || pawn.Drafted || !managedPawn)
             {
-                return new List<ApparelRule>();
+                return EmptyRules;
             }
 
             PawnApparelState state =
                 AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn);
             if (state != null && state.Transition != ApparelTransition.Active)
-                return new List<ApparelRule>();
+                return EmptyRules;
 
-            return AutomaticOutfitManagerGameComponent.Current?.Rules?
-                .Where(rule => rule?.Enabled == true &&
-                               rule.Area?.Map == pawn.Map &&
-                               !PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(
-                                   pawn, job, rule))
-                .GroupBy(rule => rule.Id)
-                .Select(group => group.First())
-                .ToList() ?? new List<ApparelRule>();
+            List<ApparelRule> restricted = null;
+            foreach (ApparelRule rule in mapRules)
+            {
+                if (PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(
+                        pawn, job, rule))
+                {
+                    continue;
+                }
+
+                restricted ??= new List<ApparelRule>();
+                bool duplicate = false;
+                for (int i = 0; i < restricted.Count; i++)
+                {
+                    if (restricted[i]?.Id == rule.Id)
+                    {
+                        duplicate = true;
+                        break;
+                    }
+                }
+
+                if (!duplicate)
+                    restricted.Add(rule);
+            }
+
+            return restricted ?? EmptyRules;
         }
 
         private static bool RouteExistsAvoiding(
@@ -233,6 +283,41 @@ namespace AutomaticOutfitManager.Patches
             }
         }
 
+        internal static bool SegmentContainsCell(
+            Pawn pawn,
+            IntVec3 start,
+            LocalTargetInfo destination,
+            Predicate<IntVec3> predicate)
+        {
+            if (pawn?.Map == null || predicate == null || !start.IsValid ||
+                !start.InBounds(pawn.Map) || !destination.IsValid ||
+                (destination.HasThing && destination.Thing?.MapHeld != pawn.Map))
+            {
+                return false;
+            }
+
+            PathEndMode endMode = destination.HasThing
+                ? PathEndMode.Touch
+                : PathEndMode.OnCell;
+            PawnPath path = null;
+            bool previousSuppression = suppressAutomaticCustomizer;
+            suppressAutomaticCustomizer = true;
+            try
+            {
+                path = pawn.Map.pathFinder.FindPathNow(
+                    start, destination, pawn, null, endMode);
+                return path?.Found == true &&
+                       path.NodesReversed.Any(cell =>
+                           cell.IsValid && cell.InBounds(pawn.Map) &&
+                           predicate(cell));
+            }
+            finally
+            {
+                path?.ReleaseToPool();
+                suppressAutomaticCustomizer = previousSuppression;
+            }
+        }
+
         private static LocalTargetInfo FirstDestination(Job job)
         {
             return job.targetA.IsValid
@@ -247,16 +332,61 @@ namespace AutomaticOutfitManager.Patches
                 .Where(rule => rule?.Area?.Map == map)
                 .OrderBy(rule => rule.Id, StringComparer.Ordinal)
                 .ToList();
-            string signature = map.GetUniqueLoadID() + ":" + string.Join(
+            string scope = map.GetUniqueLoadID() + ":" + string.Join(
+                "|", orderedRules.Select(rule => rule.Id));
+            string fingerprint = string.Join(
                 "|", orderedRules.Select(rule =>
                     rule.Id + ":" + FingerprintFor(rule.Area)));
-            if (!Grids.TryGetValue(signature, out ProtectedAreaGrid grid))
+
+            if (Grids.TryGetValue(scope, out CachedGrid cached))
             {
-                grid = new ProtectedAreaGrid(map, orderedRules);
-                Grids.Add(signature, grid);
+                if (string.Equals(
+                        cached.Fingerprint, fingerprint,
+                        StringComparison.Ordinal))
+                {
+                    cached.LastAccess = ++gridAccessSequence;
+                    return cached.Grid;
+                }
+
+                // The same rule subset changed shape. Dispose the obsolete
+                // native array immediately instead of retaining one grid per
+                // paint operation until the next save reload.
+                cached.Grid?.Dispose();
+                Grids.Remove(scope);
             }
 
+            EvictLeastRecentlyUsedGridIfNeeded();
+            var grid = new ProtectedAreaGrid(map, orderedRules);
+            Grids.Add(scope, new CachedGrid
+            {
+                Fingerprint = fingerprint,
+                Grid = grid,
+                LastAccess = ++gridAccessSequence
+            });
             return grid;
+        }
+
+        private static void EvictLeastRecentlyUsedGridIfNeeded()
+        {
+            if (Grids.Count < MaxCachedGrids)
+                return;
+
+            string oldestKey = null;
+            CachedGrid oldest = null;
+            foreach (KeyValuePair<string, CachedGrid> pair in Grids)
+            {
+                if (oldest == null || pair.Value.LastAccess < oldest.LastAccess)
+                {
+                    oldestKey = pair.Key;
+                    oldest = pair.Value;
+                }
+            }
+
+            if (oldestKey == null)
+                return;
+
+            oldest?.Grid?.Dispose();
+            Grids.Remove(oldestKey);
         }
 
         private static int FingerprintFor(Area area)

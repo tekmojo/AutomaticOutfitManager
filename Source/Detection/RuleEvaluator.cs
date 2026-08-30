@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using AutomaticOutfitManager.Core;
 using AutomaticOutfitManager.Rules;
 using RimWorld;
+using UnityEngine;
 using Verse;
 using Verse.AI;
 
@@ -13,6 +15,7 @@ namespace AutomaticOutfitManager.Detection
         public bool HasRequirement;
         public WeaponRequirement LegacyCategory;
         public HashSet<ThingDef> ExactDefs;
+        public readonly List<ApparelRule> Standards = new List<ApparelRule>();
 
         public bool Matches(ThingWithComps weapon)
         {
@@ -23,7 +26,8 @@ namespace AutomaticOutfitManager.Detection
             if (ExactDefs != null && !ExactDefs.Contains(weapon.def))
                 return false;
             return RuleEvaluator.WeaponMatchesRequirement(
-                weapon, LegacyCategory);
+                       weapon, LegacyCategory) &&
+                   Standards.All(rule => rule.AllowsWeapon(weapon));
         }
 
         public bool Matches(ThingDef def)
@@ -41,6 +45,102 @@ namespace AutomaticOutfitManager.Detection
 
     public static class RuleEvaluator
     {
+        private static readonly IReadOnlyList<ApparelRule> EmptyRules =
+            Array.Empty<ApparelRule>();
+        private static readonly Dictionary<Map, List<ApparelRule>> EnabledRulesByMap =
+            new Dictionary<Map, List<ApparelRule>>();
+        private static readonly Dictionary<Map, List<ApparelRule>> ActiveRulesByMap =
+            new Dictionary<Map, List<ApparelRule>>();
+        private static readonly Dictionary<Map, List<ApparelRule>> PausedRulesByMap =
+            new Dictionary<Map, List<ApparelRule>>();
+        private static AutomaticOutfitManagerGameComponent cachedRuleComponent;
+        private static int cachedRuleFrame = int.MinValue;
+
+        public static void ResetRuntimeCache()
+        {
+            EnabledRulesByMap.Clear();
+            ActiveRulesByMap.Clear();
+            PausedRulesByMap.Clear();
+            cachedRuleComponent = null;
+            cachedRuleFrame = int.MinValue;
+        }
+
+        public static IReadOnlyList<ApparelRule> EnabledRulesForMap(Map map)
+        {
+            if (map == null)
+                return EmptyRules;
+
+            EnsureRuleMapCache();
+            return EnabledRulesByMap.TryGetValue(map, out List<ApparelRule> rules)
+                ? rules
+                : EmptyRules;
+        }
+
+        public static IReadOnlyList<ApparelRule> ActiveRulesForMap(Map map)
+        {
+            if (map == null)
+                return EmptyRules;
+
+            EnsureRuleMapCache();
+            return ActiveRulesByMap.TryGetValue(map, out List<ApparelRule> rules)
+                ? rules
+                : EmptyRules;
+        }
+
+        public static IReadOnlyList<ApparelRule> PausedRulesForMap(Map map)
+        {
+            if (map == null)
+                return EmptyRules;
+
+            EnsureRuleMapCache();
+            return PausedRulesByMap.TryGetValue(map, out List<ApparelRule> rules)
+                ? rules
+                : EmptyRules;
+        }
+
+        private static void EnsureRuleMapCache()
+        {
+            AutomaticOutfitManagerGameComponent component =
+                AutomaticOutfitManagerGameComponent.Current;
+            int frame = Time.frameCount;
+            if (cachedRuleComponent == component && cachedRuleFrame == frame)
+                return;
+
+            EnabledRulesByMap.Clear();
+            ActiveRulesByMap.Clear();
+            PausedRulesByMap.Clear();
+            cachedRuleComponent = component;
+            cachedRuleFrame = frame;
+
+            if (component?.Rules == null)
+                return;
+
+            foreach (ApparelRule rule in component.Rules)
+            {
+                Map map = rule?.Area?.Map;
+                if (rule?.Enabled != true || map == null)
+                    continue;
+
+                AddRule(EnabledRulesByMap, map, rule);
+                AddRule(rule.WorkAreaPaused ? PausedRulesByMap : ActiveRulesByMap,
+                    map, rule);
+            }
+        }
+
+        private static void AddRule(
+            Dictionary<Map, List<ApparelRule>> index,
+            Map map,
+            ApparelRule rule)
+        {
+            if (!index.TryGetValue(map, out List<ApparelRule> rules))
+            {
+                rules = new List<ApparelRule>();
+                index.Add(map, rules);
+            }
+
+            rules.Add(rule);
+        }
+
         public static ApparelRule MatchingRule(Pawn pawn, Job job)
         {
             return MatchingRules(pawn, job).FirstOrDefault();
@@ -49,19 +149,21 @@ namespace AutomaticOutfitManager.Detection
         public static List<ApparelRule> MatchingRules(Pawn pawn, Job job)
         {
             if (pawn == null || job == null || pawn.Map == null ||
-                !PawnAccessClassifier.IsApparelEligibleHuman(pawn) || pawn.Drafted)
-                return new List<ApparelRule>();
-
-            var component = AutomaticOutfitManagerGameComponent.Current;
-            if (component?.Rules == null)
+                !PawnAccessClassifier.IsApparelEligibleHuman(pawn) ||
+                pawn.Drafted || pawn.Downed)
                 return new List<ApparelRule>();
 
             // A target may be covered by an outer work area and one or more
             // nested areas. All of their safety requirements apply. Preserve
             // rule order so existing saves remain deterministic.
-            return component.Rules
-                .Where(rule => MatchesRule(pawn, job, rule))
-                .ToList();
+            var matches = new List<ApparelRule>();
+            foreach (ApparelRule rule in ActiveRulesForMap(pawn.Map))
+            {
+                if (JobTargetsArea(job, rule.Area))
+                    matches.Add(rule);
+            }
+
+            return matches;
         }
 
         public static bool MatchesRule(Pawn pawn, Job job, ApparelRule rule)
@@ -71,6 +173,7 @@ namespace AutomaticOutfitManager.Detection
                    pawn.Map != null &&
                    PawnAccessClassifier.IsApparelEligibleHuman(pawn) &&
                    !pawn.Drafted &&
+                   !pawn.Downed &&
                    rule != null &&
                    rule.Enabled &&
                    !rule.WorkAreaPaused &&
@@ -82,13 +185,13 @@ namespace AutomaticOutfitManager.Detection
         public static List<ApparelRule> MatchingLocationRules(Pawn pawn)
         {
             if (pawn?.Map == null ||
-                !PawnAccessClassifier.IsApparelEligibleHuman(pawn) || pawn.Drafted)
+                !PawnAccessClassifier.IsApparelEligibleHuman(pawn) ||
+                pawn.Drafted || pawn.Downed)
             {
                 return new List<ApparelRule>();
             }
 
-            var component = AutomaticOutfitManagerGameComponent.Current;
-            if (component?.Rules == null || !pawn.Position.IsValid ||
+            if (!pawn.Position.IsValid ||
                 !pawn.Position.InBounds(pawn.Map))
             {
                 return new List<ApparelRule>();
@@ -98,11 +201,64 @@ namespace AutomaticOutfitManager.Detection
             // inside a live work area still needs its complete requirement when
             // the native thinker switches from work to eating, recreation,
             // waiting, sleep, or another job whose target is elsewhere.
-            return component.Rules
-                .Where(rule => rule != null && rule.Enabled &&
-                               !rule.WorkAreaPaused && rule.Area?.Map == pawn.Map &&
-                               rule.Area[pawn.Position])
-                .ToList();
+            var matches = new List<ApparelRule>();
+            foreach (ApparelRule rule in ActiveRulesForMap(pawn.Map))
+            {
+                if (rule.Area[pawn.Position])
+                    matches.Add(rule);
+            }
+
+            return matches;
+        }
+
+        public static List<ApparelRule> MatchingRuntimeRules(Pawn pawn, Job job)
+        {
+            var matches = new List<ApparelRule>();
+            if (pawn?.Map == null ||
+                !PawnAccessClassifier.IsApparelEligibleHuman(pawn) ||
+                pawn.Drafted || pawn.Downed)
+            {
+                return matches;
+            }
+
+            IReadOnlyList<ApparelRule> activeRules = ActiveRulesForMap(pawn.Map);
+            if (activeRules.Count == 0)
+                return matches;
+
+            if (pawn.Position.IsValid && pawn.Position.InBounds(pawn.Map))
+            {
+                foreach (ApparelRule rule in activeRules)
+                {
+                    if (rule.Area[pawn.Position])
+                        AddUniqueRule(matches, rule);
+                }
+            }
+
+            // Occupancy is authoritative while leaving a protected area. Only
+            // inspect the running job's targets after the pawn is outside every
+            // live area, matching the existing runtime enforcement contract.
+            if (matches.Count > 0 || job == null)
+                return matches;
+
+            foreach (ApparelRule rule in activeRules)
+            {
+                if (JobTargetsArea(job, rule.Area))
+                    AddUniqueRule(matches, rule);
+            }
+
+            return matches;
+        }
+
+        private static void AddUniqueRule(
+            List<ApparelRule> rules, ApparelRule candidate)
+        {
+            for (int i = 0; i < rules.Count; i++)
+            {
+                if (rules[i]?.Id == candidate?.Id)
+                    return;
+            }
+
+            rules.Add(candidate);
         }
 
         public static List<ThingDef> MissingRequiredApparel(Pawn pawn, ApparelRule rule)
@@ -111,7 +267,8 @@ namespace AutomaticOutfitManager.Detection
                 return new List<ThingDef>();
 
             return rule.RequiredApparel
-                .Where(def => def != null && !pawn.apparel.WornApparel.Any(a => a.def == def))
+                .Where(def => def != null && !pawn.apparel.WornApparel.Any(
+                    apparel => apparel?.def == def && rule.Allows(apparel)))
                 .Distinct()
                 .ToList();
         }
@@ -129,7 +286,7 @@ namespace AutomaticOutfitManager.Detection
                 bool worn = false;
                 foreach (Apparel apparel in pawn.apparel.WornApparel)
                 {
-                    if (apparel?.def == required)
+                    if (apparel?.def == required && rule.Allows(apparel))
                     {
                         worn = true;
                         break;
@@ -163,6 +320,8 @@ namespace AutomaticOutfitManager.Detection
             if (rule?.HasWeaponRequirement != true)
                 return true;
             if (weapon?.def?.IsWeapon != true)
+                return false;
+            if (!rule.AllowsWeapon(weapon))
                 return false;
 
             if (rule.UsesExactWeapons)
@@ -229,6 +388,7 @@ namespace AutomaticOutfitManager.Detection
                     continue;
 
                 requirement.HasRequirement = true;
+                requirement.Standards.Add(rule);
                 if (rule.UsesExactWeapons)
                 {
                     var exact = new HashSet<ThingDef>(rule.RequiredWeapons
@@ -259,6 +419,35 @@ namespace AutomaticOutfitManager.Detection
                         def, category));
                 if (requirement.ExactDefs.Count == 0)
                     return false;
+            }
+
+            if (requirement.Standards.Count > 1)
+            {
+                float minimumHitPoints = requirement.Standards.Max(rule =>
+                    rule.AllowedWeaponHitPoints.min);
+                float maximumHitPoints = requirement.Standards.Min(rule =>
+                    rule.AllowedWeaponHitPoints.max);
+                int minimumQuality = requirement.Standards.Max(rule =>
+                    (int)rule.AllowedWeaponQuality.min);
+                int maximumQuality = requirement.Standards.Min(rule =>
+                    (int)rule.AllowedWeaponQuality.max);
+                if (minimumHitPoints > maximumHitPoints + 0.0001f)
+                {
+                    return false;
+                }
+
+                // Qualityless weapons remain eligible for every quality range,
+                // matching AllowsWeapon. Disjoint quality sliders are therefore
+                // incompatible only when every permitted weapon definition has
+                // a quality component.
+                CombinedWeaponRequirement combinedRequirement = requirement;
+                if (minimumQuality > maximumQuality &&
+                    !DefDatabase<ThingDef>.AllDefsListForReading.Any(def =>
+                        combinedRequirement.Matches(def) &&
+                        !def.HasComp(typeof(CompQuality))))
+                {
+                    return false;
+                }
             }
 
             return true;

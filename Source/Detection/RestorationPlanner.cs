@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
+using AutomaticOutfitManager.Patches;
 using AutomaticOutfitManager.Rules;
 using AutomaticOutfitManager.State;
+using AutomaticOutfitManager.Storage;
 using RimWorld;
 using Verse;
 using Verse.AI;
@@ -10,6 +12,8 @@ namespace AutomaticOutfitManager.Detection
 {
     public static class RestorationPlanner
     {
+        private const float TatteredHitPointThreshold = 0.5f;
+
         public static bool TryMakeHeldOriginalsAccessible(
             Pawn pawn, PawnApparelState state)
         {
@@ -141,34 +145,55 @@ namespace AutomaticOutfitManager.Detection
         private static bool TryReleaseHeldWeapon(
             Pawn pawn, ThingWithComps weapon, string context)
         {
-            IThingHolder holder = weapon?.ParentHolder;
-            ThingOwner owner = holder?.GetDirectlyHeldThings();
-            if (owner == null || !owner.Contains(weapon) ||
-                weapon.MapHeld != pawn.Map || !weapon.PositionHeld.IsValid)
+            if (pawn?.Map == null || weapon == null ||
+                !TryFindContainingOwner(weapon, out IThingHolder holder,
+                    out ThingOwner owner) ||
+                !TryResolveHeldDropLocation(
+                    pawn, weapon, holder, out Map dropMap,
+                    out IntVec3 dropCell))
             {
                 return false;
             }
 
-            IThingHolder ancestor = holder;
-            while (ancestor != null)
-            {
-                if (ancestor is Pawn holdingPawn && holdingPawn != pawn)
-                    return false;
-                ancestor = ancestor.ParentHolder;
-            }
-
             try
             {
-                if (owner.TryDrop(
-                        weapon, weapon.PositionHeld, pawn.Map, ThingPlaceMode.Near,
-                        out Thing dropped) && dropped is ThingWithComps droppedWeapon)
+                Thing dropped = null;
+                bool released = owner.TryDrop(
+                    weapon, dropCell, dropMap, ThingPlaceMode.Near,
+                    out dropped);
+
+                // Some inventory and container mods expose a valid ThingOwner
+                // but reject its ordinary TryDrop path. This exact saved weapon
+                // already belongs to the restoring pawn, so detach it once and
+                // place it beside the owning pawn/container. Restore the holder
+                // immediately if placement fails; never duplicate or discard it.
+                if (!released && owner.Remove(weapon))
                 {
-                    if (droppedWeapon.IsForbidden(pawn))
-                        droppedWeapon.SetForbidden(false, false);
-                    if (Prefs.DevMode)
-                        Log.Message($"[AutomaticOutfitManager] {pawn.LabelShortCap}: recovered {context} {droppedWeapon.LabelCap} from an inventory or container.");
-                    return true;
+                    if (GenPlace.TryPlaceThing(
+                            weapon, dropCell, dropMap, ThingPlaceMode.Near))
+                    {
+                        dropped = weapon;
+                        released = true;
+                    }
+                    else
+                    {
+                        owner.TryAdd(weapon);
+                    }
                 }
+
+                if (!released || dropped is not ThingWithComps droppedWeapon)
+                    return false;
+
+                if (droppedWeapon.IsForbidden(pawn))
+                    droppedWeapon.SetForbidden(false, false);
+                if (Prefs.DevMode)
+                {
+                    Log.Message(
+                        $"[AutomaticOutfitManager] {pawn.LabelShortCap}: recovered " +
+                        $"{context} {droppedWeapon.LabelCap} from " +
+                        $"{HolderDescription(holder)}.");
+                }
+                return true;
             }
             catch (System.Exception exception)
             {
@@ -177,6 +202,95 @@ namespace AutomaticOutfitManager.Detection
             }
 
             return false;
+        }
+
+        private static bool TryFindContainingOwner(
+            Thing thing, out IThingHolder containingHolder,
+            out ThingOwner containingOwner)
+        {
+            containingHolder = null;
+            containingOwner = null;
+            for (IThingHolder holder = thing?.ParentHolder;
+                 holder != null;
+                 holder = holder.ParentHolder)
+            {
+                ThingOwner owner = holder.GetDirectlyHeldThings();
+                if (owner?.Contains(thing) != true)
+                    continue;
+
+                containingHolder = holder;
+                containingOwner = owner;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryResolveHeldDropLocation(
+            Pawn pawn, Thing thing, IThingHolder directHolder,
+            out Map map, out IntVec3 cell)
+        {
+            map = null;
+            cell = IntVec3.Invalid;
+            for (IThingHolder holder = directHolder;
+                 holder != null;
+                 holder = holder.ParentHolder)
+            {
+                if (holder is Pawn holdingPawn)
+                {
+                    if (holdingPawn != pawn)
+                        return false;
+                    if (pawn.Map != null && pawn.Position.IsValid &&
+                        pawn.Position.InBounds(pawn.Map))
+                    {
+                        map = pawn.Map;
+                        cell = pawn.Position;
+                        return true;
+                    }
+                }
+
+                if (holder is Thing holderThing &&
+                    holderThing.MapHeld == pawn.Map &&
+                    holderThing.PositionHeld.IsValid &&
+                    holderThing.PositionHeld.InBounds(pawn.Map))
+                {
+                    map = pawn.Map;
+                    cell = holderThing.PositionHeld;
+                    return true;
+                }
+            }
+
+            if (thing.MapHeld == pawn.Map && thing.PositionHeld.IsValid &&
+                thing.PositionHeld.InBounds(pawn.Map))
+            {
+                map = pawn.Map;
+                cell = thing.PositionHeld;
+                return true;
+            }
+
+            return false;
+        }
+
+        internal static string HolderDescription(IThingHolder holder)
+        {
+            if (holder == null)
+                return "an unavailable holder";
+            if (holder is Pawn holdingPawn)
+                return $"{holdingPawn.LabelShortCap}'s inventory or equipment";
+            if (holder is Thing holderThing)
+                return holderThing.LabelCap.ToString();
+
+            IThingHolder ancestor = holder.ParentHolder;
+            while (ancestor != null)
+            {
+                if (ancestor is Pawn ancestorPawn)
+                    return $"{ancestorPawn.LabelShortCap}'s inventory or equipment";
+                if (ancestor is Thing ancestorThing)
+                    return ancestorThing.LabelCap.ToString();
+                ancestor = ancestor.ParentHolder;
+            }
+
+            return holder.GetType().Name;
         }
 
         private static bool IsHeldByPawn(Thing thing, Pawn pawn)
@@ -189,6 +303,30 @@ namespace AutomaticOutfitManager.Detection
                 holder = holder.ParentHolder;
             }
             return false;
+        }
+
+        public static bool CanAttemptSavedWeaponEquip(
+            ThingWithComps weapon,
+            Pawn pawn,
+            out string cantReason)
+        {
+            cantReason = null;
+            if (weapon?.def?.IsWeapon != true || pawn == null)
+            {
+                cantReason = "not a valid weapon";
+                return false;
+            }
+
+            // Use RimWorld's reason-producing overload directly. Some equipment
+            // compatibility patches only intercept the two-argument convenience
+            // overload and return false without a reason, even for the pawn's
+            // exact previously equipped weapon. Vanilla supplies a reason for
+            // every hard rejection. If a patch still returns a silent false,
+            // let the real Equip job decide; the bounded failed-Equip recovery
+            // prevents that attempt from becoming an endless Standing loop.
+            bool canEquip = EquipmentUtility.CanEquip(
+                weapon, pawn, out cantReason);
+            return canEquip || string.IsNullOrEmpty(cantReason);
         }
 
         public static List<Job> BuildJobs(
@@ -205,6 +343,12 @@ namespace AutomaticOutfitManager.Detection
             var original = new HashSet<Apparel>(state.OriginalApparel.Where(item => item != null));
             var automatic = new HashSet<Apparel>(state.ManagedApparel.Where(item => item != null));
 
+            // Personal ownership always wins if a legacy or interrupted sibling
+            // handoff recorded the same exact instance in both ledgers. Without
+            // this defensive normalization BuildJobs alternates forever between
+            // removing and wearing that one garment.
+            automatic.ExceptWith(original);
+
             // Backward-compatible fallback for snapshots saved before automatic item
             // references were recorded explicitly.
             if (automatic.Count == 0 && activeRule?.RequiredApparel != null)
@@ -214,6 +358,11 @@ namespace AutomaticOutfitManager.Detection
                     if (!original.Contains(worn) && activeRule.RequiredApparel.Contains(worn.def))
                         automatic.Add(worn);
                 }
+
+                // Normalize an older snapshot before its removal jobs reach the
+                // shared transition guards. Environmental protection and exact
+                // transition ownership both depend on this per-pawn ledger.
+                state.AddManagedApparel(automatic);
             }
 
             // Only apparel explicitly assigned by the intervention is removed.
@@ -227,9 +376,36 @@ namespace AutomaticOutfitManager.Detection
                 jobs.Add(JobMaker.MakeJob(JobDefOf.RemoveApparel, item));
             }
 
+            var plannedReplacements = new HashSet<Apparel>();
             foreach (Apparel item in state.OriginalApparel)
             {
-                if (item == null || item.Destroyed || pawn.apparel.WornApparel.Contains(item))
+                if (item == null || item.Destroyed)
+                    continue;
+
+                Apparel replacement = FindBetterSavedApparelReplacement(
+                    pawn, state, item, plannedReplacements);
+                if (replacement != null)
+                {
+                    Job replacementJob = JobMaker.MakeJob(
+                        JobDefOf.Wear, replacement);
+                    // This is still Phase 3 ownership restoration. The Wear
+                    // callback adopts the replacement only after the native job
+                    // succeeds, then releases the one displaced saved item.
+                    replacementJob.playerForced = true;
+                    jobs.Add(replacementJob);
+                    plannedReplacements.Add(replacement);
+                    if (Prefs.DevMode)
+                    {
+                        Log.Message(
+                            $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
+                            $"replacing tattered saved apparel {item.LabelCap} " +
+                            $"with better available {replacement.LabelCap} " +
+                            "during saved-outfit restoration.");
+                    }
+                    continue;
+                }
+
+                if (pawn.apparel.WornApparel.Contains(item))
                     continue;
 
                 if (item.Spawned && item.IsForbidden(pawn))
@@ -258,6 +434,91 @@ namespace AutomaticOutfitManager.Detection
             hasUnavailableOriginal |= hasUnavailableOriginalWeapon;
 
             return jobs;
+        }
+
+        private static Apparel FindBetterSavedApparelReplacement(
+            Pawn pawn,
+            PawnApparelState state,
+            Apparel saved,
+            ISet<Apparel> excluded)
+        {
+            if (pawn?.Map?.listerThings == null || state == null ||
+                saved == null || saved.Destroyed ||
+                HitPointPercent(saved) >= TatteredHitPointThreshold)
+            {
+                return null;
+            }
+
+            float savedScore = SavedApparelReplacementPolicy.NativeScore(
+                pawn, saved);
+            if (savedScore == float.MinValue)
+                return null;
+
+            AutomaticOutfitManager.Core.AutomaticOutfitManagerGameComponent component =
+                AutomaticOutfitManager.Core.AutomaticOutfitManagerGameComponent.Current;
+            Apparel best = null;
+            float bestScore = savedScore +
+                SavedApparelReplacementPolicy.MinimumScoreGain;
+            int bestDistance = int.MaxValue;
+            foreach (Thing thing in pawn.Map.listerThings
+                         .ThingsInGroup(ThingRequestGroup.Apparel))
+            {
+                if (thing is not Apparel candidate || candidate == saved ||
+                    candidate.Destroyed || !candidate.Spawned ||
+                    excluded?.Contains(candidate) == true ||
+                    excluded?.Any(planned => planned != null &&
+                        !ApparelUtility.CanWearTogether(
+                            planned.def, candidate.def,
+                            pawn.RaceProps?.body ?? BodyDefOf.Human)) == true ||
+                    state.OriginalApparel?.Contains(candidate) == true ||
+                    state.ManagedApparel?.Contains(candidate) == true ||
+                    HitPointPercent(candidate) < TatteredHitPointThreshold ||
+                    candidate.IsForbidden(pawn) || candidate.IsBurning() ||
+                    ManagedApparelClassifier.Matches(candidate.def) ||
+                    component?.IsSavedForOtherPawn(candidate, pawn) == true ||
+                    component?.IsManagedApparelAssignedToOtherPawn(
+                        candidate, pawn) == true ||
+                    pawn.outfits?.CurrentApparelPolicy?.filter?.Allows(candidate) == false ||
+                    !EquipmentUtility.CanEquip(candidate, pawn) ||
+                    !ReservationUtility_SavedApparel_Patch
+                        .CanReserveForOutfit(pawn, candidate) ||
+                    !pawn.CanReach(
+                        candidate, PathEndMode.ClosestTouch, Danger.Deadly))
+                {
+                    continue;
+                }
+
+                // A replacement may clear only the exact saved slot it improves.
+                // This prevents a coat, armor layer, or modded multi-slot garment
+                // from silently deleting several independent personal items.
+                List<Apparel> displaced =
+                    SavedApparelReplacementPolicy.ConflictingSavedApparel(
+                            pawn, state, candidate)
+                        .Where(item => item != null && !item.Destroyed)
+                        .ToList();
+                if (displaced.Count != 1 || displaced[0] != saved)
+                    continue;
+
+                float candidateScore =
+                    SavedApparelReplacementPolicy.NativeScore(pawn, candidate);
+                int distance = pawn.Position.DistanceToSquared(candidate.Position);
+                if (candidateScore > bestScore ||
+                    (candidateScore == bestScore && distance < bestDistance))
+                {
+                    best = candidate;
+                    bestScore = candidateScore;
+                    bestDistance = distance;
+                }
+            }
+
+            return best;
+        }
+
+        private static float HitPointPercent(Apparel apparel)
+        {
+            return apparel?.MaxHitPoints > 0
+                ? apparel.HitPoints / (float)apparel.MaxHitPoints
+                : 1f;
         }
 
         public static List<Job> BuildWeaponJobs(
@@ -301,7 +562,7 @@ namespace AutomaticOutfitManager.Detection
                 if (original.Destroyed || !original.Spawned || original.Map != pawn.Map ||
                     original.IsForbidden(pawn) || !pawn.CanReserve(original) ||
                     !pawn.CanReach(original, PathEndMode.ClosestTouch, Danger.Deadly) ||
-                    !EquipmentUtility.CanEquip(original, pawn))
+                    !CanAttemptSavedWeaponEquip(original, pawn, out _))
                 {
                     hasUnavailableOriginal = true;
                     return jobs;

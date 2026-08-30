@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.2 - 2026-08-23
+## 0.3.2 - release candidate
 
 First Steam Workshop release candidate.
 
@@ -13,6 +13,9 @@ First Steam Workshop release candidate.
 - Managed and non-managed weapon storage filters with retained-stock handling.
 - Save-safe preserved-job continuation and target claims during outfitting.
 - Compatible nested apparel and weapon requirements with independent task buffers.
+- Independent storage-style condition and quality ranges for required work apparel and primary weapons.
+- Successful-completion task buffers for outer and nested rules; interrupted, failed, and invalidated jobs no longer consume slots.
+- Better-item replacement for saved personal apparel below 50% hit points, using native outfit scoring and adopting the replacement only after a successful wear job.
 
 ### Retained and hardened
 
@@ -35,15 +38,22 @@ First Steam Workshop release candidate.
 - Locker-return travel now uses a dedicated non-opportunistic job, preventing vanilla hauling prefixes from replacing an automatic return with a bounded but visible Standing delay.
 - Recalculated routes now recheck both complete gear and work/hauling/wandering access at the actual protected-cell boundary.
 - New-world weapon generation no longer queries the player faction before that faction exists.
+- Work Area and Locker room references now remap to RimWorld's copied destination-map areas after gravship flight, with conservative state-corroborated repair for older post-flight saves.
+- Managed protective apparel remains equipped while the pawn, destination, hauling endpoints, or route would otherwise expose the pawn to vacuum, dangerous heat or cold, tox gas, toxic fallout, or noxious haze.
+- Hosted visitors bypass follow-up buffers when departing, restore personal gear before the native exit when possible, and cannot take assigned managed stock off-map when a departure is interrupted.
+- Inaccessible exact saved weapons now use five bounded recovery attempts before only the stale saved claim is released and the pawn safely finishes unarmed. Repeated native Equip rejection is counted separately from recovery wakes and uses a longer limit for ordinary colonists than for custody pawns.
+- A narrow RimWorld 1.6 compatibility correction restores native rearm availability for player autocannon and uranium slug turrets under very low maintenance-cost settings without replacing native fuel, reservation, or work logic.
+- Forced right-click turret rearm queries no longer inherit an unrelated protected-area route customizer; the resulting native job still passes through AOM's gear and access checks.
+- Destroyed or zero-stack things are rejected before vanilla opportunistic hauling inspects them, avoiding a compatibility crash from malformed haulable registries.
 - Area-based apparel and PPE requirements.
-- Optional locker rooms, task buffers, locker restocking, and exact apparel restoration.
+- Optional locker rooms, successful-completion task buffers, locker restocking, and saved-apparel restoration with tattered-item improvement.
 - Rule pause/resume, per-worker Recall, live status, and pawn-category access controls.
 - Bounded recovery behavior for unavailable saved items and invalidated jobs.
 - Generic support for vanilla and modded apparel and weapons, with Harmony as the only dependency.
 
 ### Known boundaries
 
-- No automatic hazard, temperature, hediff, JobDef, or WorkTypeDef detection.
+- No automatic hazard, temperature, hediff, JobDef, or WorkTypeDef rule triggers. Hazard safety only retains already-managed protection; it does not create or activate a rule.
 - No manual priority for genuinely conflicting overlapping rules.
 - No per-pawn assignment filters.
 - Weapon rules do not manage ammunition, inventory sidearms, offhands, shields, or drafted weapon switching.

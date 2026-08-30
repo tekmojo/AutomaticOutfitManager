@@ -29,20 +29,49 @@ namespace AutomaticOutfitManager.Patches
         public static bool Prefix(Pawn_PathFollower __instance)
         {
             Pawn pawn = PawnField(__instance);
-            if (pawn?.Map == null || pawn.Drafted ||
-                !PawnAccessClassifier.IsApparelEligibleHuman(pawn) ||
-                pawn.jobs?.curJob == null)
+            if (pawn?.Map == null || pawn.Drafted || pawn.jobs?.curJob == null)
+            {
+                return true;
+            }
+
+            AutomaticOutfitManagerGameComponent component =
+                AutomaticOutfitManagerGameComponent.Current;
+            IReadOnlyList<ApparelRule> rules =
+                RuleEvaluator.EnabledRulesForMap(pawn.Map);
+            if (component == null || rules.Count == 0 ||
+                !PawnAccessClassifier.IsApparelEligibleHuman(pawn))
             {
                 return true;
             }
 
             Job currentJob = pawn.jobs.curJob;
-            PawnApparelState state = AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn);
-            // Preparation and recall can legitimately route a pawn through the
-            // protected area to reach assigned work or saved apparel. StartJob
-            // has already recorded these exact transition targets, so exempt
-            // only those operations rather than broadly allowing stateful pawns.
-            if (IsManagedApparelTransition(pawn, currentJob, state))
+            if (PawnJobTracker_StartJob_Patch
+                .IsNativeEmergencySafetyJob(currentJob))
+            {
+                return true;
+            }
+            PawnApparelState state = component.StateFor(pawn);
+
+            // StartJob already forces an active AOM session through Phase 3
+            // before allowing a native departure. Once that snapshot has been
+            // cleared, the retried exit Goto must be allowed to cross the ship
+            // instead of being treated as fresh protected-area activity. The
+            // Pawn.ExitMap safeguard still returns any managed gear if a modded
+            // departure bypassed the ordinary restoration path.
+            if (state == null && PawnJobTracker_StartJob_Patch
+                    .IsMapDepartureJob(currentJob))
+            {
+                return true;
+            }
+
+            // Preparation and restoration can legitimately route a pawn through
+            // the protected area to reach assigned work or saved apparel.
+            // StartJob has already recorded these exact transition targets, so
+            // exempt only those operations rather than broadly allowing
+            // stateful pawns.
+            if (IsManagedApparelTransition(pawn, currentJob, state) ||
+                PawnJobTracker_StartJob_Patch
+                    .IsAssignedTransitionWeaponJob(state, currentJob))
                 return true;
 
             IntVec3 nextCell = NextCellField(__instance);
@@ -51,30 +80,50 @@ namespace AutomaticOutfitManager.Patches
 
             ApparelRule rule = null;
             bool blockedByActivity = false;
-            var rules = AutomaticOutfitManagerGameComponent.Current?.Rules;
-            if (rules != null)
+            foreach (ApparelRule candidate in rules)
             {
-                foreach (ApparelRule candidate in rules)
-                {
-                    if (candidate == null || !candidate.Enabled ||
-                        candidate.Area?.Map != pawn.Map || !candidate.Area[nextCell])
-                        continue;
+                if (!candidate.Area[nextCell])
+                    continue;
 
-                    // Recheck both category access and the complete requirement
-                    // at the actual boundary. Routes can change after StartJob,
-                    // and an already-equipped pawn must not use that reroute to
-                    // bypass disabled work, hauling, or wandering access.
-                    bool activityAllowed =
-                        PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(
+                // Recheck both category access and the complete requirement
+                // at the actual boundary. Routes can change after StartJob,
+                // and an already-equipped pawn must not use that reroute to
+                // bypass disabled work, hauling, or wandering access.
+                bool activityAllowed =
+                    PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(
+                        pawn, currentJob, candidate);
+                bool missingRequiredGear =
+                    RuleEvaluator.HasMissingRequiredGear(pawn, candidate);
+                bool allowedUnavailablePrisonerFallback =
+                    activityAllowed && missingRequiredGear &&
+                    PawnJobTracker_StartJob_Patch
+                        .IsNativePrisonerUnavailableGearFallbackJobFamily(
+                            pawn, currentJob) &&
+                    UnavailableWorkRegistry.HasActiveRuleBlock(pawn, candidate);
+                bool allowedUnavailableEssentialFallback =
+                    activityAllowed && missingRequiredGear &&
+                    PausedAreaWorkFilter.IsEssentialPersonalJob(currentJob) &&
+                    UnavailableWorkRegistry.HasActiveRuleBlock(pawn, candidate);
+                bool allowedManagedIncompatibleIngestFallback =
+                    activityAllowed && missingRequiredGear &&
+                    PawnJobTracker_StartJob_Patch
+                        .IsManagedIncompatibleIngestFallback(
+                            pawn, state, currentJob, candidate, nextCell);
+                bool allowedUnavailableGearEgress =
+                    PawnJobTracker_StartJob_Patch
+                        .IsUnavailableGearEgressJob(
                             pawn, currentJob, candidate);
-                    bool blocked = !activityAllowed ||
-                        RuleEvaluator.HasMissingRequiredGear(pawn, candidate);
-                    if (blocked)
-                    {
-                        rule = candidate;
-                        blockedByActivity = !activityAllowed;
-                        break;
-                    }
+                bool blocked = !allowedUnavailableGearEgress &&
+                    (!activityAllowed ||
+                      (missingRequiredGear &&
+                       !allowedUnavailablePrisonerFallback &&
+                       !allowedUnavailableEssentialFallback &&
+                       !allowedManagedIncompatibleIngestFallback));
+                if (blocked)
+                {
+                    rule = candidate;
+                    blockedByActivity = !activityAllowed;
+                    break;
                 }
             }
             if (rule == null)
@@ -106,6 +155,60 @@ namespace AutomaticOutfitManager.Patches
             if (rule.WorkAreaPaused)
                 pawn.jobs.ClearQueuedJobs(false);
 
+            if (!blockedByActivity)
+            {
+                // Some native drivers choose their real destination after
+                // StartJob. Record the concrete job that exposed this boundary
+                // so its next native retry can prepare instead of repeating the
+                // same stop forever. Activity denials are intentionally omitted:
+                // wearing gear cannot make a prohibited activity legal.
+                ProtectedBoundaryRetryRegistry.Record(pawn, currentJob, rule);
+            }
+
+            if (blockedByActivity &&
+                PawnAccessClassifier.IsHostedGuest(pawn))
+            {
+                // Ingest and several recreation drivers choose their final
+                // dining/interaction cell only after StartJob. If that late
+                // destination reaches a guest-disabled boundary, ending the job
+                // alone lets the thinker select the same activity and route on
+                // the next tick. Move an inside guest out when possible, or
+                // yield safely in place when they are already outside.
+                pawn.jobs.ClearQueuedJobs(false);
+                Job safeGuestJob;
+                if (!PausedAreaWorkFilter.TryMakeWanderingExitJob(
+                        pawn, out safeGuestJob))
+                {
+                    safeGuestJob =
+                        PawnJobTracker_StartJob_Patch.MakeSafeWaitJob(
+                            pawn, 180);
+                }
+                pawn.jobs.StartJob(
+                    safeGuestJob, JobCondition.InterruptForced,
+                    null, false, true);
+                return false;
+            }
+
+            if (blockedByActivity &&
+                PawnAccessClassifier.IsColonyPrisoner(pawn) &&
+                PawnJobTracker_StartJob_Patch
+                    .IsNativePrisonerUnavailableGearFallbackJobFamily(
+                        pawn, currentJob))
+            {
+                // A prisoner's native think tree can have no second roaming
+                // choice after its GotoWander is rejected at an area boundary.
+                // Starting a fixed prisoner-safe posture wait avoids IdleError
+                // without allowing the prohibited cell or synchronously asking
+                // the thinker for the same route again.
+                pawn.jobs.ClearQueuedJobs(false);
+                Job safeWait = PawnJobTracker_StartJob_Patch.MakeSafeWaitJob(
+                    pawn, 120);
+                pawn.jobs.StartJob(
+                    safeWait, JobCondition.InterruptForced,
+                    null, false, true);
+                return false;
+            }
+
             // Do not synchronously select another job from inside the path-cell
             // callback. If the thinker returns the same candidate, recursive
             // EndCurrentJob calls can produce hundreds of retries in one tick.
@@ -132,7 +235,7 @@ namespace AutomaticOutfitManager.Patches
                 currentJob.def == JobDefOf.Wear &&
                 currentJob.targetA.Thing is Apparel workApparel)
             {
-                return state.ManagedApparel?.Contains(workApparel) == true;
+                return state.IsPreparationApparel(workApparel);
             }
 
             // Weapon preparation has the same circular-access risk as apparel:
@@ -153,31 +256,14 @@ namespace AutomaticOutfitManager.Patches
                 // Only AOM records this return destination. The exact Goto may
                 // target the preferred locker or the nearest safe exterior cell
                 // when no locker exists or the locker overlaps the work area.
-                // It remains exempt only while the full session requirement is
-                // still equipped; losing one piece mid-return must stop the next
-                // protected cell and re-enter ordinary preparation recovery.
-                var component = AutomaticOutfitManagerGameComponent.Current;
-                ApparelRule activeRule = component?.RuleById(state.ActiveRuleId);
-                if (activeRule != null &&
-                    RuleEvaluator.HasMissingRequiredGear(pawn, activeRule))
-                {
-                    return false;
-                }
-                foreach (string ruleId in state.CurrentRuleIds ??
-                             new List<string>())
-                {
-                    ApparelRule rule = component?.RuleById(ruleId);
-                    if (rule != null &&
-                        RuleEvaluator.HasMissingRequiredGear(pawn, rule))
-                    {
-                        return false;
-                    }
-                }
+                // Never make that transition fight the boundary guard that
+                // sent the pawn home. A requirement edit can make the currently
+                // worn managed set noncompliant while this exact return is in
+                // flight; blocking it here only restarts the same return forever
+                // and prevents the pawn from reaching the gear that can resolve
+                // the shortage. Ordinary Goto and native jobs remain guarded.
                 return true;
             }
-
-            if (state.RecallRequested != true)
-                return false;
 
             if (state.Transition != ApparelTransition.Restoring ||
                 currentJob.targetA.Thing is not Apparel apparel)
@@ -195,5 +281,7 @@ namespace AutomaticOutfitManager.Patches
                     currentJob.def == JobDefOf.HaulToContainer) &&
                    state.ManagedApparel?.Contains(apparel) == true;
         }
+
+        internal static void ResetRuntimeCache() => LastBlockedLogTick.Clear();
     }
 }
