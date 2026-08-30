@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.3.2 - release candidate
+## 0.3.2 - 2026-08-30
 
-First Steam Workshop release candidate.
+First Steam Workshop release.
 
 ### Added
 

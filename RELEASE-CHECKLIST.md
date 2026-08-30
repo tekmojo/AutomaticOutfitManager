@@ -11,9 +11,9 @@ This checklist validates implemented behavior. Use arbitrary compatible areas, a
 - [x] `About/ModIcon.png` is 64x64 with a transparent background.
 - [x] Every XML file parses successfully. Audited five files on 2026-08-30.
 - [x] The documentation-corrected RC source builds successfully. Candidate DLL `168EA71AAF95416805CCB5D247F367B9514323C7771CA9A81A74E6E052B252C9`, product version `0.3.2`, built and deployed on 2026-08-30. Candidate, live repository, and installed junction hashes match.
-- [ ] `package-workshop.ps1` builds successfully and creates an allowlisted staging folder.
-- [ ] The staging folder contains the release DLL and no source, project, script, debug-symbol, Git, or work files.
-- [ ] The staged DLL reports version `0.3.2` and its SHA-256 is recorded.
+- [x] `package-workshop.ps1` builds successfully and creates an allowlisted staging folder. Verified on 2026-08-30 at `work/workshop-staging/AutomaticOutfitManager`.
+- [x] The staging folder contains nine release files under only `1.6`, `About`, `Defs`, and `Textures`; it contains no source, project, script, debug-symbol, Git, or work files. Independently audited on 2026-08-30.
+- [x] The staged DLL reports version `0.3.2` and SHA-256 `168EA71AAF95416805CCB5D247F367B9514323C7771CA9A81A74E6E052B252C9`, matching the tested release candidate. Recorded on 2026-08-30.
 
 ## Feature-based manual matrix
 
@@ -150,13 +150,13 @@ Use temporary neutral rule names such as `RC Apparel`, `RC Weapon`, `RC Combined
 
 ## Hidden Workshop validation
 
-- [ ] Upload the staged folder as hidden and accept the Steam Workshop legal agreement if prompted.
-- [ ] Preserve the new `About/PublishedFileId.txt` in the repository before any update upload.
-- [ ] Add Harmony as a required Workshop item.
-- [ ] Apply the prepared title, description, tags, preview, screenshots, and `0.3.2` change note from `WORKSHOP.md`.
-- [ ] Test the Steam-downloaded copy with the local development junction disabled so it cannot mask packaging problems.
-- [ ] Confirm dependency messaging, load order, title, icon, preview, and description display correctly.
-- [ ] Make the item public only after the downloaded-copy smoke test passes.
+- [x] Upload the staged folder as hidden and accept the Steam Workshop legal agreement if prompted.
+- [x] Preserve the new `About/PublishedFileId.txt` in the repository before any update upload.
+- [x] Add Harmony as a required Workshop item.
+- [x] Apply the prepared title, description, tags, preview, screenshots, and `0.3.2` change note from `WORKSHOP.md`. Verified on 2026-08-30: Steam displays the prepared title, description, preview, and screenshot gallery; the RimWorld owner UI exposes the applicable `Mod` and `1.6` tags; and the initial upload note was replaced with the exact prepared `0.3.2` change note while the item remained Hidden.
+- [x] Test the Steam-downloaded copy with the local development junction disabled so it cannot mask packaging problems. Verified on 2026-08-30 by loading `GooseButter_03_ALL_MODS` with Workshop DLL `168EA71AAF95416805CCB5D247F367B9514323C7771CA9A81A74E6E052B252C9`; AOM 0.3.2 loaded four active snapshots, resumed restoration and buffer state, enforced the `Radiation Zone` boundary, and produced no AOM exception or repeating warning in the supplied session log.
+- [x] Confirm dependency messaging, load order, title, icon, preview, and description display correctly.
+- [x] Make the item public only after the downloaded-copy smoke test passes. Published on 2026-08-30 as Workshop item `3792731788`: https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788.
 
 ## Release closeout
 
