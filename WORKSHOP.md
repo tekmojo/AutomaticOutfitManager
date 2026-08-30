@@ -90,11 +90,14 @@ Initial Steam Workshop release candidate. Includes area-based apparel/PPE rules,
 
 ## Screenshot plan
 
-Use real gameplay screenshots rather than recreating README scenarios.
+Use the real gameplay captures under `Screenshots/`; do not stage scenes merely to reproduce the README gameplay examples.
 
-1. Main rules screen showing one neutral apparel-only rule, its condition/quality ranges, and **Any weapon**.
-2. Weapon selector showing several exact alternatives and the retained-stock color legend.
-3. Active worker status with saved gear, current transition, and task buffer visible.
-4. Locker storage filters for managed/non-managed apparel and weapons.
-5. Nested neutral rules on the map with compatible combined requirements.
-6. Gravship after landing with the copied Work Area or Locker room highlighted from the AOM tab.
+1. `AOM_Radiation_02.png` — full rule configuration and category access controls.
+2. `AOM_Radiation_04.png` — Work Area selection tooltip with the painted map area highlighted.
+3. `AOM_Radiation_05.png` — Locker Area behavior and restoration tooltip.
+4. `AOM_Radiation_03.png` — apparel/weapon standards, readiness, and live activity rows.
+5. `AOM_Radiation_06.png` — apparel selector showing all-of requirements and conflict feedback.
+6. `AOM_Radiation_01.png` and `AOM_Radiation_07.png` — configured work and locker areas in play.
+7. `AOM_Gravship_01.png` and `AOM_Gravship_02.png` — day/night gravship views showing the locker and shared work-gear layout.
+
+These gallery sources are not part of the allowlisted runtime package.

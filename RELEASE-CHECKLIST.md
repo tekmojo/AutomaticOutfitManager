@@ -1,10 +1,10 @@
 # Release checklist
 
-This checklist validates features, not README example scenarios. Use arbitrary areas, apparel, weapons, pawn names, and jobs available in the test save; do not reproduce the named examples as fixtures.
+This checklist validates implemented behavior. Use arbitrary compatible areas, apparel, weapons, pawn names, and jobs available in the test save; the README gameplay examples are player-facing starting points and are not test fixtures.
 
 ## Automated preflight
 
-- [x] Release branch is based on the intended `main` commit and has no unrelated changes. Audited on 2026-08-30: merge base `6808d030dbd73b6162da833d934ab90dea738df2`; all accumulated RC changes remain intentional and uncommitted.
+- [x] Release branch is based on the intended `main` commit and has no unrelated changes. Audited on 2026-08-30: merge base `6808d030dbd73b6162da833d934ab90dea738df2`; the deployed RC source and documentation are committed at `6b4f34eef9eb151b7deb2d3b1d195f725bae840e`, and the follow-up Workshop screenshots and release-copy cleanup were reviewed as intentional.
 - [x] `About.xml`, project metadata, assembly metadata, README, and changelog all identify version `0.3.2`. Audited on 2026-08-30.
 - [x] User-facing source labels, About copy, README, changelog, Workshop copy, and project design describe the same current feature boundaries. Audited and corrected on 2026-08-30.
 - [x] `About/Preview.png` is 640x360 (16:9) and 369,895 bytes, below 1 MB.

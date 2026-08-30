@@ -189,38 +189,43 @@ The mod adds paired special filters under both Apparel and Weapons:
 
 For a dedicated locker, enable the managed apparel and/or weapon filters and disable their non-managed counterparts. Selecting an apparel or weapon type remembers it as managed stock. Removing, clearing, disabling, or deleting a requirement does not immediately reclassify existing stock into general storage: the selector shows the retained type in cyan. Use **Forget** only when that unused stock type should become non-managed. **Forget** remains unavailable while another rule requires the type or an active pawn transition uses it, and its tooltip lists those blockers. Exact saved or currently tracked items remain protected individually. Dropped managed apparel and weapons are kept unforbidden so normal hauling can move them. Filters are enforced at the thing-filter, storage-acceptance, and hauling-job boundaries for compatibility with alternate storage systems and queued jobs.
 
-## Example scenarios
+## Gameplay examples
 
-These are illustrative configurations, not built-in hazard detectors, presets, or test requirements. The named apparel and weapons can come from vanilla RimWorld or any compatible content mod, and any valid custom configuration is equally supported.
+These are practical starting points built from native and commonly modded RimWorld gameplay. They are not built-in presets, automatic hazard detectors, or release-test fixtures: the player creates the areas, chooses the gear, and can adjust access permissions, lockers, and buffers for the colony.
 
-| Scenario | Work area | Apparel requirement | Primary-weapon alternatives | Locker and buffer |
+| Gameplay idea | Content | Suggested Work Area | Suggested requirements | Suggested locker and buffer |
 |---|---|---|---|---|
-| Radiation maintenance | Reactor and machining room | Radiation suit + radiation mask | Any weapon | Airlock locker; buffer 0–2 |
-| Freezer work | Freezer interior | Parka + cold-weather headwear | Any weapon | Entrance storage; buffer 1–3 |
-| Guarded armory | Armory, gatehouse, or defensive workshop | Any apparel | Rifle, shotgun, or melee weapon as exact alternatives | Nearby armory racks; buffer 0 |
-| Clean room | Laboratory, sterile kitchen, or hospital | Clean-room suit + mask | Any weapon | Changing bay; buffer 0 |
-| Industrial workshop | Fabrication room | Apron + helmet + respirator | Any weapon or selected work/security weapon | Equipment closet; buffer 2–5 |
-| Emergency fire zone | Temporary player-created response area | Every selected fire-resistant item | Optional emergency weapon/tool represented as a weapon | Emergency locker; buffer 0 |
+| Freezer shifts | Core | Freezer interior and frequently used access tiles | Parka + tuque; **Any weapon** | Entrance locker; buffer 1 to finish one nearby follow-up task before changing |
+| Toxic-waste handling | Biotech | Wastepack storage, loading, or atomizer work cells | Gas mask + any player-chosen protective apparel; **Any weapon** | Changing point outside the contaminated route; buffer 0 |
+| Gravship EVA and exterior maintenance | Odyssey | Airlock route, exposed deck, and exterior service cells | Vacsuit + vacsuit helmet; **Any weapon** | Pressurized airlock locker; buffer 0 |
+| Security post or armory shift | Core or modded weapons | Guard post, armory, firing position, or defensive workshop | **Any apparel**, or selected armor; one of several exact primary-weapon alternatives | Nearby weapon rack; buffer 0–1 |
+| Specialized workshop shift | Core or modded apparel | Fabrication, smelting, machining, or other dedicated work cells | Player-selected protective workwear; optional exact work/security weapon alternatives | Equipment closet; buffer 1–2 to reduce short gear-change cycles |
+| Radiation maintenance | Modded industry or reactor content | Player-painted reactor service and material-handling cells | Mod-provided radiation suit + mask; **Any weapon** | Entry locker; buffer 0 so protective gear returns promptly after the route is safe |
+| Cleanroom or medical containment | Modded medical or laboratory content | Laboratory, hospital, sterile production, or containment cells | Mod-provided cleanroom apparel + mask; **Any weapon** | Changing room; buffer 0 |
 
-### Apparel-only rule
+### Apparel-only pattern
 
-Create a **Radiation Maintenance** rule over the reactor and machining tables. Select the radiation suit and mask in **Choose apparel**, and leave weapons empty. Every eligible pawn inside or passing through wears both apparel items simultaneously. The readiness row displays **Any weapon**, and Automatic Outfit Manager does not disarm or replace the pawn's existing primary weapon merely because the rule has no weapon requirement.
+Select any Work Area, choose one or more compatible apparel definitions, and leave the weapon selector empty. Every eligible pawn wears all selected items simultaneously before entering or crossing the area. The readiness row displays **Any weapon**, and Automatic Outfit Manager leaves the pawn's existing primary weapon unchanged.
 
-### Apparel-and-weapon rule
+### Combined apparel-and-weapon pattern
 
-Create an **Industrial Safety** rule for a fabrication room. Select an apron, helmet, and respirator in **Choose apparel**, then select one or more exact work or security weapons in **Choose weapons**. Every eligible pawn wears all selected apparel and equips one acceptable primary weapon before entering, keeps the full set through every activity in the room, then restores the saved clothing and exact primary weapon used before the protected session. Tattered saved clothing may be improved under the replacement policy described above.
+Select compatible apparel plus one or more exact primary-weapon alternatives. Every eligible pawn wears the complete apparel set and equips one acceptable primary before entering, retains the requirements throughout protected activity or transit, and later restores the saved personal outfit and exact previous primary. Tattered saved apparel may be improved only under the replacement policy described above.
 
-### Weapon-only rule
+### Weapon-only pattern
 
-Create a **Guard Weapons** rule, leave apparel empty, and select several exact rifles or melee weapons. The readiness row displays **Any apparel**. Pawns equip one acceptable primary weapon before entering or passing through and restore their exact previous primary afterward; a pawn who began unarmed returns to being unarmed.
+Leave apparel empty and select one or more exact primary-weapon alternatives. The readiness row displays **Any apparel**. Pawns equip one acceptable primary before entering or crossing the area and restore their exact previous primary afterward; a pawn who began unarmed returns to being unarmed.
 
-### Nested areas
+### Gravship pattern
 
-Use a broad **Industrial Safety** rule for a workshop and a smaller compatible **Hazard Bay** rule inside it. A pawn can add the inner area's apparel while retaining the outer requirements. Each rule tracks its own task buffer, and completed inner requirements are returned without discarding the still-active outer outfit. The selectors block apparel combinations that cannot be worn together and weapon alternatives with no valid overlap.
+Select native map areas carried by a gravship as its Work Area and optional Locker Area, then configure any compatible apparel and primary-weapon requirements. When RimWorld copies those areas to the destination map after flight, Automatic Outfit Manager remaps the rule to the copied areas and keeps active managed protection equipped throughout placement. The same rule continues after landing, and restoration waits until the pawn leaves every applicable area and can change safely. The player still defines the areas and gear; Automatic Outfit Manager does not infer a ship boundary, detect a hazard, or create the rule automatically.
 
-### Traffic restrictions
+### Nested and overlapping patterns
 
-For a hazardous laboratory, disable animal or mech wandering without disabling permitted hauling. Keep **Allow work watching** off to stop children entering solely to observe work. These access controls also apply to non-humanlike units, but those units never participate in apparel or weapon changes.
+Compatible outer and inner rules combine while both apply. A pawn can add inner-area requirements without discarding still-active outer requirements, and each rule tracks its own successful-task buffer. The selectors block apparel combinations that cannot be worn together and weapon selections with no compatible alternative.
+
+### Access-control pattern
+
+Work, Hauling, and Wandering permissions can be configured independently for each supported pawn category. **Allow work watching** separately controls children entering only to observe work. Non-humanlike units obey access permissions but do not participate in apparel or primary-weapon changes.
 
 ## Compatibility and boundaries
 
