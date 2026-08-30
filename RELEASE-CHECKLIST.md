@@ -160,8 +160,8 @@ Use temporary neutral rule names such as `RC Apparel`, `RC Weapon`, `RC Combined
 
 ## Release closeout
 
-- [ ] Merge the release-prep branch to `main`.
-- [ ] Tag the verified commit as `v0.3.2`.
-- [ ] Publish matching GitHub release notes and attach the staged package if desired.
-- [ ] Record the final commit, DLL SHA-256, Workshop ID, and public URL in the handoff state.
+- [x] Merge the release-prep branch to `main`. Fast-forwarded `main` to release commit `790e5473e900f0476b353a111ccbaa832295f8cf` on 2026-08-30 without modifying the separate dirty live checkout.
+- [x] Tag the verified commit as `v0.3.2`. The annotated tag points to `790e5473e900f0476b353a111ccbaa832295f8cf`.
+- [x] Publish matching GitHub release notes and attach the staged package if desired. Published https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.3.2 with `AutomaticOutfitManager-0.3.2.zip` (SHA-256 `E56B14670D57432B1F43B738C1A72041E9731D58F39020A7993EAEE044E16A6B`).
+- [x] Record the final commit, DLL SHA-256, Workshop ID, and public URL in the handoff state. Release commit `790e5473e900f0476b353a111ccbaa832295f8cf`; DLL `168EA71AAF95416805CCB5D247F367B9514323C7771CA9A81A74E6E052B252C9`; Workshop item `3792731788`; https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788.
 - [ ] Decide and add a source-code license if public reuse or redistribution should be permitted.
