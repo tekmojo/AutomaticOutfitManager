@@ -15,7 +15,7 @@ The compact technical identity is `AutomaticOutfitManager`, including the reposi
 - RimWorld 1.6
 - Harmony
 
-Current release: version `0.3.3`, combining the playtested area/outfit foundation and exact primary-weapon requirements with quieter, player-configurable diagnostics.
+Current release: version `0.3.4`, combining the playtested area/outfit foundation and exact primary-weapon requirements with quieter diagnostics and a lower-overhead management window for large colonies.
 
 Dubs Rimatomics inspired the original radiation-PPE scenario, but it is not a dependency. Automatic Outfit Manager does not detect radiation automatically.
 
@@ -33,6 +33,7 @@ Dubs Rimatomics inspired the original radiation-PPE scenario, but it is not a de
 - Rule-wide **Pause work**, per-worker **Recall**, and saved-item **Release item** controls
 - Work, hauling, wandering, child-watching, and pawn-category access controls
 - Live readiness, availability, worker, hauler, wanderer, and restoration diagnostics
+- A lower-overhead management window that reuses current activity paths and skips off-screen rule rendering
 - Generic vanilla and modded apparel/weapon discovery without named content-mod integrations
 - Generic protection retention across vacuum, dangerous temperatures, and toxic exposure while already-managed gear is still needed
 - Gravship Work Area and Locker room references remap to their copied destination-map areas after flight

@@ -102,7 +102,7 @@ foreach ($xmlFile in $xmlFiles) {
     }
 }
 
-$expectedVersion = "0.3.3"
+$expectedVersion = "0.3.4"
 $aboutXml = [xml](Get-Content -LiteralPath (Join-Path $stagedAboutDirectory "About.xml") -Raw)
 if ($aboutXml.ModMetaData.modVersion -ne $expectedVersion) {
     throw "About.xml modVersion must be $expectedVersion. Current value: $($aboutXml.ModMetaData.modVersion)"
@@ -140,7 +140,7 @@ finally {
     $iconImage.Dispose()
 }
 
-$manifestPath = Join-Path $resolvedOutputRoot "AutomaticOutfitManager-0.3.3-SHA256.txt"
+$manifestPath = Join-Path $resolvedOutputRoot "AutomaticOutfitManager-0.3.4-SHA256.txt"
 $stagePathPrefix = $resolvedStageDirectory.TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
 $manifestLines = Get-ChildItem -LiteralPath $resolvedStageDirectory -Recurse -File |
     Sort-Object FullName |

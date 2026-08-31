@@ -23,8 +23,6 @@ namespace AutomaticOutfitManager.UI
             public float CreatedAt;
             public ApparelTransition Transition;
             public string RuleId;
-            public string CurrentRuleSignature;
-            public string NestedBufferSignature;
             public int OriginalCount;
             public int AutomaticCount;
             public int WornCount;
@@ -35,7 +33,6 @@ namespace AutomaticOutfitManager.UI
             public int PendingWorkLoadId;
             public bool RecallInterruptPending;
             public bool Drafted;
-            public string WornSignature;
             public string Text;
         }
 
@@ -59,24 +56,10 @@ namespace AutomaticOutfitManager.UI
             int returnTaskBuffer = rule?.ReturnTaskBuffer ?? 0;
             int currentJobLoadId = pawn.CurJob?.loadID ?? -1;
             int pendingWorkLoadId = state.PendingWorkJob?.loadID ?? -1;
-            string wornSignature = string.Join(",", (pawn.apparel?.WornApparel ??
-                    new List<Apparel>())
-                .Where(item => item != null)
-                .Select(item => item.GetUniqueLoadID())
-                .OrderBy(id => id));
-            wornSignature += $"|weapon:{pawn.equipment?.Primary?.GetUniqueLoadID()}" +
-                             $":{state.WeaponInterventionActive}:{state.WeaponPlayerOverride}";
-            string currentRuleSignature = string.Join(",", state.CurrentRuleIds ?? new List<string>());
-            string nestedBufferSignature = string.Join(",", (state.NestedRuleBuffers ??
-                new List<NestedRuleBufferState>()).Select(item =>
-                    $"{item.RuleId}:{item.Completed}:{item.Finished}:" +
-                    $"{item.LastJobLoadId}:{item.PendingJobLoadId}"));
             if (StatusCache.TryGetValue(pawn, out CachedStatus cached) &&
                 Time.realtimeSinceStartup - cached.CreatedAt < CacheSeconds &&
                 cached.Transition == state.Transition &&
                 cached.RuleId == state.ActiveRuleId &&
-                cached.CurrentRuleSignature == currentRuleSignature &&
-                cached.NestedBufferSignature == nestedBufferSignature &&
                 cached.OriginalCount == originalCount &&
                 cached.AutomaticCount == automaticCount &&
                 cached.WornCount == wornCount &&
@@ -86,8 +69,7 @@ namespace AutomaticOutfitManager.UI
                 cached.CurrentJobLoadId == currentJobLoadId &&
                 cached.PendingWorkLoadId == pendingWorkLoadId &&
                 cached.RecallInterruptPending == state.RecallInterruptPending &&
-                cached.Drafted == pawn.Drafted &&
-                cached.WornSignature == wornSignature)
+                cached.Drafted == pawn.Drafted)
             {
                 return cached.Text;
             }
@@ -190,8 +172,6 @@ namespace AutomaticOutfitManager.UI
                 CreatedAt = Time.realtimeSinceStartup,
                 Transition = state.Transition,
                 RuleId = state.ActiveRuleId,
-                CurrentRuleSignature = currentRuleSignature,
-                NestedBufferSignature = nestedBufferSignature,
                 OriginalCount = originalCount,
                 AutomaticCount = automaticCount,
                 WornCount = wornCount,
@@ -202,7 +182,6 @@ namespace AutomaticOutfitManager.UI
                 PendingWorkLoadId = pendingWorkLoadId,
                 RecallInterruptPending = state.RecallInterruptPending,
                 Drafted = pawn.Drafted,
-                WornSignature = wornSignature,
                 Text = text
             };
             return text;
@@ -314,7 +293,7 @@ namespace AutomaticOutfitManager.UI
                         return $"Working: {JobActivity(pawn, currentJob)}";
                     }
                     if (currentJob != null && requiredSessionRules.Any(candidate =>
-                            PausedAreaWorkFilter.MatchesProtectedTransitRule(
+                            PausedAreaWorkFilter.MatchesCurrentProtectedTransitRule(
                                 pawn, currentJob, candidate)))
                     {
                         return $"Protected transit: {JobActivity(pawn, currentJob)}";

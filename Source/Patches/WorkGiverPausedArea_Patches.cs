@@ -753,6 +753,76 @@ namespace AutomaticOutfitManager.Patches
             return IsActivityForRule(pawn, job, rule, false);
         }
 
+        public static bool IsCurrentHaulingActivityForRule(
+            Pawn pawn, Job job, ApparelRule rule)
+        {
+            return IsCurrentActivityForRule(pawn, job, rule, true);
+        }
+
+        public static bool IsCurrentWanderingActivityForRule(
+            Pawn pawn, Job job, ApparelRule rule)
+        {
+            return IsCurrentActivityForRule(pawn, job, rule, false);
+        }
+
+        public static bool MatchesCurrentProtectedTransitRule(
+            Pawn pawn, Job job, ApparelRule rule)
+        {
+            if (pawn?.Map == null || job == null || rule == null ||
+                !PawnAccessClassifier.IsApparelEligibleHuman(pawn) ||
+                pawn.Drafted || !rule.Enabled || rule.WorkAreaPaused ||
+                rule.Area?.Map != pawn.Map ||
+                !RuleEvaluator.RuleCanApplyToPawn(pawn, rule) ||
+                !ActivityAllowedAtRuleBoundary(pawn, job, rule))
+            {
+                return false;
+            }
+
+            return !RuleEvaluator.JobTargetsArea(job, rule.Area) &&
+                   CurrentPathTouchesArea(pawn, rule.Area);
+        }
+
+        private static bool IsCurrentActivityForRule(
+            Pawn pawn, Job job, ApparelRule rule, bool hauling)
+        {
+            if (pawn?.Map == null || job == null || rule?.Area?.Map != pawn.Map ||
+                !IsManagedPawn(pawn) || pawn.Drafted)
+            {
+                return false;
+            }
+
+            bool relevantJob = hauling
+                ? IsHaulingJob(job)
+                : IsRestrictedRoamingJob(pawn, job, job.jobGiver);
+            if (!relevantJob)
+                return false;
+
+            // The main management tab is display-only. Reuse RimWorld's actual
+            // current path instead of synchronously launching a new pathfinder
+            // request for every hauling or wandering pawn on each UI refresh.
+            // Gameplay enforcement continues to use the full path queries in
+            // IsActivityForRule and the protected-path patches.
+            return RuleEvaluator.JobTargetsArea(job, rule.Area) ||
+                   CurrentPathTouchesArea(pawn, rule.Area);
+        }
+
+        private static bool CurrentPathTouchesArea(Pawn pawn, Area area)
+        {
+            if (pawn?.Map == null || area?.Map != pawn.Map)
+                return false;
+
+            if (pawn.Position.IsValid && pawn.Position.InBounds(pawn.Map) &&
+                area[pawn.Position])
+            {
+                return true;
+            }
+
+            PawnPath path = pawn.pather?.curPath;
+            return path?.Found == true &&
+                   path.NodesReversed.Any(cell =>
+                       cell.IsValid && cell.InBounds(pawn.Map) && area[cell]);
+        }
+
         private static bool IsActivityForRule(
             Pawn pawn, Job job, ApparelRule rule, bool hauling)
         {

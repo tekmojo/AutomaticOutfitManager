@@ -16,6 +16,7 @@ namespace AutomaticOutfitManager.UI
         private const float ActivityCacheSeconds = 0.5f;
         private const float RuleStandardChangeQuietSeconds = 1f;
         private Vector2 scrollPosition;
+        private readonly List<float> layoutRuleHeights = new List<float>();
         private readonly Dictionary<string, CachedRuleReadiness> readinessCache =
             new Dictionary<string, CachedRuleReadiness>();
         private readonly Dictionary<string, CachedRuleActivity> activityCache =
@@ -28,7 +29,6 @@ namespace AutomaticOutfitManager.UI
         private sealed class CachedRuleReadiness
         {
             public float CreatedAt;
-            public string Signature;
             public string Text;
             public string ApparelAvailability;
             public string WeaponAvailability;
@@ -89,16 +89,31 @@ namespace AutomaticOutfitManager.UI
             y += 40f;
 
             Rect outRect = new Rect(inRect.x, y, inRect.width, inRect.height - y + inRect.y);
-            float viewHeight = Mathf.Max(outRect.height,
-                component.Rules.Sum(rule => RuleHeight(rule, component) + 10f) + 10f);
+            layoutRuleHeights.Clear();
+            float contentHeight = 10f;
+            for (int i = 0; i < component.Rules.Count; i++)
+            {
+                float ruleHeight = RuleHeight(component.Rules[i], component);
+                layoutRuleHeights.Add(ruleHeight);
+                contentHeight += ruleHeight + 10f;
+            }
+
+            float viewHeight = Mathf.Max(outRect.height, contentHeight);
             Rect viewRect = new Rect(0f, 0f, outRect.width - 18f, viewHeight);
 
             Widgets.BeginScrollView(outRect, ref scrollPosition, viewRect);
             float rowY = 0f;
             for (int i = 0; i < component.Rules.Count; i++)
             {
-                float ruleHeight = RuleHeight(component.Rules[i], component);
-                DrawRule(component.Rules[i], i, new Rect(0f, rowY, viewRect.width, ruleHeight), component);
+                float ruleHeight = layoutRuleHeights[i];
+                Rect ruleRect = new Rect(
+                    0f, rowY, viewRect.width, ruleHeight);
+                if (ruleRect.yMax >= scrollPosition.y &&
+                    ruleRect.y <= scrollPosition.y + outRect.height)
+                {
+                    DrawRule(
+                        component.Rules[i], i, ruleRect, component);
+                }
                 rowY += ruleHeight + 10f;
             }
             Widgets.EndScrollView();
@@ -667,9 +682,11 @@ namespace AutomaticOutfitManager.UI
 
             Job job = ActivityJobFor(state);
             return Patches.PausedAreaWorkFilter
-                       .IsHaulingActivityForRule(state.Pawn, job, rule) ||
+                       .IsCurrentHaulingActivityForRule(
+                           state.Pawn, job, rule) ||
                    Patches.PausedAreaWorkFilter
-                       .IsWanderingActivityForRule(state.Pawn, job, rule);
+                       .IsCurrentWanderingActivityForRule(
+                           state.Pawn, job, rule);
         }
 
         private static Job ActivityJobFor(State.PawnApparelState state)
@@ -794,9 +811,11 @@ namespace AutomaticOutfitManager.UI
 
                     Job activityJob = ActivityJobFor(trackedState) ?? job;
                     bool hauling = Patches.PausedAreaWorkFilter
-                        .IsHaulingActivityForRule(pawn, activityJob, rule);
+                        .IsCurrentHaulingActivityForRule(
+                            pawn, activityJob, rule);
                     bool wandering = !hauling && Patches.PausedAreaWorkFilter
-                        .IsWanderingActivityForRule(pawn, activityJob, rule);
+                        .IsCurrentWanderingActivityForRule(
+                            pawn, activityJob, rule);
                     if (hauling || wandering)
                     {
                         string activityReport = activityJob.GetReport(pawn);
@@ -998,37 +1017,15 @@ namespace AutomaticOutfitManager.UI
             ApparelRule rule,
             AutomaticOutfitManagerGameComponent component)
         {
-            Map map = Find.CurrentMap;
-            List<ApparelRule> signatureRules = component.Rules
-                .Where(candidate => candidate != null &&
-                    (ReferenceEquals(candidate, rule) ||
-                     (rule.Area?.Map != null && candidate.Area?.Map == rule.Area.Map)))
-                .ToList();
-            string signature = $"{rule.Enabled}|{rule.WorkAreaPaused}|{rule.Area?.GetUniqueLoadID()}|" +
-                $"{rule.ChangingArea?.GetUniqueLoadID()}|" +
-                string.Join(",", signatureRules
-                    .OrderBy(candidate => candidate.Id)
-                    .Select(candidate =>
-                        $"{candidate.Id}:{candidate.Enabled}:{candidate.WorkAreaPaused}:{candidate.RequiredWeapon}:" +
-                        $"{candidate.AllowedApparelHitPoints.min:0.###}-" +
-                        $"{candidate.AllowedApparelHitPoints.max:0.###}:" +
-                        $"{candidate.AllowedApparelQuality.min}-" +
-                        $"{candidate.AllowedApparelQuality.max}:" +
-                        $"{candidate.AllowedWeaponHitPoints.min:0.###}-" +
-                        $"{candidate.AllowedWeaponHitPoints.max:0.###}:" +
-                        $"{candidate.AllowedWeaponQuality.min}-" +
-                        $"{candidate.AllowedWeaponQuality.max}:" +
-                        string.Join(".", (candidate.RequiredWeapons ?? new List<ThingDef>())
-                            .Where(def => def != null).Select(def => def.defName)) + ":" +
-                        string.Join(".", (candidate.RequiredApparel ?? new List<ThingDef>())
-                            .Where(def => def != null).Select(def => def.defName))));
-            if (readinessCache.TryGetValue(rule.Id, out CachedRuleReadiness cached) &&
-                cached.Signature == signature &&
-                Time.realtimeSinceStartup - cached.CreatedAt < ReadinessCacheSeconds)
+            float now = Time.realtimeSinceStartup;
+            if (readinessCache.TryGetValue(
+                    rule.Id, out CachedRuleReadiness cached) &&
+                now - cached.CreatedAt < ReadinessCacheSeconds)
             {
                 return cached;
             }
 
+            Map map = Find.CurrentMap;
             List<ApparelRule> overlappingRules =
                 ApparelCompatibility.OverlappingRules(rule);
             List<ApparelRule> pausedOverlaps =
@@ -1164,8 +1161,7 @@ namespace AutomaticOutfitManager.UI
 
             cached = new CachedRuleReadiness
             {
-                CreatedAt = Time.realtimeSinceStartup,
-                Signature = signature,
+                CreatedAt = now,
                 Text = text,
                 ApparelAvailability = apparelAvailability,
                 WeaponAvailability = weaponAvailability,

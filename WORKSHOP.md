@@ -87,6 +87,12 @@ Automatic Outfit Manager's original source code and documentation are licensed u
 Portions of the materials used to create this content/mod are trademarks and/or copyrighted works of Ludeon Studios Inc. All rights reserved by Ludeon. This content/mod is not official and is not endorsed by Ludeon.
 ```
 
+## Version 0.3.4 change note
+
+```text
+Improves Automatic Outfit Manager's management-window responsiveness on large colonies. Display-only hauling, wandering, and protected-transit rows now reuse each pawn's current RimWorld path instead of launching fresh pathfinder requests from the UI. Short-lived readiness and pawn-status caches are checked before rebuilding display data, and rules outside the visible scroll area are no longer drawn. Full gameplay boundary, access, and gear enforcement remains unchanged. A large modded-save test with Detailed logging enabled found no measurable process-level CPU penalty from opening the window or panning the map, with no AOM errors or UI log spam. Save data and rule behavior are unchanged.
+```
+
 ## Version 0.3.3 change note
 
 ```text

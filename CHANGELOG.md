@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.4 - 2026-08-30
+
+### Changed
+
+- Improved management-window responsiveness on large colonies by reusing each pawn's current RimWorld path for display-only hauling, wandering, and protected-transit classification instead of launching new pathfinder requests from the UI.
+- Reused short-lived rule-readiness and pawn-status cache entries before rebuilding display data.
+- Avoided drawing rules outside the visible scroll area and reused rule-height layout results within each UI pass.
+- Kept the full occupancy, route, access, and gear checks used by gameplay enforcement unchanged.
+
 ## 0.3.3 - 2026-08-30
 
 ### Added
