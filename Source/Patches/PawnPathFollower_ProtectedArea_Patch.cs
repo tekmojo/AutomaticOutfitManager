@@ -139,7 +139,18 @@ namespace AutomaticOutfitManager.Patches
                     string reason = blockedByActivity
                         ? "because the rule does not permit this activity"
                         : "without its required apparel or weapon";
-                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: stopped before entering '{rule.Name}' {reason}; reconsidering {currentJob.def.defName}.");
+                    bool currentCellInside = pawn.Position.IsValid &&
+                        pawn.Position.InBounds(pawn.Map) &&
+                        rule.Area[pawn.Position];
+                    string currentCellState = currentCellInside
+                        ? "inside"
+                        : "outside";
+                    AomLog.Detailed(
+                        $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
+                        $"stopped at {pawn.Position} -> {nextCell} before " +
+                        $"entering '{rule.Name}' {reason}; current cell is " +
+                        $"{currentCellState}; reconsidering " +
+                        $"{currentJob.def.defName}.");
                 }
             }
 

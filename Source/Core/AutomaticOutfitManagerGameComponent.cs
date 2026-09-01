@@ -2860,6 +2860,40 @@ namespace AutomaticOutfitManager.Core
                 return false;
             }
 
+            // A late-bound native route can reach the path-cell guard even when
+            // StartJob could not see the protected area. The guard retains the
+            // exact interrupted job briefly; consume it here before ordinary
+            // occupancy recovery substitutes a targetless wait and loses the
+            // native continuation. Active sessions may use the same handoff for
+            // a newly encountered nested rule, while recall/restoration keeps
+            // ownership of its existing transition.
+            if ((state == null || state.Transition == ApparelTransition.Active) &&
+                Detection.ProtectedBoundaryRetryRegistry
+                    .TryGetPendingInterruption(
+                        pawn, out Job boundaryJob,
+                        out List<ApparelRule> boundaryRules))
+            {
+                bool resumedBoundaryJob = false;
+                bool attemptedBoundaryHandoff = TryJobTransition(
+                    pawn, currentTick, "protected-boundary handoff", () =>
+                    {
+                        resumedBoundaryJob = Patches
+                            .PawnJobTracker_StartJob_Patch
+                            .TryResumeBoundaryInterruptedJob(
+                                pawn, boundaryJob, boundaryRules);
+                    });
+                if (attemptedBoundaryHandoff)
+                {
+                    Detection.ProtectedBoundaryRetryRegistry.Clear(
+                        pawn, boundaryJob);
+                }
+                if (resumedBoundaryJob)
+                {
+                    occupiedGearRecoveryTicks.Remove(pawn);
+                    return true;
+                }
+            }
+
             // Some native drivers finalize or replace a destination after
             // StartJob. Evaluate current occupancy first and the running job's
             // late-bound targets only when outside every live area. The shared

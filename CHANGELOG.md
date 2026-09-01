@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.5 - 2026-08-31
+
+### Fixed
+
+- Preserved the exact interrupted native job when a running, late-bound route first reaches a protected-area boundary, allowing ordinary AOM preparation to resume that job when it remains valid instead of losing the continuation to generic occupancy recovery.
+- Kept a pawn outside the first protected cell while the late-bound job is reconsidered and required gear is prepared.
+
+### Changed
+
+- Expanded Detailed boundary diagnostics to report the current and next path cells and whether the pawn's current cell is inside or outside the protected area.
+
 ## 0.3.4 - 2026-08-30
 
 ### Changed

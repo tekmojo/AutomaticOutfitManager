@@ -24,6 +24,7 @@ namespace AutomaticOutfitManager.Detection
             public Map Map;
             public string RuleId;
             public JobDef JobDef;
+            public Job InterruptedJob;
             public List<Thing> Things;
             public List<IntVec3> Cells;
             public int UntilTick;
@@ -61,6 +62,7 @@ namespace AutomaticOutfitManager.Detection
             int untilTick = CurrentTick + RetryLifetimeTicks;
             if (entry != null)
             {
+                entry.InterruptedJob = job;
                 entry.UntilTick = untilTick;
                 return;
             }
@@ -71,10 +73,54 @@ namespace AutomaticOutfitManager.Detection
                 Map = pawn.Map,
                 RuleId = rule.Id,
                 JobDef = job.def,
+                InterruptedJob = job,
                 Things = things,
                 Cells = cells,
                 UntilTick = untilTick
             });
+        }
+
+        public static bool TryGetPendingInterruption(
+            Pawn pawn, out Job job, out List<ApparelRule> rules)
+        {
+            job = null;
+            rules = new List<ApparelRule>();
+            if (pawn?.Map == null)
+                return false;
+
+            Cleanup();
+            Entry pending = Entries
+                .Where(entry => entry.Pawn == pawn &&
+                                entry.Map == pawn.Map &&
+                                entry.InterruptedJob?.def != null)
+                .OrderByDescending(entry => entry.UntilTick)
+                .FirstOrDefault();
+            if (pending == null)
+                return false;
+
+            Job pendingJob = pending.InterruptedJob;
+            AutomaticOutfitManagerGameComponent component =
+                AutomaticOutfitManagerGameComponent.Current;
+            rules = Entries.Where(entry =>
+                    entry.Pawn == pawn && entry.Map == pawn.Map &&
+                    ReferenceEquals(entry.InterruptedJob, pendingJob))
+                .Select(entry => component?.RuleById(entry.RuleId))
+                .Where(rule => rule?.Enabled == true &&
+                               rule.Area?.Map == pawn.Map &&
+                               RuleEvaluator.RuleCanApplyToPawn(pawn, rule) &&
+                               PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(
+                                   pawn, pendingJob, rule))
+                .GroupBy(rule => rule.Id)
+                .Select(group => group.First())
+                .ToList();
+            if (rules.Count > 0)
+            {
+                job = pendingJob;
+                return true;
+            }
+
+            job = null;
+            return false;
         }
 
         public static List<ApparelRule> MatchingRules(Pawn pawn, Job job)

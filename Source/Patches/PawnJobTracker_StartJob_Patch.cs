@@ -2646,6 +2646,54 @@ namespace AutomaticOutfitManager.Patches
             return true;
         }
 
+        internal static bool TryResumeBoundaryInterruptedJob(
+            Pawn pawn, Job interruptedJob, IEnumerable<ApparelRule> rules)
+        {
+            AutomaticOutfitManagerGameComponent component =
+                AutomaticOutfitManagerGameComponent.Current;
+            List<ApparelRule> boundaryRules = rules?
+                .Where(rule => rule?.Enabled == true &&
+                               !rule.WorkAreaPaused &&
+                               rule.Area?.Map == pawn?.Map)
+                .GroupBy(rule => rule.Id)
+                .Select(group => group.First())
+                .ToList() ?? new List<ApparelRule>();
+            if (pawn?.jobs == null || component == null ||
+                interruptedJob?.def == null || boundaryRules.Count == 0 ||
+                !PendingWorkJobIsViable(
+                    pawn, interruptedJob, out string _))
+            {
+                return false;
+            }
+
+            // The path-cell guard has already ended this exact native job, so it
+            // has no live or queued owner. Promote that same object through the
+            // ordinary preparation planner before another thinker job can erase
+            // the late-bound destination that exposed the protected boundary.
+            Job currentJob = pawn.jobs.curJob;
+            Job resumedJob = interruptedJob;
+            ThinkNode originalJobGiver = interruptedJob.jobGiver;
+            ThinkTreeDef originalThinkTree = interruptedJob.jobGiverThinkTree;
+            ThinkNode resumedJobGiver = originalJobGiver;
+            JobTag? tag = null;
+            bool plannedTransition = TryPrepareForMatchingRules(
+                pawn.jobs, pawn, component, boundaryRules,
+                ref resumedJob, ref resumedJobGiver, ref tag, true);
+
+            AutomaticOutfitManagerGameComponent.ReleaseNativeReservations(
+                pawn, currentJob);
+            if (!plannedTransition)
+                pawn.jobs.ClearQueuedJobs(false);
+
+            pawn.jobs.StartJob(
+                resumedJob, JobCondition.InterruptForced,
+                plannedTransition ? resumedJobGiver : originalJobGiver,
+                false, true,
+                plannedTransition ? null : originalThinkTree,
+                tag);
+            return true;
+        }
+
         internal static bool TryRecoverIdlePreparation(
             Pawn pawn, PawnApparelState state, out string description)
         {

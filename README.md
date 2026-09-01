@@ -15,7 +15,7 @@ The compact technical identity is `AutomaticOutfitManager`, including the reposi
 - RimWorld 1.6
 - Harmony
 
-Current release: version `0.3.4`, combining the playtested area/outfit foundation and exact primary-weapon requirements with quieter diagnostics and a lower-overhead management window for large colonies.
+Current release: version `0.3.5`, a maintenance update that preserves late-bound native jobs when their running route first discovers a protected boundary, while retaining the quieter diagnostics and lower-overhead management window from 0.3.4.
 
 Dubs Rimatomics inspired the original radiation-PPE scenario, but it is not a dependency. Automatic Outfit Manager does not detect radiation automatically.
 

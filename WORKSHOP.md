@@ -11,43 +11,52 @@
 
 ## Short description
 
-Area-based apparel, PPE, and exact primary-weapon rules with gear standards, lockers, successful-task buffers, access controls, and saved-gear restoration.
+Area rules that automatically equip apparel, PPE, and optional exact primary weapons, then return managed items and restore each pawn's saved gear.
 
 ## Description (Steam BBCode)
 
 ```text
 [h1]Automatic Outfit Manager[/h1]
 
-Create area-based outfit rules using apparel, personal protective equipment (PPE), and optional exact primary-weapon alternatives.
+[b]Area rules. Automatic gear. Exact restoration.[/b]
 
-Eligible undrafted humanlike pawns automatically equip the complete requirement before entry and retain it through work, hauling, wandering, personal activities, sleep, and pass-through. After leaving and successfully completing any configured follow-up buffer, they return items through an optional locker room and restore their saved apparel and exact previous primary weapon. Original apparel is restored by default; tattered personal apparel may be replaced by a valid better item after it is successfully worn.
+Create a RimWorld area, choose required apparel and optional exact primary-weapon alternatives, and let eligible undrafted humanlike pawns manage the rest. They equip before entry, keep the complete requirement through work, hauling, wandering, personal activities, sleep, and protected transit, then return managed items and restore their saved gear after leaving and completing any configured buffer.
 
-[h1]Features[/h1]
+[quote][b]RimWorld 1.6[/b] | [b]Harmony required[/b] | Vanilla and modded gear | Basic logging by default[/quote]
+
+[quote][b]Latest update — 0.3.5[/b]
+Running jobs whose final route is chosen after they start now retain their exact native continuation when that route first reaches a protected boundary. AOM keeps the pawn outside, prepares the required gear, and resumes the same job when it remains valid. Detailed logging now includes the current and next boundary cells for easier diagnosis.
+[url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788]Read the full change notes[/url][/quote]
+
+[h1]How it works[/h1]
+[olist]
+[*]Define the area. Use an ordinary RimWorld area for the workspace, route, room, or defensive position that needs managed gear.
+[*]Set the requirement. Select every required apparel item and, optionally, one or more acceptable exact primary-weapon alternatives.
+[*]Let AOM manage the transition. Eligible pawns prepare before entry and retain the complete requirement throughout relevant activity and protected transit.
+[*]Restore saved gear. After leaving and completing any successful-task buffer, pawns return managed items through the optional locker room and restore their saved apparel and exact previous primary weapon.
+[/olist]
+
+[h1]Core features[/h1]
 [list]
-[*]Ordinary RimWorld areas define where a rule applies
-[*]Every selected apparel item stays equipped for every activity and protected route inside the area
-[*]Require every selected apparel item and optionally one of several exact primary weapons
-[*]Set storage-style condition and quality ranges independently for work apparel and weapons
-[*]Skill-aware ranged or melee preference when both are valid
-[*]Saved-apparel and exact primary-weapon restoration, including returning to an unarmed state and improving tattered personal apparel
-[*]Optional locker rooms and configurable 0–20 successful-task buffers; interrupted jobs do not count
-[*]Compatible nested rules with independent buffers
-[*]Pause work, Recall workers, and release individual saved items
-[*]Work, hauling, wandering, child-watching, and pawn-category access controls
-[*]Hosted visitors restore personal gear and return assigned managed stock before natural departure
-[*]Native outside jobs route around areas where that activity is disabled
-[*]Managed apparel and weapon storage filters with locker restocking
-[*]Live readiness, worker, hauler, wanderer, and restoration status
-[*]Bounded recovery for destroyed, inaccessible, or repeatedly rejected saved items
-[*]Protective managed apparel is retained across vacuum, dangerous temperatures, and toxic exposure until removal is safe
-[*]Gravship Work Area and Locker room references follow their copied areas after flight
-[*]Generic support for vanilla and modded apparel and weapons
+[*]All-of apparel requirements: every selected apparel item must be worn simultaneously
+[*]One-of weapon alternatives: equip one acceptable selected primary weapon, with skill-aware ranged or melee preference when both are valid
+[*]Independent gear standards: storage-style condition and quality ranges filter shared work apparel and weapons
+[*]Exact restoration: restore saved apparel and the exact previous primary weapon, including returning a pawn to an unarmed state
+[*]Locker workflow: optional changing rooms, managed storage filters, and low-priority restocking
+[*]Successful-task buffers: configure 0–20 completed follow-up jobs; interrupted or failed jobs do not count
+[*]Nested rules: compatible overlapping areas combine requirements and track independent buffers
+[*]Access controls: configure work, hauling, wandering, child-watching, and pawn-category permissions
+[*]Live visibility: see readiness, availability, workers, haulers, wanderers, and restoration progress
+[*]Player controls: pause a rule, Recall a worker, or release an individual saved item
 [/list]
 
-[h1]Requirements[/h1]
+[h1]Gear restoration and safety[/h1]
 [list]
-[*]RimWorld 1.6
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077]Harmony[/url]
+[*]Original saved apparel is restored by default. Personal apparel below 50% hit points may transfer to a valid better replacement only after the replacement is successfully worn.
+[*]Condition and quality ranges apply to shared work gear and rule availability; they do not replace exact saved-personal-gear restoration.
+[*]Destroyed saved-item references are skipped; temporarily unavailable or repeatedly rejected items use bounded recovery instead of creating permanent Standing or retry loops.
+[*]Already-managed protective apparel is retained across vacuum, dangerous temperatures, and toxic exposure until removal and the pawn's route are safe.
+[*]Hosted visitors bypass follow-up buffers when naturally departing, restore personal gear when possible, and return assigned managed stock before leaving the map.
 [/list]
 
 [h1]Getting started[/h1]
@@ -55,19 +64,33 @@ Eligible undrafted humanlike pawns automatically equip the complete requirement 
 [*]Create an area over the workspace that needs managed gear.
 [*]Open the Automatic Outfit Manager tab and add a rule.
 [*]Choose the work area and, optionally, a nearby locker room.
-[*]Select every required apparel item and any acceptable primary-weapon alternatives.
-[*]Set the allowed condition and quality ranges for work apparel and weapons.
-[*]Configure the task buffer and access permissions.
+[*]Select the required apparel and any acceptable primary-weapon alternatives.
+[*]Set gear standards, task buffer, and access permissions.
 [/olist]
 
-[quote]Automatic Outfit Manager is rule-based. It does not automatically create or activate rules for radiation, cold, fire, disease, or other hazards. Its safety guard only retains already-managed protective apparel while removal or the pawn's route would be hazardous. Empty apparel or weapon selections mean that category has no requirement.[/quote]
-
 [h1]Compatibility[/h1]
-Harmony is the only dependency. Apparel and weapons from content mods are discovered through ordinary RimWorld definitions rather than hard-coded integrations. Simple Sidearms preferences are respected without rewriting that mod's weapon memories. Native gravship area copying is supported.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077]Harmony[/url] is the only dependency.
+[*]Vanilla and modded apparel and weapons are discovered through ordinary RimWorld definitions rather than hard-coded content-mod integrations.
+[*]Simple Sidearms preferences are respected without rewriting that mod's weapon memories.
+[*]Gravship Work Area and Locker room references follow their copied destination-map areas after flight.
+[*]Drafting and explicit player-forced behavior take priority over automatic management.
+[*]Normal RimWorld equipment eligibility still applies, including ideology and biocoding restrictions; persona weapons are excluded from automatic selection.
+[/list]
 
-A narrow RimWorld 1.6 compatibility correction keeps native rearm jobs available for player autocannon and uranium slug turrets when very low maintenance-cost settings make vanilla report an empty turret as full. RimWorld still controls the rearm job and materials; AOM does not manage ammunition.
+[h1]Common questions[/h1]
 
-Drafted and explicit player-forced behavior is respected. Weapon selection uses normal RimWorld equipment eligibility, including ideology and biocoding restrictions; persona weapons are excluded from automatic selection.
+[b]Does AOM detect radiation, temperature, disease, or other hazards automatically?[/b]
+No. Rules are created and configured by the player. The safety guard only retains already-managed protective apparel while removing it or following the pawn's route would be hazardous.
+
+[b]What happens when a category is empty?[/b]
+Empty apparel or weapon selections add no requirement. A pawn may keep any primary weapon or remain unarmed when no weapon alternatives are selected.
+
+[b]Does AOM manage ammunition, sidearms, offhands, shields, or drafted weapon switching?[/b]
+No. AOM's weapon scope is the actively equipped primary weapon. A narrow RimWorld 1.6 compatibility correction preserves native rearm jobs for player autocannon and uranium slug turrets at very low maintenance-cost settings; RimWorld still controls the job and materials.
+
+[b]Where are the logging controls?[/b]
+Open [b]Options → Mod settings → Automatic Outfit Manager[/b] and choose Quiet, Basic (recommended), or Detailed. Basic is the default; use Detailed temporarily while reproducing an issue.
 
 [h1]Current boundaries[/h1]
 [list]
@@ -79,12 +102,24 @@ Drafted and explicit player-forced behavior is respected. Weapon selection uses 
 [/list]
 
 [h1]Support and source[/h1]
-[url=https://github.com/tekmojo/AutomaticOutfitManager]Documentation, source, and issue reporting on GitHub[/url]
+[list]
+[*][url=https://github.com/tekmojo/AutomaticOutfitManager]Documentation and source on GitHub[/url]
+[*][url=https://github.com/tekmojo/AutomaticOutfitManager/issues]Report a bug or request a feature[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788]Workshop change notes[/url]
+[/list]
+
+If Automatic Outfit Manager helps your colony, a rating or favorite helps other players find it.
 
 [h1]License and legal notice[/h1]
 Automatic Outfit Manager's original source code and documentation are licensed under the MIT License. Third-party software, RimWorld materials, trademarks, and game-derived screenshots retain their respective rights; see LICENSE and NOTICE.md in the source repository and mod package.
 
 Portions of the materials used to create this content/mod are trademarks and/or copyrighted works of Ludeon Studios Inc. All rights reserved by Ludeon. This content/mod is not official and is not endorsed by Ludeon.
+```
+
+## Version 0.3.5 change note
+
+```text
+Fixes late-bound protected-boundary handoffs. When a running native job chooses or recalculates a route that reaches a managed area only after the job has started, Automatic Outfit Manager now retains that exact interrupted job long enough to prepare the required gear and resume it when the target remains valid. The pawn stays outside the first protected cell during reconsideration instead of falling into generic occupied-area recovery. Detailed boundary diagnostics now report the current and next path cells and whether the pawn is still outside. No save-format or rule-setting changes.
 ```
 
 ## Version 0.3.4 change note
