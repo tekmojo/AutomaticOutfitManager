@@ -15,7 +15,7 @@ The compact technical identity is `AutomaticOutfitManager`, including the reposi
 - RimWorld 1.6
 - Harmony
 
-Current release: version `0.3.5`, a maintenance update that preserves late-bound native jobs when their running route first discovers a protected boundary, while retaining the quieter diagnostics and lower-overhead management window from 0.3.4.
+Current release: version `0.3.6`, a protected-routing maintenance update. Outside-target jobs prefer routes around managed areas, pawns and animals already inside retain an exit route, autonomous recreation obeys Wandering access, and only explicit player-forced weapon choices can override a rule's required primary weapon.
 
 Dubs Rimatomics inspired the original radiation-PPE scenario, but it is not a dependency. Automatic Outfit Manager does not detect radiation automatically.
 
@@ -24,6 +24,7 @@ Dubs Rimatomics inspired the original radiation-PPE scenario, but it is not a de
 - Area-triggered apparel and exact primary-weapon rules using ordinary RimWorld areas and jobs
 - All-of apparel requirements and one-of primary-weapon alternatives
 - Continuous full-gear enforcement for work, hauling, wandering, eating, recreation, sleep, waiting, and pass-through
+- Exterior-route preference for jobs whose targets are outside managed areas, with protected-boundary preparation when crossing remains necessary and an unblocked exit for pawns already inside
 - Shooting-versus-Melee preference when both ranged and melee alternatives are available
 - Saved apparel and exact primary-weapon restoration, including save/load continuity, bounded unavailable-item recovery, and better replacements for tattered personal apparel
 - Exact queued-job continuation with temporary claims for real job targets and queues

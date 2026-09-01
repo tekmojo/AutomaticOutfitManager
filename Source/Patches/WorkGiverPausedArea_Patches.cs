@@ -1105,6 +1105,14 @@ namespace AutomaticOutfitManager.Patches
             if (IsWanderingJob(job, jobGiver))
                 return true;
 
+            // Autonomous recreation chooses a personal destination in the same
+            // way as ordinary wandering and must obey the Wandering access row.
+            // GoSwimming is the important modded case: its name and joy kind do
+            // not contain "Wander", so colonists previously treated a disabled
+            // Wandering row as an allowed protected-area recreation route.
+            if (IsAutonomousRecreationJob(pawn, job, jobGiver))
+                return true;
+
             // Vanilla and Hospitality visitor duties commonly expose their
             // autonomous visit movement as plain Goto followed by
             // Wait_MaintainPosture. Neither name contains "Wander", and those
@@ -1131,6 +1139,44 @@ namespace AutomaticOutfitManager.Patches
             return ContainsIgnoreCase(defName, "Clean") ||
                    ContainsIgnoreCase(giverName, "Clean") ||
                    ContainsIgnoreCase(driverName, "Clean");
+        }
+
+        private static bool IsAutonomousRecreationJob(
+            Pawn pawn, Job job, ThinkNode jobGiver)
+        {
+            if (job?.def == null || job.playerForced ||
+                IsAutomaticOutfitManagerTransitionJob(pawn, job) ||
+                IsHaulingJob(job) || job.workGiverDef != null ||
+                jobGiver is JobGiver_Work || job.jobGiver is JobGiver_Work ||
+                IsEssentialPersonalJob(job) || IsWorkWatchingJob(job) ||
+                PawnJobTracker_StartJob_Patch.IsNativeEmergencySafetyJob(job) ||
+                PawnJobTracker_StartJob_Patch.IsMapDepartureJob(job))
+            {
+                return false;
+            }
+
+            if (job.def.joyKind != null)
+                return true;
+
+            string defName = job.def.defName ?? string.Empty;
+            string giverName = (jobGiver ?? job.jobGiver)?.GetType().Name ??
+                               string.Empty;
+            string driverName = job.def.driverClass?.Name ?? string.Empty;
+            return ContainsAutonomousRecreationName(defName) ||
+                   ContainsAutonomousRecreationName(giverName) ||
+                   ContainsAutonomousRecreationName(driverName);
+        }
+
+        private static bool ContainsAutonomousRecreationName(string value)
+        {
+            return ContainsIgnoreCase(value, "Joy") ||
+                   ContainsIgnoreCase(value, "Recreation") ||
+                   ContainsIgnoreCase(value, "Relax") ||
+                   ContainsIgnoreCase(value, "Meditat") ||
+                   ContainsIgnoreCase(value, "Watch") ||
+                   ContainsIgnoreCase(value, "Play") ||
+                   ContainsIgnoreCase(value, "Read") ||
+                   ContainsIgnoreCase(value, "Swim");
         }
 
         private static bool IsHostedGuestDutyRoamingJob(

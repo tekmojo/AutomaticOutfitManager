@@ -303,7 +303,7 @@ namespace AutomaticOutfitManager.Detection
         public static bool HasMissingRequiredGear(Pawn pawn, ApparelRule rule) =>
             HasMissingRequiredApparel(pawn, rule) ||
             (AutomaticOutfitManagerGameComponent.Current?
-                 .StateFor(pawn)?.WeaponPlayerOverride != true &&
+                 .StateFor(pawn)?.WeaponRuleOverrideExplicit != true &&
              HasMissingRequiredWeapon(pawn, rule));
 
         public static bool HasMissingRequiredWeapon(Pawn pawn, ApparelRule rule)

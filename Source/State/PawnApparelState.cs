@@ -30,6 +30,7 @@ namespace AutomaticOutfitManager.State
         public bool WeaponInterventionActive;
         public bool WeaponRestorationRequested;
         public bool WeaponPlayerOverride;
+        public bool WeaponRuleOverrideExplicit;
         public ApparelTransition Transition = ApparelTransition.Preparing;
         public int StartedTick;
         public int LastRestorationAttemptTick = -1;
@@ -106,6 +107,8 @@ namespace AutomaticOutfitManager.State
             Scribe_Values.Look(ref WeaponInterventionActive, "weaponInterventionActive", false);
             Scribe_Values.Look(ref WeaponRestorationRequested, "weaponRestorationRequested", false);
             Scribe_Values.Look(ref WeaponPlayerOverride, "weaponPlayerOverride", false);
+            Scribe_Values.Look(ref WeaponRuleOverrideExplicit,
+                "weaponRuleOverrideExplicit", false);
             Scribe_Values.Look(ref Transition, "transition", ApparelTransition.Preparing);
             Scribe_Values.Look(ref StartedTick, "startedTick");
             Scribe_Values.Look(ref LastRestorationAttemptTick, "lastRestorationAttemptTick", -1);
@@ -301,6 +304,7 @@ namespace AutomaticOutfitManager.State
                 OriginalWeapon = pawn.equipment?.Primary;
                 WeaponInterventionActive = true;
                 WeaponPlayerOverride = false;
+                WeaponRuleOverrideExplicit = false;
                 RejectedWeaponPreparations?.Clear();
             }
 
@@ -496,6 +500,7 @@ namespace AutomaticOutfitManager.State
             ManagedWeapons?.Clear();
             WeaponInterventionActive = false;
             WeaponRestorationRequested = false;
+            WeaponRuleOverrideExplicit = false;
             RejectedWeaponRestorationAttempts = 0;
             ClearWeaponPreparationRetry();
             RejectedWeaponPreparationThingId = -1;
@@ -505,16 +510,19 @@ namespace AutomaticOutfitManager.State
                 .InvalidateWeaponStateIndex();
         }
 
-        public void MarkWeaponPlayerOverride()
+        public void MarkWeaponPlayerOverride(bool explicitRuleOverride = false)
         {
             WeaponPlayerOverride = true;
+            WeaponRuleOverrideExplicit |= explicitRuleOverride;
             WeaponRestorationRequested = false;
         }
 
-        public void AbandonWeaponManagementForOverride()
+        public void AbandonWeaponManagementForOverride(
+            bool explicitRuleOverride = false)
         {
             CompleteWeaponRestoration();
             WeaponPlayerOverride = true;
+            WeaponRuleOverrideExplicit = explicitRuleOverride;
         }
     }
 

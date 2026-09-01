@@ -2873,21 +2873,28 @@ namespace AutomaticOutfitManager.Core
                         pawn, out Job boundaryJob,
                         out List<ApparelRule> boundaryRules))
             {
-                bool resumedBoundaryJob = false;
+                Patches.PawnJobTracker_StartJob_Patch.BoundaryResumeResult
+                    boundaryResumeResult = Patches.PawnJobTracker_StartJob_Patch
+                        .BoundaryResumeResult.RetryLater;
                 bool attemptedBoundaryHandoff = TryJobTransition(
                     pawn, currentTick, "protected-boundary handoff", () =>
                     {
-                        resumedBoundaryJob = Patches
+                        boundaryResumeResult = Patches
                             .PawnJobTracker_StartJob_Patch
                             .TryResumeBoundaryInterruptedJob(
                                 pawn, boundaryJob, boundaryRules);
                     });
-                if (attemptedBoundaryHandoff)
+                if (attemptedBoundaryHandoff &&
+                    boundaryResumeResult != Patches
+                        .PawnJobTracker_StartJob_Patch
+                        .BoundaryResumeResult.RetryLater)
                 {
                     Detection.ProtectedBoundaryRetryRegistry.Clear(
                         pawn, boundaryJob);
                 }
-                if (resumedBoundaryJob)
+                if (boundaryResumeResult == Patches
+                        .PawnJobTracker_StartJob_Patch
+                        .BoundaryResumeResult.Resumed)
                 {
                     occupiedGearRecoveryTicks.Remove(pawn);
                     return true;

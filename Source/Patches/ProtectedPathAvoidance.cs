@@ -15,10 +15,13 @@ using Verse.AI;
 namespace AutomaticOutfitManager.Patches
 {
     /// <summary>
-    /// Makes a disabled activity route around a protected area when the job's
-    /// concrete targets are outside it. RimWorld 1.6 supports a per-request path
-    /// grid customizer, so outside work can retain its native job, reservations,
-    /// and driver while protected cells are made impassable for that route.
+    /// Makes an outside-target activity prefer a route around a protected area.
+    /// RimWorld 1.6 supports a per-request path grid customizer, so outside work
+    /// can retain its native job, reservations, and driver while protected cells
+    /// receive a strong avoidance cost. If no outside route exists, normal
+    /// boundary enforcement still allows an otherwise permitted activity to
+    /// cross after the pawn equips the complete requirement. A pawn already
+    /// inside a rule retains an uncustomized route out of that rule.
     /// </summary>
     internal static class ProtectedPathAvoidance
     {
@@ -183,8 +186,25 @@ namespace AutomaticOutfitManager.Patches
             List<ApparelRule> restricted = null;
             foreach (ApparelRule rule in mapRules)
             {
+                // Never surround a pawn with an impassable custom grid. This
+                // preserves egress for animals, mechs, guests, and geared
+                // workers that already occupy the rule while still allowing
+                // them to avoid every other protected area on the route.
+                if (pawn.Position.IsValid &&
+                    pawn.Position.InBounds(pawn.Map) &&
+                    rule.Area[pawn.Position])
+                {
+                    continue;
+                }
+
+                // Permission to work, haul, or wander inside a rule is not a
+                // reason to use it as a shortcut between unrelated outside
+                // targets. Direct protected targets still need the native path
+                // so boundary enforcement can prepare the pawn. Disabled
+                // activities retain their existing avoidance behavior.
                 if (PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(
-                        pawn, job, rule))
+                        pawn, job, rule) &&
+                    RuleEvaluator.JobTargetsArea(job, rule.Area))
                 {
                     continue;
                 }

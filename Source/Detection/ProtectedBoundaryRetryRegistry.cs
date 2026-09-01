@@ -28,15 +28,18 @@ namespace AutomaticOutfitManager.Detection
             public List<Thing> Things;
             public List<IntVec3> Cells;
             public int UntilTick;
+            public long RecordSequence;
         }
 
         private static readonly List<Entry> Entries = new List<Entry>();
+        private static long nextRecordSequence;
 
         public static void ResetForLoadedGame()
         {
             // Entries are runtime observations. Persisted pending continuations
             // retain their discovered rule IDs in PawnApparelState instead.
             Entries.Clear();
+            nextRecordSequence = 0;
         }
 
         public static void Record(Pawn pawn, Job job, ApparelRule rule)
@@ -55,9 +58,34 @@ namespace AutomaticOutfitManager.Detection
                 return;
 
             Cleanup();
+            Entry root = Entries
+                .Where(candidate => candidate.Pawn == pawn &&
+                                    candidate.Map == pawn.Map &&
+                                    candidate.InterruptedJob?.def != null)
+                .OrderBy(candidate => candidate.RecordSequence)
+                .FirstOrDefault();
+            if (root != null && !SameInterruptedJob(root.InterruptedJob, job))
+            {
+                // Once a protected boundary interrupts a native job, that job
+                // owns the retry handoff until it is consumed or invalidated.
+                // RimWorld can immediately start another autonomous job whose
+                // path reaches the same boundary; recording that replacement
+                // would erase the work job that actually began the sequence.
+                if (AomLog.ShouldLogDetailed(
+                        pawn, "boundary-retry-root-preserved", 600))
+                {
+                    AomLog.Detailed(
+                        $"{pawn.LabelShortCap}: preserved root " +
+                        $"boundary-interrupted {root.JobDef.defName}; " +
+                        $"ignored later {job.def.defName} retry record.");
+                }
+                return;
+            }
+
             Entry entry = Entries.FirstOrDefault(candidate =>
                 candidate.Pawn == pawn && candidate.Map == pawn.Map &&
                 candidate.RuleId == rule.Id && candidate.JobDef == job.def &&
+                SameInterruptedJob(candidate.InterruptedJob, job) &&
                 TargetsOverlap(candidate, things, cells));
             int untilTick = CurrentTick + RetryLifetimeTicks;
             if (entry != null)
@@ -76,7 +104,8 @@ namespace AutomaticOutfitManager.Detection
                 InterruptedJob = job,
                 Things = things,
                 Cells = cells,
-                UntilTick = untilTick
+                UntilTick = untilTick,
+                RecordSequence = ++nextRecordSequence
             });
         }
 
@@ -93,7 +122,10 @@ namespace AutomaticOutfitManager.Detection
                 .Where(entry => entry.Pawn == pawn &&
                                 entry.Map == pawn.Map &&
                                 entry.InterruptedJob?.def != null)
-                .OrderByDescending(entry => entry.UntilTick)
+                // The first interrupted job owns this handoff. Later autonomous
+                // jobs must not replace the work job that began the boundary
+                // sequence before its exact continuation can be resumed.
+                .OrderBy(entry => entry.RecordSequence)
                 .FirstOrDefault();
             if (pending == null)
                 return false;
@@ -103,7 +135,7 @@ namespace AutomaticOutfitManager.Detection
                 AutomaticOutfitManagerGameComponent.Current;
             rules = Entries.Where(entry =>
                     entry.Pawn == pawn && entry.Map == pawn.Map &&
-                    ReferenceEquals(entry.InterruptedJob, pendingJob))
+                    SameInterruptedJob(entry.InterruptedJob, pendingJob))
                 .Select(entry => component?.RuleById(entry.RuleId))
                 .Where(rule => rule?.Enabled == true &&
                                rule.Area?.Map == pawn.Map &&
@@ -119,6 +151,13 @@ namespace AutomaticOutfitManager.Detection
                 return true;
             }
 
+            // A disabled, paused, incompatible, or otherwise inapplicable rule
+            // permanently invalidates this handoff. Remove every entry for the
+            // same root job so it cannot suppress a later valid boundary event
+            // until the registry lifetime expires.
+            Entries.RemoveAll(entry =>
+                entry.Pawn == pawn && entry.Map == pawn.Map &&
+                SameInterruptedJob(entry.InterruptedJob, pendingJob));
             job = null;
             return false;
         }
@@ -219,6 +258,10 @@ namespace AutomaticOutfitManager.Detection
                    (things.Any(thing => entry.Things?.Contains(thing) == true) ||
                     cells.Any(cell => entry.Cells?.Contains(cell) == true));
         }
+
+        private static bool SameInterruptedJob(Job left, Job right) =>
+            left != null && right != null &&
+            (ReferenceEquals(left, right) || left.loadID == right.loadID);
 
         private static void Cleanup()
         {

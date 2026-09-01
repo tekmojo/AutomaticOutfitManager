@@ -24,8 +24,8 @@ Create a RimWorld area, choose required apparel and optional exact primary-weapo
 
 [quote][b]RimWorld 1.6[/b] | [b]Harmony required[/b] | Vanilla and modded gear | Basic logging by default[/quote]
 
-[quote][b]Latest update — 0.3.5[/b]
-Running jobs whose final route is chosen after they start now retain their exact native continuation when that route first reaches a protected boundary. AOM keeps the pawn outside, prepares the required gear, and resumes the same job when it remains valid. Detailed logging now includes the current and next boundary cells for easier diagnosis.
+[quote][b]Latest update — 0.3.6[/b]
+Outside-target jobs now prefer routes around managed areas instead of using them as shortcuts, while pawns and animals already inside retain a clear exit. Recreation obeys Wandering access, late-bound jobs keep ownership across temporary retries, and only explicit player weapon orders can override a required work weapon.
 [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788]Read the full change notes[/url][/quote]
 
 [h1]How it works[/h1]
@@ -114,6 +114,12 @@ If Automatic Outfit Manager helps your colony, a rating or favorite helps other 
 Automatic Outfit Manager's original source code and documentation are licensed under the MIT License. Third-party software, RimWorld materials, trademarks, and game-derived screenshots retain their respective rights; see LICENSE and NOTICE.md in the source repository and mod package.
 
 Portions of the materials used to create this content/mod are trademarks and/or copyrighted works of Ludeon Studios Inc. All rights reserved by Ludeon. This content/mod is not official and is not endorsed by Ludeon.
+```
+
+## Version 0.3.6 change note
+
+```text
+Fixes protected-area routing and work-gear enforcement. Jobs with targets outside a managed area now prefer routes around it, including otherwise permitted work, hauling, wandering, and recreation, while pawns and animals already inside retain a clear way out. Autonomous recreation now obeys Wandering access. Late-bound boundary retries preserve the first interrupted job and wait through temporary reservation conflicts instead of handing control to unrelated activities. Only an explicit player-forced weapon choice may override a rule's required primary weapon; automatic sidearm or loadout selections no longer do so. No rule setup changes are required.
 ```
 
 ## Version 0.3.5 change note

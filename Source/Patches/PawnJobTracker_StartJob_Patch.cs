@@ -16,6 +16,13 @@ namespace AutomaticOutfitManager.Patches
     [HarmonyPatch(typeof(Pawn_JobTracker), nameof(Pawn_JobTracker.StartJob))]
     public static class PawnJobTracker_StartJob_Patch
     {
+        internal enum BoundaryResumeResult
+        {
+            Resumed,
+            RetryLater,
+            Invalid
+        }
+
         private const int ApparelPreparationRetryInterval = 300;
         private const int WeaponPreparationRetryInterval = 300;
         private const int EssentialPersonalFallbackRetryInterval = 2500;
@@ -196,6 +203,21 @@ namespace AutomaticOutfitManager.Patches
                         "native map departure requested; returning managed gear " +
                         "and restoring the saved outfit before leaving.");
                 }
+            }
+
+            // The path-cell guard can discover a protected route only after a
+            // native job has started. It records and ends that exact job before
+            // the first protected cell, but RimWorld may propose an unrelated
+            // activity on the next tracker tick—well before the component's
+            // 30-tick recovery pulse. Promote the retained job at this shared
+            // StartJob boundary so recreation or another thinker choice cannot
+            // take ownership of the outfit transition first. Explicit player
+            // orders remain authoritative and retire the stale retry instead.
+            if (!mapDepartureJob)
+            {
+                PreferBoundaryInterruptedJob(
+                    pawn, state, ref newJob, ref jobGiver,
+                    ref thinkTree, ref tag);
             }
 
             if (AomLog.DetailedEnabled && IsDesignationSensitiveWork(newJob) &&
@@ -474,9 +496,10 @@ namespace AutomaticOutfitManager.Patches
                 IsExternalWeaponControlJob(newJob))
             {
                 if (state.Transition == ApparelTransition.Restoring)
-                    state.AbandonWeaponManagementForOverride();
+                    state.AbandonWeaponManagementForOverride(
+                        newJob.playerForced);
                 else
-                    state.MarkWeaponPlayerOverride();
+                    state.MarkWeaponPlayerOverride(newJob.playerForced);
                 if (AomLog.DetailedEnabled)
                     AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {newJob.def.defName} is controlling weapons; the current choice is retained and the saved primary remains available for outfit restoration.");
                 return;
@@ -516,14 +539,16 @@ namespace AutomaticOutfitManager.Patches
                 if (state?.WeaponInterventionActive == true && !assignedTransition)
                 {
                     if (state.Transition == ApparelTransition.Restoring)
-                        state.AbandonWeaponManagementForOverride();
+                        state.AbandonWeaponManagementForOverride(
+                            newJob.playerForced);
                     else
-                        state.MarkWeaponPlayerOverride();
+                        state.MarkWeaponPlayerOverride(newJob.playerForced);
                     if (AomLog.DetailedEnabled)
                         AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: {newJob.def.defName} selected by the player or another mod; the choice is retained until saved-outfit restoration.");
                 }
 
-                if (assignedTransition && state?.WeaponPlayerOverride == true &&
+                if (assignedTransition &&
+                    state?.WeaponRuleOverrideExplicit == true &&
                     state.Transition == ApparelTransition.Preparing &&
                     newJob.def == JobDefOf.Equip &&
                     state.IsManagedWeapon(equipmentTarget))
@@ -1708,8 +1733,7 @@ namespace AutomaticOutfitManager.Patches
                 pawn.equipment?.Primary);
             PawnApparelState weaponState = component?.StateFor(pawn);
             bool weaponChoiceProtected = missingWeapon &&
-                (weaponState?.WeaponPlayerOverride == true ||
-                 SimpleSidearmsCompatibility.ProtectsCurrentWeaponChoice(pawn));
+                weaponState?.WeaponRuleOverrideExplicit == true;
             if (weaponChoiceProtected)
             {
                 missingWeapon = false;
@@ -1983,7 +2007,7 @@ namespace AutomaticOutfitManager.Patches
                 return false;
             }
 
-            return state.WeaponPlayerOverride ||
+            return state.WeaponRuleOverrideExplicit ||
                    weaponRequirement.Matches(pawn.equipment?.Primary);
         }
 
@@ -1994,7 +2018,7 @@ namespace AutomaticOutfitManager.Patches
         {
             if (pawn?.equipment == null || component == null || state == null)
                 return false;
-            if (state.WeaponPlayerOverride)
+            if (state.WeaponRuleOverrideExplicit)
                 return true;
 
             List<ApparelRule> preparedRules = (state.CurrentRuleIds ??
@@ -2646,7 +2670,7 @@ namespace AutomaticOutfitManager.Patches
             return true;
         }
 
-        internal static bool TryResumeBoundaryInterruptedJob(
+        internal static BoundaryResumeResult TryResumeBoundaryInterruptedJob(
             Pawn pawn, Job interruptedJob, IEnumerable<ApparelRule> rules)
         {
             AutomaticOutfitManagerGameComponent component =
@@ -2659,11 +2683,29 @@ namespace AutomaticOutfitManager.Patches
                 .Select(group => group.First())
                 .ToList() ?? new List<ApparelRule>();
             if (pawn?.jobs == null || component == null ||
-                interruptedJob?.def == null || boundaryRules.Count == 0 ||
-                !PendingWorkJobIsViable(
-                    pawn, interruptedJob, out string _))
+                interruptedJob?.def == null || boundaryRules.Count == 0)
             {
-                return false;
+                return BoundaryResumeResult.Invalid;
+            }
+
+            if (!PendingWorkJobIsViable(
+                    pawn, interruptedJob, out string viabilityReason,
+                    out bool retryableFailure))
+            {
+                if (retryableFailure)
+                {
+                    if (AomLog.ShouldLogDetailed(
+                            pawn, "boundary-retry-temporarily-blocked", 600))
+                    {
+                        AomLog.Detailed(
+                            $"{pawn.LabelShortCap}: retained boundary-interrupted " +
+                            $"{interruptedJob.def.defName}; " +
+                            $"{viabilityReason ?? "its target is temporarily unavailable"}.");
+                    }
+                    return BoundaryResumeResult.RetryLater;
+                }
+
+                return BoundaryResumeResult.Invalid;
             }
 
             // The path-cell guard has already ended this exact native job, so it
@@ -2691,6 +2733,90 @@ namespace AutomaticOutfitManager.Patches
                 false, true,
                 plannedTransition ? null : originalThinkTree,
                 tag);
+            return BoundaryResumeResult.Resumed;
+        }
+
+        private static bool PreferBoundaryInterruptedJob(
+            Pawn pawn,
+            PawnApparelState state,
+            ref Job proposedJob,
+            ref ThinkNode jobGiver,
+            ref ThinkTreeDef thinkTree,
+            ref JobTag? tag)
+        {
+            if (pawn?.jobs == null || proposedJob?.def == null ||
+                (state != null && state.Transition != ApparelTransition.Active) ||
+                !ProtectedBoundaryRetryRegistry.TryGetPendingInterruption(
+                    pawn, out Job interruptedJob,
+                    out List<ApparelRule> boundaryRules))
+            {
+                return false;
+            }
+
+            if (SameJob(proposedJob, interruptedJob))
+                return false;
+
+            if (proposedJob.playerForced)
+            {
+                ProtectedBoundaryRetryRegistry.Clear(pawn, interruptedJob);
+                return false;
+            }
+
+            string invalidReason = null;
+            bool retryableFailure = false;
+            if (boundaryRules.Count == 0 ||
+                !PendingWorkJobIsViable(
+                    pawn, interruptedJob, out invalidReason,
+                    out retryableFailure))
+            {
+                if (retryableFailure)
+                {
+                    Job deferredReplacementJob = proposedJob;
+                    ReplaceWithWait(
+                        pawn, 60, ref proposedJob, ref jobGiver, ref tag);
+                    thinkTree = null;
+                    if (AomLog.ShouldLogDetailed(
+                            pawn, "boundary-retry-temporarily-blocked", 600))
+                    {
+                        AomLog.Detailed(
+                            $"{pawn.LabelShortCap}: retained boundary-interrupted " +
+                            $"{interruptedJob.def.defName} while " +
+                            $"{invalidReason ?? "its target is temporarily unavailable"}; " +
+                            $"holding outside before replacement " +
+                            $"{deferredReplacementJob.def.defName} can take control.");
+                    }
+                    return true;
+                }
+
+                ProtectedBoundaryRetryRegistry.Clear(pawn, interruptedJob);
+                if (AomLog.DetailedEnabled)
+                {
+                    AomLog.Detailed(
+                        $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
+                        $"released boundary-interrupted " +
+                        $"{interruptedJob?.def?.defName ?? "job"}; " +
+                        $"{invalidReason ?? "its protected rule is no longer active"}.");
+                }
+                return false;
+            }
+
+            Job displacedJob = proposedJob;
+            ManagedWorkClaimRegistry.Release(pawn, displacedJob);
+            AutomaticOutfitManagerGameComponent.ReleaseNativeReservations(
+                pawn, displacedJob);
+
+            proposedJob = interruptedJob;
+            jobGiver = interruptedJob.jobGiver;
+            thinkTree = interruptedJob.jobGiverThinkTree;
+            tag = null;
+
+            if (AomLog.DetailedEnabled)
+            {
+                AomLog.Detailed(
+                    $"[AutomaticOutfitManager] {pawn.LabelShortCap}: resuming " +
+                    $"exact boundary-interrupted {interruptedJob.def.defName} " +
+                    $"before replacement {displacedJob.def.defName} can take control.");
+            }
             return true;
         }
 
@@ -2917,8 +3043,7 @@ namespace AutomaticOutfitManager.Patches
                 pawn.equipment?.Primary);
             PawnApparelState weaponState = component?.StateFor(pawn);
             bool weaponChoiceProtected = missingWeapon &&
-                (weaponState?.WeaponPlayerOverride == true ||
-                 SimpleSidearmsCompatibility.ProtectsCurrentWeaponChoice(pawn));
+                weaponState?.WeaponRuleOverrideExplicit == true;
             if (weaponChoiceProtected)
             {
                 missingWeapon = false;
@@ -3347,7 +3472,16 @@ namespace AutomaticOutfitManager.Patches
         internal static bool PendingWorkJobIsViable(
             Pawn pawn, Job job, out string reason)
         {
+            return PendingWorkJobIsViable(
+                pawn, job, out reason, out bool _);
+        }
+
+        internal static bool PendingWorkJobIsViable(
+            Pawn pawn, Job job, out string reason,
+            out bool retryableFailure)
+        {
             reason = null;
+            retryableFailure = false;
             if (pawn?.Map == null || job?.def == null)
             {
                 reason = "the pawn, map, or saved job is no longer valid";
@@ -3397,6 +3531,7 @@ namespace AutomaticOutfitManager.Patches
                         !pawn.CanReserve(target, 1, stackCount, null, false))
                     {
                         reason = $"{thing.LabelCap} is no longer reservable";
+                        retryableFailure = true;
                         return false;
                     }
                 }
@@ -3418,6 +3553,7 @@ namespace AutomaticOutfitManager.Patches
                 !pawn.CanReserve(job.targetB, 1, -1, null, false))
             {
                 reason = $"haul destination {job.targetB.Cell} is no longer reservable";
+                retryableFailure = true;
                 return false;
             }
 

@@ -260,7 +260,7 @@ namespace AutomaticOutfitManager.UI
                 case ApparelTransition.Active:
                     if (requiredSessionRules.Any(candidate =>
                             RuleEvaluator.HasMissingRequiredApparel(pawn, candidate)) ||
-                        (!state.WeaponPlayerOverride &&
+                        (!state.WeaponRuleOverrideExplicit &&
                          requiredSessionRules.Any(candidate =>
                              RuleEvaluator.HasMissingRequiredWeapon(pawn, candidate))))
                     {
@@ -353,8 +353,8 @@ namespace AutomaticOutfitManager.UI
                     .ToList();
                 bool missingWeapon = requiredSessionRules.Any(candidate =>
                     RuleEvaluator.HasMissingRequiredWeapon(pawn, candidate));
-                if (missingWeapon && state.WeaponPlayerOverride)
-                    return "Player or weapon-mod choice retained; required primary weapon is not equipped.";
+                if (missingWeapon && state.WeaponRuleOverrideExplicit)
+                    return "Player weapon override retained; required primary weapon is not equipped.";
                 var missingLabels = missing.Select(def => def.LabelCap.ToString()).ToList();
                 if (missingWeapon)
                     missingLabels.Add("required primary weapon");
@@ -375,8 +375,8 @@ namespace AutomaticOutfitManager.UI
                     .ToList();
                 bool missingWeapon = requiredSessionRules.Any(candidate =>
                     RuleEvaluator.HasMissingRequiredWeapon(pawn, candidate));
-                if (missingWeapon && state.WeaponPlayerOverride)
-                    return "Player or weapon-mod choice retained; required primary weapon is not equipped.";
+                if (missingWeapon && state.WeaponRuleOverrideExplicit)
+                    return "Player weapon override retained; required primary weapon is not equipped.";
                 var missingLabels = missing.Select(def => def.LabelCap.ToString()).ToList();
                 if (missingWeapon)
                     missingLabels.Add("required primary weapon");

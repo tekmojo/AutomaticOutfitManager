@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.6 - 2026-09-01
+
+### Fixed
+
+- Made jobs with targets outside a managed area prefer an exterior route instead of using the area as an unequipped shortcut, including otherwise permitted work, hauling, wandering, and autonomous recreation.
+- Preserved an uncustomized exit route for pawns, animals, mechs, guests, and equipped workers that already occupy a managed area.
+- Classified autonomous recreation under the Wandering access setting, including modded recreation such as swimming whose job names do not contain "Wander".
+- Preserved the first exact late-bound job across a protected-boundary retry and retained it through temporary reservation conflicts instead of allowing a later autonomous job to replace it.
+- Limited required-primary-weapon overrides to explicit player-forced choices; automatic sidearm or loadout selections no longer waive a rule's weapon requirement.
+
+### Changed
+
+- Clarified worker status text when an explicit player weapon override leaves the rule's required primary weapon unequipped.
+
 ## 0.3.5 - 2026-08-31
 
 ### Fixed
