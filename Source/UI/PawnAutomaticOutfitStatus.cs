@@ -118,23 +118,17 @@ namespace AutomaticOutfitManager.UI
                 .Distinct()
                 .ToList();
             var bufferStatuses = new List<string>();
-            Job displayedJob = pawn?.CurJob;
-            bool outerBufferInProgress = state.Transition == ApparelTransition.Active &&
-                displayedJob != null &&
-                state.PendingBufferedJobLoadId >= 0 &&
-                displayedJob.loadID == state.PendingBufferedJobLoadId;
-            int displayedOuterBufferCount = state.BufferedTasksCompleted +
-                (outerBufferInProgress ? 1 : 0);
+            int completedOuterBufferCount = state.BufferedTasksCompleted;
             if (rule != null)
             {
                 bufferStatuses.Add(BufferStatus(
-                    rule.Name, displayedOuterBufferCount,
+                    rule.Name, completedOuterBufferCount,
                     returnTaskBuffer, false));
             }
             else
             {
                 bufferStatuses.Add(BufferStatus(
-                    null, displayedOuterBufferCount,
+                    null, completedOuterBufferCount,
                     returnTaskBuffer, false));
             }
             foreach (string nestedRuleId in nestedRuleIds)
@@ -144,18 +138,11 @@ namespace AutomaticOutfitManager.UI
                 {
                     bool hasProgress = nestedProgressByRule.TryGetValue(
                         nestedRuleId, out NestedRuleBufferState nested);
-                    bool nestedBufferInProgress = hasProgress &&
-                        !nested.Finished &&
-                        state.Transition == ApparelTransition.Active &&
-                        displayedJob != null &&
-                        nested.PendingJobLoadId >= 0 &&
-                        displayedJob.loadID == nested.PendingJobLoadId;
-                    int displayedNestedBufferCount =
-                        (hasProgress ? nested.Completed : 0) +
-                        (nestedBufferInProgress ? 1 : 0);
+                    int completedNestedBufferCount =
+                        hasProgress ? nested.Completed : 0;
                     bufferStatuses.Add(BufferStatus(
                         nestedRule.Name,
-                        displayedNestedBufferCount,
+                        completedNestedBufferCount,
                         nestedRule.ReturnTaskBuffer,
                         hasProgress && nested.Finished));
                 }
@@ -218,10 +205,11 @@ namespace AutomaticOutfitManager.UI
                 currentJob != null &&
                 currentJob.loadID == state.PendingBufferedJobLoadId)
             {
-                int inProgress = System.Math.Min(
-                    state.BufferedTasksCompleted + 1, returnTaskBuffer);
-                return $"Buffered task {inProgress} of {returnTaskBuffer} in progress: " +
-                       JobActivity(pawn, currentJob);
+                int completed = System.Math.Max(
+                    0, System.Math.Min(
+                        state.BufferedTasksCompleted, returnTaskBuffer));
+                return $"Buffered tasks {completed} of {returnTaskBuffer} complete; " +
+                       $"current: {JobActivity(pawn, currentJob)}";
             }
 
             switch (transition)
@@ -279,11 +267,11 @@ namespace AutomaticOutfitManager.UI
                             .RuleById(currentNestedBuffer.RuleId);
                         int maximum = System.Math.Max(
                             0, nestedRule?.ReturnTaskBuffer ?? 0);
-                        int inProgress = System.Math.Max(
+                        int completed = System.Math.Max(
                             0, System.Math.Min(
-                                currentNestedBuffer.Completed + 1, maximum));
-                        return $"Buffered task {inProgress} of {maximum} in progress: " +
-                               JobActivity(pawn, currentJob);
+                                currentNestedBuffer.Completed, maximum));
+                        return $"Buffered tasks {completed} of {maximum} complete; " +
+                               $"current: {JobActivity(pawn, currentJob)}";
                     }
                     if (PausedAreaWorkFilter.IsHaulingJob(currentJob))
                         return $"Hauling: {JobActivity(pawn, currentJob)}";

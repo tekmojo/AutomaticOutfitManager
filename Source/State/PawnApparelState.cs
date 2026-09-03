@@ -50,6 +50,7 @@ namespace AutomaticOutfitManager.State
         public bool MapDepartureRequested;
         public int MapDepartureRequestedTick = -1;
         public bool RecallRequested;
+        public bool AutomaticIdleReturnRequested;
         public List<string> PauseRecallRuleIds = new List<string>();
         public bool RecallInterruptPending;
         public int LastRecallInterruptAttemptTick = -1;
@@ -144,6 +145,8 @@ namespace AutomaticOutfitManager.State
             Scribe_Values.Look(ref MapDepartureRequestedTick,
                 "mapDepartureRequestedTick", -1);
             Scribe_Values.Look(ref RecallRequested, "recallRequested", false);
+            Scribe_Values.Look(ref AutomaticIdleReturnRequested,
+                "automaticIdleReturnRequested", false);
             Scribe_Collections.Look(ref PauseRecallRuleIds,
                 "pauseRecallRuleIds", LookMode.Value);
             // RC saves briefly persisted a Recall hold that no longer belongs

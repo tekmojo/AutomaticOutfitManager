@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.7 - 2026-09-03
+
+### Fixed
+
+- Shortened bounded idle recovery after completed work, incomplete buffers, preparation, locker return, and saved-outfit restoration so genuine transition gaps no longer appear as extended Standing jobs.
+- Preserved RimWorld's existing queued saved-outfit Wear and Equip jobs across compatibility-inserted targetless waits instead of rebuilding the full restoration plan.
+- Kept a complete managed outfit when new protected work actually becomes available during an automatic idle return, avoiding unnecessary restore/re-equip churn while preserving explicit Recall behavior.
+- Redirected safe targetless waits with missing work gear out of protected areas instead of cycling through otherwise-valid gear candidates merely to resume Standing. Already-managed protection remains equipped where hazardous exposure still requires it.
+- Scoped AOM-owned apparel, weapon, and locker-return path access to the active rule that owns the exact transition target, preventing those jobs from using unrelated managed areas as shortcuts while preserving safe egress.
+- Allowed a sequential handoff between incompatible rule outfits when the pawn's current cell does not actually require both sets, even if the configured areas overlap elsewhere on the map.
+- Preserved completed outer-buffer progress when a new work proposal is selected after locker return is already committed and that proposal never takes control.
+
+### Changed
+
+- Worker rows and compact hover tooltips now both report completed buffer tasks; the current in-progress job is shown separately and counts only after successful completion.
+- Reduced natural locker dwell to a brief job boundary and gave automatic idle returns one short additional thinker window for newly available protected work.
+- Coalesced repeated Detailed diagnostics when a stale protected-boundary retry is released.
+
 ## 0.3.6 - 2026-09-01
 
 ### Fixed

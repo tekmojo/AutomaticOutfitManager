@@ -355,7 +355,7 @@ namespace AutomaticOutfitManager.UI
                 rule.ReturnTaskBuffer++;
             GUI.enabled = previousBufferEnabled;
             TooltipHandler.TipRegion(new Rect(bufferLabelRect.x, y, 286f, 28f),
-                "Choose how many ordinary follow-up tasks a pawn may complete successfully after leaving managed work before returning to the locker room and restoring the saved outfit. Interrupted or failed tasks do not count. Immediate starts restoration once no active area still applies. Sleep outside every applicable area bypasses the buffer; sleep inside retains the complete requirement. Renewed qualifying work resets the count. Compatible overlapping rules track their own nested buffers. Pause work bypasses remaining buffered tasks.");
+                "Choose how many ordinary follow-up tasks a pawn may complete successfully after leaving managed work before returning to the locker room and restoring the saved outfit. Interrupted or failed tasks do not count. Immediate starts restoration once no active area still applies. Sleep outside every applicable area bypasses the buffer; sleep inside retains the complete requirement. Renewed qualifying work that actually takes control resets the count. Compatible overlapping rules track their own nested buffers. Pause work bypasses remaining buffered tasks.");
 
             CachedRuleReadiness readiness = RuleReadiness(rule, component);
 

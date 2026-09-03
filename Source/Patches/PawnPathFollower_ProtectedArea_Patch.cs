@@ -64,15 +64,13 @@ namespace AutomaticOutfitManager.Patches
                 return true;
             }
 
-            // Preparation and restoration can legitimately route a pawn through
-            // the protected area to reach assigned work or saved apparel.
-            // StartJob has already recorded these exact transition targets, so
-            // exempt only those operations rather than broadly allowing
-            // stateful pawns.
-            if (IsManagedApparelTransition(pawn, currentJob, state) ||
-                PawnJobTracker_StartJob_Patch
-                    .IsAssignedTransitionWeaponJob(state, currentJob))
-                return true;
+            // An exact AOM transition may need to leave its current area or
+            // enter the rule that owns its recorded target. It must not gain a
+            // blanket pass through every other protected area on the way. The
+            // per-rule check below preserves legitimate egress and target
+            // access while still evaluating unrelated boundary cells.
+            bool managedTransitionJob =
+                IsManagedTransitionJob(pawn, currentJob, state);
 
             IntVec3 nextCell = NextCellField(__instance);
             if (!nextCell.IsValid || !nextCell.InBounds(pawn.Map))
@@ -84,6 +82,13 @@ namespace AutomaticOutfitManager.Patches
             {
                 if (!candidate.Area[nextCell])
                     continue;
+
+                if (managedTransitionJob &&
+                    ManagedTransitionMayEnterRule(
+                        pawn, currentJob, state, candidate))
+                {
+                    continue;
+                }
 
                 // Recheck both category access and the complete requirement
                 // at the actual boundary. Routes can change after StartJob,
@@ -103,6 +108,7 @@ namespace AutomaticOutfitManager.Patches
                 bool allowedUnavailableEssentialFallback =
                     activityAllowed && missingRequiredGear &&
                     PausedAreaWorkFilter.IsEssentialPersonalJob(currentJob) &&
+                    candidate.Area[pawn.Position] &&
                     UnavailableWorkRegistry.HasActiveRuleBlock(pawn, candidate);
                 bool allowedManagedIncompatibleIngestFallback =
                     activityAllowed && missingRequiredGear &&
@@ -166,7 +172,7 @@ namespace AutomaticOutfitManager.Patches
             if (rule.WorkAreaPaused)
                 pawn.jobs.ClearQueuedJobs(false);
 
-            if (!blockedByActivity)
+            if (!blockedByActivity && !managedTransitionJob)
             {
                 // Some native drivers choose their real destination after
                 // StartJob. Record the concrete job that exposed this boundary
@@ -227,6 +233,54 @@ namespace AutomaticOutfitManager.Patches
             // clean opportunity to prepare every rule crossed by the new path.
             pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, false, true);
             return false;
+        }
+
+        internal static bool IsManagedTransitionJob(
+            Pawn pawn, Job currentJob, PawnApparelState state)
+        {
+            return IsManagedApparelTransition(pawn, currentJob, state) ||
+                   PawnJobTracker_StartJob_Patch
+                       .IsAssignedTransitionWeaponJob(state, currentJob);
+        }
+
+        internal static bool ManagedTransitionMayEnterRule(
+            Pawn pawn,
+            Job currentJob,
+            PawnApparelState state,
+            ApparelRule rule)
+        {
+            if (pawn?.Map == null || currentJob == null || state == null ||
+                rule?.Area?.Map != pawn.Map)
+            {
+                return false;
+            }
+
+            // Once a transition is already inside a rule, let it keep moving
+            // toward its recorded destination so boundary enforcement cannot
+            // strand the pawn. This is egress/progress, not permission to enter
+            // the same area from outside again.
+            if (pawn.Position.IsValid && pawn.Position.InBounds(pawn.Map) &&
+                rule.Area[pawn.Position])
+            {
+                return true;
+            }
+
+            bool trackedRule = state.ActiveRuleId == rule.Id ||
+                state.CurrentRuleIds?.Contains(rule.Id) == true;
+
+            // Same-map locker-return targets are selected outside the
+            // state-protected rules. A cross-map return may legitimately need a
+            // portal inside one of those tracked rules, but never one inside an
+            // unrelated rule.
+            if (PawnJobTracker_StartJob_Patch
+                    .IsAssignedChangingAreaReturnJob(state, currentJob))
+            {
+                return trackedRule &&
+                       RuleEvaluator.JobTargetsArea(currentJob, rule.Area);
+            }
+
+            return trackedRule &&
+                   RuleEvaluator.JobTargetsArea(currentJob, rule.Area);
         }
 
         private static bool IsManagedApparelTransition(

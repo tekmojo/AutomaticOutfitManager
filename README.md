@@ -15,7 +15,7 @@ The compact technical identity is `AutomaticOutfitManager`, including the reposi
 - RimWorld 1.6
 - Harmony
 
-Current release: version `0.3.6`, a protected-routing maintenance update. Outside-target jobs prefer routes around managed areas, pawns and animals already inside retain an exit route, autonomous recreation obeys Wandering access, and only explicit player-forced weapon choices can override a rule's required primary weapon.
+Current release: version `0.3.7`, a transition-stability update. Post-job handoffs, locker return, and saved-outfit restoration recover promptly without extended Standing pauses; completed buffer counts now match across the worker row and compact hover; and AOM-owned gear transitions no longer use unrelated managed areas as shortcuts.
 
 Dubs Rimatomics inspired the original radiation-PPE scenario, but it is not a dependency. Automatic Outfit Manager does not detect radiation automatically.
 
@@ -69,7 +69,7 @@ Removing a green entry keeps its type managed and moves it to the cyan group. **
 
 The work area is an existing RimWorld area. Its equipment requirement follows the location, not the pawn's activity. It applies when a job target or interaction location is inside, when the pawn is already inside, or when the actual route must cross the area.
 
-The mod checks the initial job, current occupancy, and actual movement. If a route changes, an eligible pawn missing even one required apparel item or an acceptable required primary weapon is stopped before entering an active protected area and allowed to reconsider after obtaining the complete set. A periodic check repairs loaded saves, area edits, or external gear changes that leave an eating, recreating, waiting, or sleeping pawn inside without every available requirement.
+The mod checks the initial job, current occupancy, and actual movement. If a route changes, an eligible pawn missing even one required apparel item or an acceptable required primary weapon is stopped before entering an active protected area and allowed to reconsider after obtaining the complete set. A periodic check repairs loaded saves, area edits, or external gear changes that leave an eating, recreating, waiting, or sleeping pawn inside without every available requirement. A safe, targetless idle wait does not justify cycling through work gear merely to remain Standing: when no hazardous exposure requires retained protection, the pawn leaves through the existing safe-egress path and returns to native task selection.
 
 The exact job that triggered outfitting is preserved while the pawn changes, including direct player assignments and compatible modded work that does not provide RimWorld’s usual work-giver tag. Its concrete targets are temporarily claimed so another outfitting pawn cannot take the same frame, bill ingredients, haul targets, or similar work. Before resuming, the mod confirms that the job and its reservations are still valid; invalid or contested work is released safely for normal reconsideration.
 
@@ -116,15 +116,15 @@ The task buffer controls how many ordinary jobs a pawn may complete successfully
 - `0 tasks`: restore saved clothing as soon as managed work ends.
 - `1 task`: allow one follow-up job, such as eating or hauling.
 - Higher values reduce repeated changes around busy work areas.
-- Renewed qualifying work inside the area resets the counter, including direct orders and compatible modded work without a normal work-giver tag.
+- Renewed qualifying work that actually takes control inside the area resets the counter, including direct orders and compatible modded work without a normal work-giver tag. A proposal selected after locker return is already committed does not erase completed progress unless that work begins.
 - Sleeping outside every applicable protected area bypasses the buffer and begins restoration; sleeping in an active area keeps the complete managed outfit.
 - Pausing work, drafting, forced orders, and item availability can alter when restoration completes.
 
 The worker row identifies the activity, for example:
 
-`Foto — Buffered task 1 of 3 in progress: Consuming fine meal`
+`Foto — Buffered tasks 0 of 3 complete; current: Consuming fine meal`
 
-The worker tooltip summarizes every active buffer, for example `Buffers: Radiation Zone 1/3`. Compatible nested work areas track their own buffer progress instead of consuming the outer rule's buffer. A candidate is recorded when its job starts and counts only when that exact job ends successfully. Interrupted, failed, or invalidated jobs are cleared without consuming a slot.
+The worker tooltip summarizes the same completed count, for example `Buffers: Radiation Zone 0/3`. Compatible nested work areas track their own buffer progress instead of consuming the outer rule's buffer. A candidate is recorded when its job starts and counts only when that exact job ends successfully. Interrupted, failed, or invalidated jobs are cleared without consuming a slot.
 
 ### Saved apparel, weapons, and ownership
 
@@ -168,7 +168,7 @@ Worker rows and hover tooltips expose the current transition:
 - **Equipping required apparel** — collecting or wearing required apparel.
 - **Equipping required weapon** — collecting or equipping a selected primary weapon.
 - **Outfit requirements met** — prepared for managed work.
-- **Buffered task X of Y: activity** — performing the named follow-up task.
+- **Buffered tasks X of Y complete; current: activity** — performing the named follow-up task; X counts only successfully completed jobs.
 - **Returning to locker room** — traveling to the configured locker room.
 - **Restoring saved outfit** — returning managed items and restoring the exact saved apparel and primary weapon.
 - **Restoration paused — sleeping or resting/drafted/forced order** — higher-priority behavior currently wins after the pawn is outside every applicable active area.

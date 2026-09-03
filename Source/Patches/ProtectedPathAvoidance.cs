@@ -180,8 +180,14 @@ namespace AutomaticOutfitManager.Patches
 
             PawnApparelState state =
                 AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn);
-            if (state != null && state.Transition != ApparelTransition.Active)
+            bool managedTransitionJob =
+                PawnPathFollower_ProtectedArea_Patch.IsManagedTransitionJob(
+                    pawn, job, state);
+            if (state != null && state.Transition != ApparelTransition.Active &&
+                !managedTransitionJob)
+            {
                 return EmptyRules;
+            }
 
             List<ApparelRule> restricted = null;
             foreach (ApparelRule rule in mapRules)
@@ -193,6 +199,18 @@ namespace AutomaticOutfitManager.Patches
                 if (pawn.Position.IsValid &&
                     pawn.Position.InBounds(pawn.Map) &&
                     rule.Area[pawn.Position])
+                {
+                    continue;
+                }
+
+                // Transition jobs may directly enter only a state-tracked rule
+                // that owns one of their exact targets. All other protected
+                // areas receive the normal avoidance cost, so gear retrieval or
+                // locker travel does not use them as shortcuts.
+                if (managedTransitionJob &&
+                    PawnPathFollower_ProtectedArea_Patch
+                        .ManagedTransitionMayEnterRule(
+                            pawn, job, state, rule))
                 {
                     continue;
                 }

@@ -24,8 +24,8 @@ Create a RimWorld area, choose required apparel and optional exact primary-weapo
 
 [quote][b]RimWorld 1.6[/b] | [b]Harmony required[/b] | Vanilla and modded gear | Basic logging by default[/quote]
 
-[quote][b]Latest update — 0.3.6[/b]
-Outside-target jobs now prefer routes around managed areas instead of using them as shortcuts, while pawns and animals already inside retain a clear exit. Recreation obeys Wandering access, late-bound jobs keep ownership across temporary retries, and only explicit player weapon orders can override a required work weapon.
+[quote][b]Latest update — 0.3.7[/b]
+Post-job handoffs, locker return, and saved-outfit restoration now recover promptly without extended Standing pauses. Completed buffer counts match between worker rows and compact hovers, and AOM-owned gear transitions no longer use unrelated managed areas as shortcuts.
 [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788]Read the full change notes[/url][/quote]
 
 [h1]How it works[/h1]
@@ -114,6 +114,12 @@ If Automatic Outfit Manager helps your colony, a rating or favorite helps other 
 Automatic Outfit Manager's original source code and documentation are licensed under the MIT License. Third-party software, RimWorld materials, trademarks, and game-derived screenshots retain their respective rights; see LICENSE and NOTICE.md in the source repository and mod package.
 
 Portions of the materials used to create this content/mod are trademarks and/or copyrighted works of Ludeon Studios Inc. All rights reserved by Ludeon. This content/mod is not official and is not endorsed by Ludeon.
+```
+
+## Version 0.3.7 change note
+
+```text
+Improves transition stability after managed work. Genuine idle gaps during preparation, incomplete task buffers, locker return, and saved-outfit restoration now recover promptly instead of appearing as long Standing jobs. Existing queued Wear and Equip jobs survive compatibility-inserted waits, and newly available protected work can retain a complete managed outfit during an automatic idle return instead of causing restore/re-equip churn. Safe targetless waits with missing work gear leave the protected area rather than cycling gear merely to remain idle. AOM-owned apparel, weapon, and locker-return jobs may enter only the active rule that owns their exact target, preventing unrelated managed areas from becoming shortcuts. Worker rows and compact hovers now report the same completed buffer count; the current job counts only after successful completion. No rule setup changes are required.
 ```
 
 ## Version 0.3.6 change note

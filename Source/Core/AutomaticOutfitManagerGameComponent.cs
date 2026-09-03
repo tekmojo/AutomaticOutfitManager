@@ -13,9 +13,16 @@ namespace AutomaticOutfitManager.Core
     {
         private const int RestorationNoProgressTimeoutTicks = 600;
         private const int ActiveWorkNoProgressTimeoutTicks = 600;
-        private const int ActiveIdleGraceTicks = 240;
-        private const int IncompleteTaskBufferIdleGraceTicks = 900;
-        private const int PreparingIdleGraceTicks = 120;
+        // Native job assignment normally happens immediately after the previous
+        // job ends. Keep one short scheduling grace without making an incomplete
+        // task buffer look like a fifteen-second Standing job.
+        private const int ActiveIdleGraceTicks = 120;
+        private const int IncompleteTaskBufferIdleGraceTicks = 120;
+
+        // Exact AOM Wear/Equip jobs are excluded from idle recovery below, so an
+        // actually idle preparation only needs the next component pulse.
+        private const int PreparingIdleGraceTicks = 30;
+        private const int RestorationIdleGraceTicks = 30;
         private const int PreparationRetryIntervalTicks = 300;
         private const int ManagedGearWakeCoalesceTicks = 120;
         private const int DepartureUnavailableAttemptLimit = 3;
@@ -111,6 +118,15 @@ namespace AutomaticOutfitManager.Core
             RequestRecallCore(state);
         }
 
+        private static void RequestAutomaticIdleReturn(PawnApparelState state)
+        {
+            if (state?.Pawn == null)
+                return;
+
+            state.PauseRecallRuleIds?.Clear();
+            RequestRecallCore(state, true);
+        }
+
         public void RequestRulePauseRecall(
             PawnApparelState state, ApparelRule pausedRule)
         {
@@ -123,9 +139,11 @@ namespace AutomaticOutfitManager.Core
             RequestRecallCore(state);
         }
 
-        private static void RequestRecallCore(PawnApparelState state)
+        private static void RequestRecallCore(
+            PawnApparelState state, bool automaticIdleReturn = false)
         {
             state.RecallRequested = true;
+            state.AutomaticIdleReturnRequested = automaticIdleReturn;
             state.NaturalLockerDwellUntilTick = -1;
             state.ClearPendingBufferCandidates();
 
@@ -187,6 +205,7 @@ namespace AutomaticOutfitManager.Core
                 return false;
 
             state.RecallRequested = false;
+            state.AutomaticIdleReturnRequested = false;
             state.RecallInterruptPending = false;
             state.LastRecallInterruptAttemptTick = -1;
             state.NaturalLockerDwellUntilTick = -1;
@@ -290,6 +309,7 @@ namespace AutomaticOutfitManager.Core
             state.DraftedTransitionSuspended = false;
             state.DraftedLockerReturnRequired = false;
             state.RecallRequested = true;
+            state.AutomaticIdleReturnRequested = false;
             state.RecallInterruptPending = false;
             ClearPendingWork(state);
             state.RequestWeaponRestoration();
@@ -354,6 +374,7 @@ namespace AutomaticOutfitManager.Core
             state.DraftedTransitionSuspended = true;
             state.DraftedLockerReturnRequired = true;
             state.RecallRequested = true;
+            state.AutomaticIdleReturnRequested = false;
             state.RecallInterruptPending = false;
             ClearPendingWork(state);
             state.RequestWeaponRestoration();
@@ -404,6 +425,7 @@ namespace AutomaticOutfitManager.Core
             // later restoration from falling back to the current cell when the
             // gravship locker is still on another map.
             state.RecallRequested = false;
+            state.AutomaticIdleReturnRequested = false;
             state.RecallInterruptPending = false;
             state.Transition = ApparelTransition.Active;
             state.ChangingAreaReturnCell = IntVec3.Invalid;
@@ -1380,6 +1402,41 @@ namespace AutomaticOutfitManager.Core
                         continue;
                     }
 
+                    // Compatibility mods can insert a targetless Standing wait
+                    // between exact Phase 3 jobs without consuming AOM's queued
+                    // Wear/Equip continuation. Rebuilding here used to clear
+                    // that still-valid queue after only one component pulse and
+                    // restart the whole restoration plan. End only the connective
+                    // wait and let RimWorld advance the queue it already owns.
+                    if (restorationJob?.playerForced != true &&
+                        restorationJob != null &&
+                        (pawn.jobs?.jobQueue?.Count ?? 0) > 0)
+                    {
+                        string queuedWaitDescription =
+                            DescribeRestorationProgress(pawn, restorationJob);
+                        state.ActiveIdleTicks = 0;
+                        restorationProgress.Remove(pawn);
+                        bool resumedQueuedRestoration = TryJobTransition(
+                            pawn, currentTick, "queued restoration continuation",
+                            () =>
+                            {
+                                if (pawn.jobs?.curJob == restorationJob &&
+                                    (pawn.jobs.jobQueue?.Count ?? 0) > 0)
+                                {
+                                    pawn.jobs.EndCurrentJob(
+                                        JobCondition.InterruptForced, true);
+                                }
+                            });
+                        if (resumedQueuedRestoration && AomLog.DetailedEnabled)
+                        {
+                            AomLog.Detailed(
+                                $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
+                                "restoration wait ended; continuing the existing " +
+                                $"saved-outfit queue ({queuedWaitDescription}).");
+                        }
+                        continue;
+                    }
+
                     restorationProgress.Remove(pawn);
 
                     RestorationPlanner.TryMakeHeldOriginalsAccessible(pawn, state);
@@ -1400,7 +1457,9 @@ namespace AutomaticOutfitManager.Core
                     }
 
                     state.ActiveIdleTicks += 30;
-                    int idleGrace = hasUnavailableSavedApparel ? 240 : 120;
+                    int idleGrace = hasUnavailableSavedApparel
+                        ? 240
+                        : RestorationIdleGraceTicks;
                     int retryCooldown = hasUnavailableSavedApparel
                         ? state.MapDepartureRequested ? 600 : 2400
                         : 120;
@@ -1508,7 +1567,7 @@ namespace AutomaticOutfitManager.Core
                         continue;
 
                     state.ActiveIdleTicks = 0;
-                    RequestRecall(state);
+                    RequestAutomaticIdleReturn(state);
                     if (AomLog.DetailedEnabled)
                     {
                         AomLog.Detailed(
@@ -1557,7 +1616,7 @@ namespace AutomaticOutfitManager.Core
                 // recalled merely because its visible report says "Standing".
                 state.ActiveIdleTicks = 0;
                 activeWorkProgress.Remove(pawn);
-                RequestRecall(state);
+                RequestAutomaticIdleReturn(state);
                 if (AomLog.DetailedEnabled)
                 {
                     string reason = stalledActiveWork
@@ -2624,6 +2683,7 @@ namespace AutomaticOutfitManager.Core
                         .Distinct()
                         .ToList();
                     state.RecallRequested = false;
+                    state.AutomaticIdleReturnRequested = false;
                     state.RecallInterruptPending = false;
                     state.Transition = ApparelTransition.Active;
                     state.ChangingAreaReturnCell = IntVec3.Invalid;
@@ -2972,6 +3032,7 @@ namespace AutomaticOutfitManager.Core
                     .Distinct()
                     .ToList();
                 state.RecallRequested = false;
+                state.AutomaticIdleReturnRequested = false;
                 state.RecallInterruptPending = false;
                 state.Transition = ApparelTransition.Active;
                 state.ChangingAreaReturnCell = IntVec3.Invalid;
@@ -3082,6 +3143,7 @@ namespace AutomaticOutfitManager.Core
                     .ToList();
                 state.Transition = ApparelTransition.Active;
                 state.RecallRequested = false;
+                state.AutomaticIdleReturnRequested = false;
                 state.RecallInterruptPending = false;
                 state.ChangingAreaReturnCell = IntVec3.Invalid;
                 state.LastChangingAreaReturnAttemptTick = -1;
