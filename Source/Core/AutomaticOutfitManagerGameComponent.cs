@@ -93,6 +93,7 @@ namespace AutomaticOutfitManager.Core
         {
             RuleEvaluator.ResetRuntimeCache();
             PawnAccessClassifier.ResetRuntimeCache();
+            PreparedIngestRetryRegistry.ResetForLoadedGame();
             Patches.ProtectedPathAvoidance.ResetForLoadedGame();
         }
 
@@ -2130,6 +2131,7 @@ namespace AutomaticOutfitManager.Core
                 RebuildRuntimeIndexes();
                 ManagedWorkClaimRegistry.ResetForLoadedGame();
                 ProtectedBoundaryRetryRegistry.ResetForLoadedGame();
+                PreparedIngestRetryRegistry.ResetForLoadedGame();
                 UnavailableWorkRegistry.ResetForLoadedGame();
                 RuleEvaluator.ResetRuntimeCache();
                 PawnAccessClassifier.ResetRuntimeCache();
@@ -2966,8 +2968,13 @@ namespace AutomaticOutfitManager.Core
             // late-bound targets only when outside every live area. The shared
             // evaluator performs one eligibility check and one map-filtered rule
             // pass instead of constructing and combining two independent lists.
-            List<ApparelRule> protectedRules =
-                RuleEvaluator.MatchingRuntimeRules(pawn, currentJob);
+            List<ApparelRule> protectedRules;
+            if (!MaterialHandoff.TryGetStagedSourceRulesForRuntime(
+                    pawn, currentJob, state, out protectedRules))
+            {
+                protectedRules =
+                    RuleEvaluator.MatchingRuntimeRules(pawn, currentJob);
+            }
             if (protectedRules.Count == 0)
             {
                 if (pawn != null)
@@ -4325,7 +4332,23 @@ namespace AutomaticOutfitManager.Core
             if (state == null)
                 return;
 
-            ClearPendingWork(state);
+            bool recapturingSameBoundaryWork =
+                state.PendingWorkJob != null && job != null &&
+                state.PendingBoundaryRuleIds?.Count > 0 &&
+                (ReferenceEquals(state.PendingWorkJob, job) ||
+                 state.PendingWorkJob.loadID == job.loadID);
+            if (recapturingSameBoundaryWork)
+            {
+                // Re-running the preparation planner for the exact staged repair
+                // must not clear the boundary registry or its lightweight rule
+                // marker. The live tracker will become the sole Job owner once
+                // preparation completes.
+                ReleaseNativeReservations(state.Pawn, state.PendingWorkJob);
+            }
+            else
+            {
+                ClearPendingWork(state);
+            }
             state.PendingWorkJob = job;
             state.PendingWorkIsManagedWork = managedWork;
 
@@ -4349,6 +4372,23 @@ namespace AutomaticOutfitManager.Core
             state.PendingWorkJob = null;
             state.PendingWorkIsManagedWork = false;
             state.PendingBoundaryRuleIds?.Clear();
+            state.PendingBoundaryWorkJobLoadId = -1;
+        }
+
+        public static void TransferPendingBoundaryWorkToTracker(
+            PawnApparelState state)
+        {
+            if (state?.PendingWorkJob == null)
+                return;
+
+            // RimWorld's tracker becomes the sole owner when the prepared source
+            // continuation starts. Keep only the rule IDs needed to protect the
+            // trip to the material and its neutral handoff; retaining the Job in
+            // state as well would create a duplicate deep-save owner.
+            state.PendingBoundaryWorkJobLoadId = state.PendingWorkJob.loadID;
+            ReleaseNativeReservations(state.Pawn, state.PendingWorkJob);
+            state.PendingWorkJob = null;
+            state.PendingWorkIsManagedWork = false;
         }
 
         public static void ReleaseNativeReservations(Pawn pawn, Job job)

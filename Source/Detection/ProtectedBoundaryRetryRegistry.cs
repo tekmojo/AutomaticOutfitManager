@@ -50,6 +50,15 @@ namespace AutomaticOutfitManager.Detection
                 return;
             }
 
+            // EndCurrentJob returns the running Job to RimWorld's pool and
+            // clears its cached driver, definition, targets, and load ID. Never
+            // retain that live object across the boundary interruption. Job.Clone
+            // intentionally omits cached/last drivers; copy its mutable queues as
+            // well so driver cleanup cannot alter the retained continuation.
+            Job interruptedJob = DetachedClone(job);
+            if (interruptedJob?.def == null)
+                return;
+
             ExtractTargets(pawn, job, out List<Thing> things,
                 out List<IntVec3> cells);
             // Do not broaden a targetless activity solely by job definition.
@@ -90,7 +99,7 @@ namespace AutomaticOutfitManager.Detection
             int untilTick = CurrentTick + RetryLifetimeTicks;
             if (entry != null)
             {
-                entry.InterruptedJob = job;
+                entry.InterruptedJob = interruptedJob;
                 entry.UntilTick = untilTick;
                 return;
             }
@@ -101,12 +110,33 @@ namespace AutomaticOutfitManager.Detection
                 Map = pawn.Map,
                 RuleId = rule.Id,
                 JobDef = job.def,
-                InterruptedJob = job,
+                InterruptedJob = interruptedJob,
                 Things = things,
                 Cells = cells,
                 UntilTick = untilTick,
                 RecordSequence = ++nextRecordSequence
             });
+        }
+
+        private static Job DetachedClone(Job job)
+        {
+            Job clone = job?.Clone();
+            if (clone == null)
+                return null;
+
+            clone.targetQueueA = job.targetQueueA == null
+                ? null
+                : new List<LocalTargetInfo>(job.targetQueueA);
+            clone.targetQueueB = job.targetQueueB == null
+                ? null
+                : new List<LocalTargetInfo>(job.targetQueueB);
+            clone.countQueue = job.countQueue == null
+                ? null
+                : new List<int>(job.countQueue);
+            clone.placedThings = job.placedThings == null
+                ? null
+                : new List<ThingCountClass>(job.placedThings);
+            return clone;
         }
 
         public static bool TryGetPendingInterruption(

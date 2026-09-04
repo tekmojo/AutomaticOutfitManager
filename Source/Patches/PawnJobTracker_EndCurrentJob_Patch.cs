@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using AutomaticOutfitManager.Core;
+using AutomaticOutfitManager.Detection;
 using AutomaticOutfitManager.Rules;
 using AutomaticOutfitManager.State;
 using HarmonyLib;
@@ -27,12 +28,17 @@ namespace AutomaticOutfitManager.Patches
             if (pawn == null || endingJob == null)
                 return;
 
+            PreparedIngestRetryRegistry.NotifyEnded(
+                pawn, endingJob, condition);
+
             AutomaticOutfitManagerGameComponent component =
                 AutomaticOutfitManagerGameComponent.Current;
             component?.NotifySavedWeaponHaulReleased(pawn, endingJob);
             PawnApparelState state = component?.StateFor(pawn);
             if (state == null)
                 return;
+
+            MaterialHandoff.NotifyJobEnded(pawn, endingJob, state);
 
             if (condition == JobCondition.Succeeded &&
                 state.Transition == ApparelTransition.Restoring &&
@@ -47,6 +53,20 @@ namespace AutomaticOutfitManager.Patches
             RecordDepartureRestorationProgress(state, endingJob, condition);
             RecordSavedWeaponRestorationOutcome(
                 pawn, state, endingJob, condition);
+            if (PreparedIngestRetryRegistry.TrySuppressCompletedHaulBuffer(
+                    pawn, state, endingJob, condition,
+                    out string ingestBufferDescription))
+            {
+                if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
+                        pawn,
+                        $"prepared-ingest-buffer:{endingJob.loadID}", 600))
+                {
+                    AomLog.Detailed(
+                        $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
+                        $"{ingestBufferDescription}.");
+                }
+                return;
+            }
             CompleteOuterBufferCandidate(
                 pawn, component, state, endingJob, condition);
             CompleteNestedBufferCandidates(

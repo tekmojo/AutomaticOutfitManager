@@ -116,6 +116,16 @@ namespace AutomaticOutfitManager.Patches
         public static bool RouteRequiresRestrictedArea(
             Pawn pawn, Job job, IEnumerable<ApparelRule> restrictedRules)
         {
+            return RouteRequiresRestrictedArea(
+                pawn, job, restrictedRules, true);
+        }
+
+        internal static bool RouteRequiresRestrictedArea(
+            Pawn pawn,
+            Job job,
+            IEnumerable<ApparelRule> restrictedRules,
+            bool anyTargetInsideRequiresArea)
+        {
             List<ApparelRule> rules = restrictedRules?
                 .Where(rule => rule?.Enabled == true && rule.Area?.Map == pawn?.Map)
                 .GroupBy(rule => rule.Id)
@@ -124,7 +134,8 @@ namespace AutomaticOutfitManager.Patches
             if (pawn?.Map == null || job == null || rules.Count == 0)
                 return false;
 
-            if (rules.Any(rule => RuleEvaluator.JobTargetsArea(job, rule.Area)))
+            if (anyTargetInsideRequiresArea &&
+                rules.Any(rule => RuleEvaluator.JobTargetsArea(job, rule.Area)))
                 return true;
             if (!rules.Any(rule => JobPathCrossesArea(pawn, job, rule.Area)))
                 return false;
@@ -253,7 +264,7 @@ namespace AutomaticOutfitManager.Patches
             {
                 LocalTargetInfo target = FirstDestination(job);
                 return !target.IsValid || SegmentFound(
-                    pawn, pawn.Position, target, customizer);
+                    pawn, pawn.Position, target, customizer, rules);
             }
 
             LocalTargetInfo pickup = job.targetA;
@@ -261,19 +272,21 @@ namespace AutomaticOutfitManager.Patches
                 ? job.targetB
                 : job.targetC;
             if (pickup.IsValid && !SegmentFound(
-                    pawn, pawn.Position, pickup, customizer))
+                    pawn, pawn.Position, pickup, customizer, rules))
             {
                 return false;
             }
 
             IntVec3 pickupCell = pickup.IsValid ? pickup.Cell : IntVec3.Invalid;
             return !pickupCell.IsValid || !destination.IsValid ||
-                   SegmentFound(pawn, pickupCell, destination, customizer);
+                   SegmentFound(
+                       pawn, pickupCell, destination, customizer, rules);
         }
 
         private static bool SegmentFound(
             Pawn pawn, IntVec3 start, LocalTargetInfo destination,
-            PathRequest.IPathGridCustomizer customizer)
+            PathRequest.IPathGridCustomizer customizer,
+            List<ApparelRule> restrictedRules)
         {
             if (!start.IsValid || !start.InBounds(pawn.Map) || !destination.IsValid)
                 return false;
@@ -287,7 +300,10 @@ namespace AutomaticOutfitManager.Patches
                 path = pawn.Map.pathFinder.FindPathNow(
                     start, destination, TraverseParms.For(pawn), null,
                     endMode, customizer);
-                return path?.Found == true;
+                return path?.Found == true &&
+                       !path.NodesReversed.Any(cell =>
+                           cell.IsValid && cell.InBounds(pawn.Map) &&
+                           restrictedRules.Any(rule => rule.Area[cell]));
             }
             finally
             {

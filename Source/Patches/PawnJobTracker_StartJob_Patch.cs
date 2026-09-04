@@ -25,6 +25,10 @@ namespace AutomaticOutfitManager.Patches
 
         private const int ApparelPreparationRetryInterval = 300;
         private const int WeaponPreparationRetryInterval = 300;
+        private const int SubsequentWeaponPreparationSettleInterval = 30;
+        private const int WeaponPreparationAttemptLimit = 6;
+        private const int WeaponPreparationTimeLimit = 1200;
+        private const int WeaponPreparationFailureCooldown = 1200;
         private const int EssentialPersonalFallbackRetryInterval = 2500;
         // Preserve a clean native job boundary at the locker without adding a
         // visible five-second pause before restoration begins.
@@ -36,6 +40,12 @@ namespace AutomaticOutfitManager.Patches
         private const int AutomaticIdleLockerDwellTicks = 120;
         private static readonly AccessTools.FieldRef<Pawn_JobTracker, Pawn> PawnField =
             AccessTools.FieldRefAccess<Pawn_JobTracker, Pawn>("pawn");
+        // StartJob compatibility patches can synchronously admit a rewritten
+        // copy while this patch is admitting the exact retained boundary job.
+        // Keep the retained entry available until the outer admission reports
+        // success, but do not promote it again from inside that same call stack.
+        private static readonly HashSet<Pawn> BoundaryResumeAdmissions =
+            new HashSet<Pawn>();
 
         public static void Prefix(
             Pawn_JobTracker __instance,
@@ -225,6 +235,52 @@ namespace AutomaticOutfitManager.Patches
                 PreferBoundaryInterruptedJob(
                     pawn, state, ref newJob, ref jobGiver,
                     ref thinkTree, ref tag);
+            }
+
+            bool assignedRecoveryTransition = state != null &&
+                (IsAssignedChangingAreaReturnJob(state, newJob) ||
+                 IsAssignedTransitionApparelJob(state, newJob) ||
+                 IsAssignedTransitionWeaponJob(state, newJob));
+            bool retainedBoundaryRepair = false;
+            if (!mapDepartureJob && !assignedRecoveryTransition)
+            {
+                retainedBoundaryRepair =
+                    PreferPendingBoundaryRepairDuringPreparation(
+                    __instance, pawn, state, ref newJob,
+                    ref jobGiver, ref thinkTree, ref tag);
+            }
+            if (!mapDepartureJob && !assignedRecoveryTransition &&
+                !retainedBoundaryRepair &&
+                PreparedIngestRetryRegistry.TryConsume(
+                    pawn, newJob, out Job ingestRetry,
+                    out string ingestRecoveryDescription))
+            {
+                AutomaticOutfitManagerGameComponent.ReleaseNativeReservations(
+                    pawn, newJob);
+                if (ingestRetry != null)
+                {
+                    __instance.ClearQueuedJobs(false);
+                    newJob = ingestRetry;
+                    jobGiver = ingestRetry.jobGiver;
+                    thinkTree = ingestRetry.jobGiverThinkTree;
+                    tag = null;
+                }
+                else
+                {
+                    ReplaceWithBriefWait(
+                        pawn, ref newJob, ref jobGiver, ref tag);
+                    thinkTree = null;
+                }
+
+                if (AomLog.DetailedEnabled)
+                {
+                    AomLog.Detailed(
+                        $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
+                        $"{ingestRecoveryDescription}.");
+                }
+
+                if (ingestRetry == null)
+                    return;
             }
 
             if (AomLog.DetailedEnabled && IsDesignationSensitiveWork(newJob) &&
@@ -812,6 +868,7 @@ namespace AutomaticOutfitManager.Patches
                     tag = null;
                     if (AomLog.DetailedEnabled)
                         AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: resuming exact prepared job {newJob.def.defName} for '{ManagedWorkClaimRegistry.DescribeActiveClaim(pawn)}'.");
+                    PreparedIngestRetryRegistry.RecordResumed(pawn, newJob);
                 }
             }
 
@@ -861,14 +918,32 @@ namespace AutomaticOutfitManager.Patches
                 int preparationTick = Find.TickManager?.TicksGame ?? 0;
                 int elapsed = preparationTick -
                     state.LastWeaponPreparationAttemptTick;
-                if (elapsed < WeaponPreparationRetryInterval)
+                if (state.WeaponPreparationBudgetExceeded(
+                        preparationTick, WeaponPreparationAttemptLimit,
+                        WeaponPreparationTimeLimit))
+                {
+                    state.RejectLastWeaponPreparationAttempt();
+                    if (TryAbortExhaustedWeaponPreparation(
+                            __instance, pawn, component, state, null,
+                            ref newJob, ref jobGiver, ref tag))
+                    {
+                        return;
+                    }
+                }
+
+                int retryInterval = state.WeaponPreparationRetriesThisTransition == 0
+                    ? WeaponPreparationRetryInterval
+                    : SubsequentWeaponPreparationSettleInterval;
+                if (elapsed < retryInterval)
                 {
                     // A failed Equip makes RimWorld immediately reconsider the
-                    // preserved work. Yield until one bounded retry is due
-                    // instead of rebuilding Equip hundreds of times in a tick.
+                    // preserved work. The first candidate receives one real
+                    // bounded retry. Later candidates only receive a short
+                    // settlement window so a large locker inventory cannot turn
+                    // per-item backoff into a long Standing sequence.
                     __instance.ClearQueuedJobs(false);
                     int remaining = Math.Max(
-                        30, WeaponPreparationRetryInterval - elapsed);
+                        30, retryInterval - elapsed);
                     ReplaceWithWait(
                         pawn, remaining, ref newJob, ref jobGiver, ref tag);
                     if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
@@ -895,6 +970,12 @@ namespace AutomaticOutfitManager.Patches
                 }
 
                 state.RejectLastWeaponPreparationAttempt();
+                if (TryAbortExhaustedWeaponPreparation(
+                        __instance, pawn, component, state, null,
+                        ref newJob, ref jobGiver, ref tag))
+                {
+                    return;
+                }
             }
 
             // Work in overlapping areas must satisfy the combined equipment
@@ -912,12 +993,24 @@ namespace AutomaticOutfitManager.Patches
             List<ApparelRule> protectedJobRules = ProtectedRulesForJob(pawn, newJob);
             List<ApparelRule> occupiedRules =
                 RuleEvaluator.MatchingLocationRules(pawn);
-            TryCancelAutomaticIdleReturnForProtectedJob(
-                pawn, state, protectedJobRules, newJob);
             List<ApparelRule> matchingWorkRules =
                 hasManagedWorkContext && managedWorkPreparation
                 ? RuleEvaluator.MatchingRules(pawn, newJob)
                 : new List<ApparelRule>();
+            bool stagedBoundaryTransit = TrySelectBoundaryTransitStage(
+                pawn, newJob, matchingWorkRules, occupiedRules,
+                out List<ApparelRule> boundaryTransitRules);
+            if (stagedBoundaryTransit)
+            {
+                // The actual path-cell interruption identifies the next rule
+                // that must be crossed. When its outfit conflicts with the
+                // eventual worksite outfit, prepare only that immediate stage.
+                // The exact job remains pending and its destination rule will
+                // be prepared after the pawn clears this protected crossing.
+                protectedJobRules = boundaryTransitRules;
+            }
+            TryCancelAutomaticIdleReturnForProtectedJob(
+                pawn, state, protectedJobRules, newJob);
             bool canPrepareForMatchingWork = state?.RecallRequested != true &&
                 (state == null ||
                  state.Transition == ApparelTransition.Preparing ||
@@ -926,7 +1019,9 @@ namespace AutomaticOutfitManager.Patches
                 (matchingWorkRules.Count > 0 ||
                  state.Transition != ApparelTransition.Preparing))
             {
-                state.CurrentRuleIds = matchingWorkRules
+                state.CurrentRuleIds = (stagedBoundaryTransit
+                        ? boundaryTransitRules.Concat(occupiedRules)
+                        : matchingWorkRules)
                     .Where(rule => rule != null)
                     .Select(rule => rule.Id)
                     .Distinct()
@@ -948,7 +1043,8 @@ namespace AutomaticOutfitManager.Patches
             TryBeginDirectRuleHandoff(
                 pawn, component, state, matchingWorkRules,
                 protectedJobRules, occupiedRules);
-            if (canPrepareForMatchingWork && state != null && matchingWorkRules.Count > 0)
+            if (!stagedBoundaryTransit && canPrepareForMatchingWork &&
+                state != null && matchingWorkRules.Count > 0)
             {
                 // Do not create a nested buffer merely because a candidate was
                 // intercepted. Contested hauling/construction candidates can
@@ -969,14 +1065,16 @@ namespace AutomaticOutfitManager.Patches
             {
                 return;
             }
-            if (canPrepareForMatchingWork && matchingWorkRules.Count > 0 &&
+            if (!stagedBoundaryTransit && canPrepareForMatchingWork &&
+                matchingWorkRules.Count > 0 &&
                 TryPrepareForMatchingRules(
                     __instance, pawn, component, matchingWorkRules,
                     ref newJob, ref jobGiver, ref tag))
             {
                 return;
             }
-            if (canPrepareForMatchingWork && matchingWorkRules.Count > 0)
+            if (!stagedBoundaryTransit && canPrepareForMatchingWork &&
+                matchingWorkRules.Count > 0)
             {
                 ManagedWorkClaimRegistry.Release(pawn, newJob);
                 if (state != null && SameJob(newJob, state.PendingWorkJob))
@@ -1834,7 +1932,16 @@ namespace AutomaticOutfitManager.Patches
                 ManagedWorkClaimRegistry.Release(pawn, newJob);
                 if (activeState != null && SameJob(newJob, activeState.PendingWorkJob))
                 {
-                    AutomaticOutfitManagerGameComponent.ClearPendingWork(activeState);
+                    if (stagedBoundaryTransit &&
+                        activeState.PendingBoundaryRuleIds?.Count > 0)
+                    {
+                        AutomaticOutfitManagerGameComponent
+                            .TransferPendingBoundaryWorkToTracker(activeState);
+                    }
+                    else
+                    {
+                        AutomaticOutfitManagerGameComponent.ClearPendingWork(activeState);
+                    }
                 }
                 else
                 {
@@ -1986,6 +2093,10 @@ namespace AutomaticOutfitManager.Patches
                         .Select(candidate => candidate.Id)
                         .Distinct()
                         .ToList();
+                preparedState.PendingBoundaryWorkJobLoadId =
+                    preparedState.PendingBoundaryRuleIds.Count > 0
+                        ? newJob.loadID
+                        : -1;
                 preparedState.CurrentRuleIds = applicableRules
                     .Select(candidate => candidate.Id)
                     .Distinct()
@@ -2818,10 +2929,10 @@ namespace AutomaticOutfitManager.Patches
                 return BoundaryResumeResult.Invalid;
             }
 
-            // The path-cell guard has already ended this exact native job, so it
-            // has no live or queued owner. Promote that same object through the
-            // ordinary preparation planner before another thinker job can erase
-            // the late-bound destination that exposed the protected boundary.
+            // The path-cell guard has already ended the native job. Promote its
+            // detached, driver-free snapshot through the ordinary preparation
+            // planner before another thinker job can erase the late-bound
+            // destination that exposed the protected boundary.
             Job currentJob = pawn.jobs.curJob;
             Job resumedJob = interruptedJob;
             ThinkNode originalJobGiver = interruptedJob.jobGiver;
@@ -2837,12 +2948,22 @@ namespace AutomaticOutfitManager.Patches
             if (!plannedTransition)
                 pawn.jobs.ClearQueuedJobs(false);
 
-            pawn.jobs.StartJob(
-                resumedJob, JobCondition.InterruptForced,
-                plannedTransition ? resumedJobGiver : originalJobGiver,
-                false, true,
-                plannedTransition ? null : originalThinkTree,
-                tag);
+            if (!BoundaryResumeAdmissions.Add(pawn))
+                return BoundaryResumeResult.RetryLater;
+
+            try
+            {
+                pawn.jobs.StartJob(
+                    resumedJob, JobCondition.InterruptForced,
+                    plannedTransition ? resumedJobGiver : originalJobGiver,
+                    false, true,
+                    plannedTransition ? null : originalThinkTree,
+                    tag);
+            }
+            finally
+            {
+                BoundaryResumeAdmissions.Remove(pawn);
+            }
             return BoundaryResumeResult.Resumed;
         }
 
@@ -2855,6 +2976,7 @@ namespace AutomaticOutfitManager.Patches
             ref JobTag? tag)
         {
             if (pawn?.jobs == null || proposedJob?.def == null ||
+                BoundaryResumeAdmissions.Contains(pawn) ||
                 (state != null && state.Transition != ApparelTransition.Active) ||
                 !ProtectedBoundaryRetryRegistry.TryGetPendingInterruption(
                     pawn, out Job interruptedJob,
@@ -2933,6 +3055,51 @@ namespace AutomaticOutfitManager.Patches
             return true;
         }
 
+        private static bool PreferPendingBoundaryRepairDuringPreparation(
+            Pawn_JobTracker tracker,
+            Pawn pawn,
+            PawnApparelState state,
+            ref Job proposedJob,
+            ref ThinkNode jobGiver,
+            ref ThinkTreeDef thinkTree,
+            ref JobTag? tag)
+        {
+            Job pendingRepair = state?.PendingWorkJob;
+            if (tracker == null || pawn == null || proposedJob?.def == null ||
+                state?.Transition != ApparelTransition.Preparing ||
+                pendingRepair?.def == null ||
+                state.PendingBoundaryRuleIds?.Count <= 0 ||
+                SameJob(proposedJob, pendingRepair) || proposedJob.playerForced ||
+                !string.Equals(pendingRepair.def.defName,
+                    "FixBrokenDownBuilding", StringComparison.OrdinalIgnoreCase) ||
+                !PendingWorkJobIsViable(pawn, pendingRepair, out _))
+            {
+                return false;
+            }
+
+            Job displacedJob = proposedJob;
+            tracker.ClearQueuedJobs(false);
+            ManagedWorkClaimRegistry.Release(pawn, displacedJob);
+            AutomaticOutfitManagerGameComponent.ReleaseNativeReservations(
+                pawn, displacedJob);
+            proposedJob = pendingRepair;
+            jobGiver = pendingRepair.jobGiver;
+            thinkTree = pendingRepair.jobGiverThinkTree;
+            tag = null;
+            state.PendingBoundaryWorkJobLoadId = pendingRepair.loadID;
+
+            if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
+                    pawn, $"pending-boundary-repair:{pendingRepair.loadID}", 600))
+            {
+                AomLog.Detailed(
+                    $"[AutomaticOutfitManager] {pawn.LabelShortCap}: retained " +
+                    $"the staged {pendingRepair.def.defName} while source-area " +
+                    $"preparation continues; deferred autonomous " +
+                    $"{displacedJob.def.defName}.");
+            }
+            return true;
+        }
+
         internal static bool TryRecoverIdlePreparation(
             Pawn pawn, PawnApparelState state, out string description)
         {
@@ -2964,6 +3131,26 @@ namespace AutomaticOutfitManager.Patches
                 .GroupBy(rule => rule.Id)
                 .Select(group => group.First())
                 .ToList();
+            List<ApparelRule> recoveryDestinationRules =
+                RuleEvaluator.MatchingRules(pawn, pendingWork);
+            List<ApparelRule> recoveryOccupiedRules =
+                RuleEvaluator.MatchingLocationRules(pawn);
+            if (TrySelectBoundaryTransitStage(
+                    pawn, pendingWork, recoveryDestinationRules,
+                    recoveryOccupiedRules,
+                    out List<ApparelRule> recoveryBoundaryRules))
+            {
+                // Idle recovery must preserve the same immediate-stage choice
+                // made at StartJob. Recombining the eventual worksite here would
+                // recreate the incompatible transit/destination loop whenever a
+                // queued Wear step briefly yielded to the thinker.
+                recoveryRules = recoveryBoundaryRules
+                    .Concat(recoveryOccupiedRules)
+                    .Where(rule => rule != null)
+                    .GroupBy(rule => rule.Id)
+                    .Select(group => group.First())
+                    .ToList();
+            }
             if (recoveryRules.Count == 0)
             {
                 ApparelRule activeRule = component.RuleById(state.ActiveRuleId);
@@ -3052,7 +3239,50 @@ namespace AutomaticOutfitManager.Patches
             JobTag? recoveryTag = null;
             bool plannedTransition = TryPrepareForMatchingRules(
                 pawn.jobs, pawn, component, recoveryRules,
-                ref recoveryJob, ref recoveryGiver, ref recoveryTag, true);
+                ref recoveryJob, ref recoveryGiver, ref recoveryTag,
+                true, true, out bool essentialGearUnavailable);
+            if (essentialGearUnavailable)
+            {
+                // The exact sleep/rest continuation already performed a real
+                // preparation attempt and the retry planner has now confirmed
+                // that the complete set is still unavailable. Keep the one
+                // personal-outfit snapshot open and allow this exact essential
+                // job during the bounded shortage window. Recalling here clears
+                // PendingWorkJob, restores the personal outfit, and lets the
+                // thinker select the same protected bed again forever.
+                foreach (ApparelRule rule in recoveryRules)
+                {
+                    UnavailableWorkRegistry.Block(
+                        pawn, rule, pendingWork,
+                        EssentialPersonalFallbackRetryInterval);
+                }
+
+                state.CurrentRuleIds = recoveryRules
+                    .Select(rule => rule.Id)
+                    .Distinct()
+                    .ToList();
+                state.Transition = ApparelTransition.Active;
+                state.RecallRequested = false;
+                state.AutomaticIdleReturnRequested = false;
+                state.RecallInterruptPending = false;
+                state.LastManagedWorkJobDefName = pendingWork.def.defName;
+                state.LastApparelPreparationAttemptTick = -1;
+                state.LastApparelPreparationThingId = -1;
+                state.ClearWeaponPreparationRetry();
+                state.ActiveIdleTicks = 0;
+                pawn.jobs.ClearQueuedJobs(false);
+                ManagedWorkClaimRegistry.ReleaseAll(pawn);
+                AutomaticOutfitManagerGameComponent.ClearPendingWork(state);
+                pawn.jobs.StartJob(
+                    pendingWork, JobCondition.InterruptForced,
+                    pendingWork.jobGiver, false, true,
+                    pendingWork.jobGiverThinkTree, null);
+                description =
+                    $"resumed essential {pendingWork.def.defName} under the " +
+                    "bounded unavailable-gear fallback without restoring and " +
+                    "recapturing the personal outfit";
+                return true;
+            }
             if (!plannedTransition &&
                 !HasCompletedPreparation(pawn, component, state))
             {
@@ -3079,6 +3309,32 @@ namespace AutomaticOutfitManager.Patches
             ref JobTag? tag,
             bool preservePendingWork = true)
         {
+            return TryPrepareForMatchingRules(
+                tracker, pawn, component, rules,
+                ref newJob, ref jobGiver, ref tag,
+                preservePendingWork, false, out _);
+        }
+
+        private static bool TryPrepareForMatchingRules(
+            Pawn_JobTracker tracker,
+            Pawn pawn,
+            AutomaticOutfitManagerGameComponent component,
+            List<ApparelRule> rules,
+            ref Job newJob,
+            ref ThinkNode jobGiver,
+            ref JobTag? tag,
+            bool preservePendingWork,
+            bool allowEssentialUnavailableFallback,
+            out bool essentialGearUnavailable)
+        {
+            essentialGearUnavailable = false;
+            PawnApparelState pendingState = component?.StateFor(pawn);
+            bool mayUseEssentialUnavailableFallback =
+                allowEssentialUnavailableFallback && preservePendingWork &&
+                pendingState?.Transition == ApparelTransition.Preparing &&
+                SameJob(newJob, pendingState.PendingWorkJob) &&
+                PausedAreaWorkFilter.IsEssentialPersonalJob(newJob);
+
             ApparelRule unwearableRule = rules.FirstOrDefault(rule =>
                 !RuleEvaluator.RuleCanApplyToPawn(pawn, rule));
             if (unwearableRule != null)
@@ -3187,16 +3443,33 @@ namespace AutomaticOutfitManager.Patches
                 int preparationTick = Find.TickManager?.TicksGame ?? 0;
                 int elapsed = preparationTick -
                     weaponState.LastWeaponPreparationAttemptTick;
-                if (elapsed < WeaponPreparationRetryInterval)
+                if (weaponState.WeaponPreparationBudgetExceeded(
+                        preparationTick, WeaponPreparationAttemptLimit,
+                        WeaponPreparationTimeLimit))
+                {
+                    weaponState.RejectLastWeaponPreparationAttempt();
+                    if (TryAbortExhaustedWeaponPreparation(
+                            tracker, pawn, component, weaponState, rules,
+                            ref newJob, ref jobGiver, ref tag))
+                    {
+                        return true;
+                    }
+                }
+
+                int retryInterval =
+                    weaponState.WeaponPreparationRetriesThisTransition == 0
+                        ? WeaponPreparationRetryInterval
+                        : SubsequentWeaponPreparationSettleInterval;
+                if (elapsed < retryInterval)
                 {
                     // Occupancy recovery calls this planner directly instead of
                     // re-entering the top-level StartJob prefix. Preserve the
-                    // outstanding attempt's retry window here as well, or every
-                    // component pulse selects the same failed floor weapon and
-                    // resets its timer before it can ever be rejected.
+                    // outstanding attempt's settlement window here as well, or
+                    // every component pulse selects the same failed floor weapon
+                    // and resets its timer before it can ever be rejected.
                     tracker.ClearQueuedJobs(false);
                     int remaining = Math.Max(
-                        30, WeaponPreparationRetryInterval - elapsed);
+                        30, retryInterval - elapsed);
                     ReplaceWithWait(
                         pawn, remaining, ref newJob, ref jobGiver, ref tag);
                     return true;
@@ -3210,6 +3483,12 @@ namespace AutomaticOutfitManager.Patches
                 }
 
                 weaponState.RejectLastWeaponPreparationAttempt();
+                if (TryAbortExhaustedWeaponPreparation(
+                        tracker, pawn, component, weaponState, rules,
+                        ref newJob, ref jobGiver, ref tag))
+                {
+                    return true;
+                }
             }
             if (missing.Count == 0 && !missingWeapon)
             {
@@ -3232,6 +3511,12 @@ namespace AutomaticOutfitManager.Patches
                     standardsByDef[def]);
                 if (apparel == null)
                 {
+                    if (mayUseEssentialUnavailableFallback)
+                    {
+                        essentialGearUnavailable = true;
+                        return false;
+                    }
+
                     UnavailableWorkRegistry.Block(pawn, sourceRule);
                     if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                             pawn, $"nested-gear-unavailable:{sourceRule.Id}:{def.defName}"))
@@ -3269,6 +3554,12 @@ namespace AutomaticOutfitManager.Patches
                     pendingJobTargets);
                 if (managedWeapon == null)
                 {
+                    if (mayUseEssentialUnavailableFallback)
+                    {
+                        essentialGearUnavailable = true;
+                        return false;
+                    }
+
                     UnavailableWorkRegistry.Block(pawn, weaponRule);
                     if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                             pawn, $"nested-weapon-unavailable:{weaponRule.Id}:{weaponRule.WeaponSummary}"))
@@ -3523,6 +3814,73 @@ namespace AutomaticOutfitManager.Patches
                 UnavailableWorkRegistry.Block(pawn, rule, pendingWork, 300);
         }
 
+        private static bool TryAbortExhaustedWeaponPreparation(
+            Pawn_JobTracker tracker,
+            Pawn pawn,
+            AutomaticOutfitManagerGameComponent component,
+            PawnApparelState state,
+            IEnumerable<ApparelRule> knownRules,
+            ref Job newJob,
+            ref ThinkNode jobGiver,
+            ref JobTag? tag)
+        {
+            int currentTick = Find.TickManager?.TicksGame ?? 0;
+            if (tracker == null || pawn == null || component == null ||
+                state?.Transition != ApparelTransition.Preparing ||
+                !state.WeaponPreparationBudgetExceeded(
+                    currentTick, WeaponPreparationAttemptLimit,
+                    WeaponPreparationTimeLimit))
+            {
+                return false;
+            }
+
+            Job pendingWork = state.PendingWorkJob;
+            var blockedRules = (knownRules ?? Enumerable.Empty<ApparelRule>())
+                .Concat(ProtectedRulesForJob(pawn, pendingWork))
+                .Concat((state.CurrentRuleIds ?? new List<string>())
+                    .Select(component.RuleById))
+                .Where(rule => rule?.Enabled == true &&
+                               rule.Area?.Map == pawn.Map)
+                .GroupBy(rule => rule.Id)
+                .Select(group => group.First())
+                .ToList();
+            foreach (ApparelRule rule in blockedRules)
+            {
+                UnavailableWorkRegistry.Block(
+                    pawn, rule, WeaponPreparationFailureCooldown);
+            }
+
+            int attempts = state.WeaponPreparationAttemptsThisTransition;
+            int elapsed = state.WeaponPreparationStartedTick < 0
+                ? 0
+                : Math.Max(0, currentTick - state.WeaponPreparationStartedTick);
+            string pendingJobName = pendingWork?.def?.defName ??
+                newJob?.def?.defName ?? "work";
+            string ruleNames = blockedRules.Count == 0
+                ? "the managed area"
+                : string.Join(", ", blockedRules.Select(rule => $"'{rule.Name}'"));
+
+            tracker.ClearQueuedJobs(false);
+            AutomaticOutfitManagerGameComponent.ReleaseNativeReservations(
+                pawn, newJob);
+            ManagedWorkClaimRegistry.ReleaseAll(pawn);
+            AutomaticOutfitManagerGameComponent.ClearPendingWork(state);
+            component.RequestRecall(state);
+            state.ClearWeaponPreparationRetry();
+            ReplaceWithBriefWait(pawn, ref newJob, ref jobGiver, ref tag);
+
+            if (AomLog.DetailedEnabled)
+            {
+                AomLog.Detailed(
+                    $"[AutomaticOutfitManager] {pawn.LabelShortCap}: stopped " +
+                    $"preparing {pendingJobName} after {attempts} failed weapon " +
+                    $"Equip attempt(s) over {elapsed} tick(s); briefly blocked " +
+                    $"{ruleNames} and requested saved-outfit restoration instead " +
+                    "of cycling through more locker stock.");
+            }
+            return true;
+        }
+
         private static bool HasManagedWorkContext(
             Job job, ThinkNode jobGiver, PawnApparelState state)
         {
@@ -3580,6 +3938,87 @@ namespace AutomaticOutfitManager.Patches
                 .GroupBy(rule => rule.Id)
                 .Select(group => group.First())
                 .ToList();
+        }
+
+        private static bool TrySelectBoundaryTransitStage(
+            Pawn pawn,
+            Job job,
+            List<ApparelRule> destinationRules,
+            List<ApparelRule> occupiedRules,
+            out List<ApparelRule> boundaryTransitRules)
+        {
+            boundaryTransitRules = new List<ApparelRule>();
+            if (pawn?.Map == null || job?.def == null ||
+                destinationRules == null || destinationRules.Count == 0)
+            {
+                return false;
+            }
+
+            var destinationIds = new HashSet<string>(
+                destinationRules.Where(rule => rule != null)
+                    .Select(rule => rule.Id));
+            boundaryTransitRules = ProtectedBoundaryRetryRegistry
+                .MatchingRules(pawn, job)
+                .Concat(PersistedBoundaryRulesForJob(pawn, job))
+                .Where(rule => rule?.Enabled == true &&
+                               !rule.WorkAreaPaused &&
+                               rule.Area?.Map == pawn.Map &&
+                               !destinationIds.Contains(rule.Id) &&
+                               !RuleEvaluator.JobPreparationTargetsArea(
+                                   job, rule.Area))
+                .GroupBy(rule => rule.Id)
+                .Select(group => group.First())
+                .ToList();
+            if (boundaryTransitRules.Count == 0)
+                return false;
+
+            List<ApparelRule> occupied = (occupiedRules ??
+                    new List<ApparelRule>())
+                .Where(rule => rule?.Enabled == true &&
+                               !rule.WorkAreaPaused &&
+                               rule.Area?.Map == pawn.Map)
+                .GroupBy(rule => rule.Id)
+                .Select(group => group.First())
+                .ToList();
+            if (occupied.Any(rule => destinationIds.Contains(rule.Id)))
+                return false;
+
+            List<ApparelRule> immediateRules = occupied
+                .Concat(boundaryTransitRules)
+                .GroupBy(rule => rule.Id)
+                .Select(group => group.First())
+                .ToList();
+            List<ApparelRule> combinedRules = immediateRules
+                .Concat(destinationRules)
+                .Where(rule => rule != null)
+                .GroupBy(rule => rule.Id)
+                .Select(group => group.First())
+                .ToList();
+            if (!RequirementsAreCompatible(immediateRules, pawn) ||
+                !RequirementsAreCompatible(destinationRules, pawn) ||
+                RequirementsAreCompatible(combinedRules, pawn))
+            {
+                return false;
+            }
+
+            if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
+                    pawn,
+                    $"staged-boundary-transit:{job.def.defName}:" +
+                    string.Join(",", boundaryTransitRules.Select(rule => rule.Id)),
+                    600))
+            {
+                string transitNames = string.Join(", ",
+                    boundaryTransitRules.Select(rule => $"'{rule.Name}'"));
+                string destinationNames = string.Join(", ",
+                    destinationRules.Select(rule => $"'{rule.Name}'"));
+                AomLog.Detailed(
+                    $"[AutomaticOutfitManager] {pawn.LabelShortCap}: staging " +
+                    $"{job.def.defName} through {transitNames} before preparing " +
+                    $"incompatible destination {destinationNames}; retained the " +
+                    "exact job for sequential continuation.");
+            }
+
+            return true;
         }
 
         internal static bool PendingWorkJobIsViable(
@@ -3702,8 +4141,12 @@ namespace AutomaticOutfitManager.Patches
             AutomaticOutfitManagerGameComponent component =
                 AutomaticOutfitManagerGameComponent.Current;
             PawnApparelState state = component?.StateFor(pawn);
-            if (pawn?.Map == null || job?.def == null || state?.PendingWorkJob == null ||
-                !SameJob(job, state.PendingWorkJob) ||
+            bool pendingContinuation = state?.PendingWorkJob != null &&
+                SameJob(job, state.PendingWorkJob);
+            bool activatedContinuation = state?.PendingWorkJob == null &&
+                state?.PendingBoundaryWorkJobLoadId == job?.loadID;
+            if (pawn?.Map == null || job?.def == null ||
+                (!pendingContinuation && !activatedContinuation) ||
                 state.PendingBoundaryRuleIds?.Count <= 0)
             {
                 return new List<ApparelRule>();
@@ -3845,6 +4288,17 @@ namespace AutomaticOutfitManager.Patches
                 pawn.carryTracker?.CarriedThing != null ||
                 state?.Transition == ApparelTransition.ReturningToChangingArea ||
                 state?.Transition == ApparelTransition.Restoring)
+            {
+                return false;
+            }
+
+            // A targetless wait selected while an exact native continuation is
+            // still preparing belongs to that transition, not to autonomous
+            // idle behavior. Preserve PendingWorkJob so the bounded preparation
+            // retry can either find a new gear candidate or invoke the narrow
+            // essential-personal fallback after confirming a real shortage.
+            if (state?.Transition == ApparelTransition.Preparing &&
+                state.PendingWorkJob != null)
             {
                 return false;
             }

@@ -15,7 +15,7 @@ The compact technical identity is `AutomaticOutfitManager`, including the reposi
 - RimWorld 1.6
 - Harmony
 
-Current release: version `0.3.7`, a transition-stability update. Post-job handoffs, locker return, and saved-outfit restoration recover promptly without extended Standing pauses; completed buffer counts now match across the worker row and compact hover; and AOM-owned gear transitions no longer use unrelated managed areas as shortcuts.
+Current release: version `0.3.8`, a cross-area task-continuity update. A vanilla-style breakdown repair can now carry its single required component out of a differently equipped source area, stage it at the first neutral exterior cell, change for the destination, and resume the exact repair. Prepared meal jobs also resist opportunistic hauling long enough to begin eating, using one bounded recovery attempt rather than an apparel or job loop. Compatibility-rewritten job starts cannot recursively re-promote the same retained boundary job, preventing the rapid hauling and gear-change storms seen during earlier testing.
 
 Dubs Rimatomics inspired the original radiation-PPE scenario, but it is not a dependency. Automatic Outfit Manager does not detect radiation automatically.
 

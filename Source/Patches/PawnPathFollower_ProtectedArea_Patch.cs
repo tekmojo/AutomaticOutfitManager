@@ -76,6 +76,21 @@ namespace AutomaticOutfitManager.Patches
             if (!nextCell.IsValid || !nextCell.InBounds(pawn.Map))
                 return true;
 
+            // A compound work job can collect its required material from one
+            // protected rule and finish at another rule whose outfit cannot be
+            // worn yet. Once the source-equipped pawn reaches that rule's
+            // neutral changing area, stage the carried material there and let
+            // the detached retry prepare the destination outfit. Ending the
+            // native job here is intentional: its driver will restart against
+            // the staged target rather than retaining mid-toil carry state.
+            if (MaterialHandoff.TryStageAtSourceChangingArea(
+                    pawn, currentJob, state, rules, nextCell))
+            {
+                pawn.jobs.EndCurrentJob(
+                    JobCondition.InterruptForced, false, true);
+                return false;
+            }
+
             ApparelRule rule = null;
             bool blockedByActivity = false;
             foreach (ApparelRule candidate in rules)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using AutomaticOutfitManager.Core;
+using AutomaticOutfitManager.Patches;
 using AutomaticOutfitManager.Rules;
 using RimWorld;
 using UnityEngine;
@@ -159,8 +160,26 @@ namespace AutomaticOutfitManager.Detection
             var matches = new List<ApparelRule>();
             foreach (ApparelRule rule in ActiveRulesForMap(pawn.Map))
             {
-                if (JobTargetsArea(job, rule.Area))
+                if (JobPreparationTargetsArea(job, rule.Area))
+                {
                     matches.Add(rule);
+                    continue;
+                }
+
+                if (UsesPrimaryWorksiteTargets(job) &&
+                    JobTargetsArea(job, rule.Area) &&
+                    AomLog.ShouldLogDetailed(
+                        pawn,
+                        $"ignored-auxiliary-area-target:{rule.Id}:" +
+                        $"{job.def?.defName}",
+                        600))
+                {
+                    AomLog.Detailed(
+                        $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
+                        $"ignored auxiliary {job.def?.defName ?? "work"} " +
+                        $"target in '{rule.Name}' because its actual worksite " +
+                        "is outside the area; boundary protection remains active.");
+                }
             }
 
             return matches;
@@ -179,7 +198,7 @@ namespace AutomaticOutfitManager.Detection
                    !rule.WorkAreaPaused &&
                    rule.Area != null &&
                    rule.Area.Map == pawn.Map &&
-                   JobTargetsArea(job, rule.Area);
+                   JobPreparationTargetsArea(job, rule.Area);
         }
 
         public static List<ApparelRule> MatchingLocationRules(Pawn pawn)
@@ -242,7 +261,7 @@ namespace AutomaticOutfitManager.Detection
 
             foreach (ApparelRule rule in activeRules)
             {
-                if (JobTargetsArea(job, rule.Area))
+                if (JobPreparationTargetsArea(job, rule.Area))
                     AddUniqueRule(matches, rule);
             }
 
@@ -513,6 +532,33 @@ namespace AutomaticOutfitManager.Detection
                    TargetsInside(job.targetQueueA, area) ||
                    TargetsInside(job.targetQueueB, area);
         }
+
+        /// <summary>
+        /// Classifies an outfit intervention by the target that represents the
+        /// actual worksite. Ordinary managed work conventionally uses target A
+        /// (and queue A for repeated worksites); target B/C commonly describe
+        /// ingredients, construction materials, or other auxiliary things that
+        /// must not make an unrelated area own the whole job. Hauling and
+        /// non-work jobs retain all target semantics. The path-cell guard still
+        /// enforces every real entry that a late-bound driver chooses.
+        /// </summary>
+        public static bool JobPreparationTargetsArea(Job job, Area area)
+        {
+            if (!UsesPrimaryWorksiteTargets(job))
+                return JobTargetsArea(job, area);
+
+            bool hasPrimaryTarget = job.targetA.IsValid ||
+                job.targetQueueA?.Any(target => target.IsValid) == true;
+            if (!hasPrimaryTarget)
+                return JobTargetsArea(job, area);
+
+            return TargetInside(job.targetA, area) ||
+                   TargetsInside(job.targetQueueA, area);
+        }
+
+        private static bool UsesPrimaryWorksiteTargets(Job job) =>
+            job?.workGiverDef != null &&
+            PausedAreaWorkFilter.UsesManagedWorkPreparation(job);
 
         private static bool TargetsInside(
             IEnumerable<LocalTargetInfo> targets, Area area) =>

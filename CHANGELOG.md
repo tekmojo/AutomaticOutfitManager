@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.8 - 2026-09-04
+
+### Fixed
+
+- Classified ordinary managed work by its primary worksite instead of allowing an auxiliary ingredient or component target to make another area own the whole job.
+- Added a narrow cross-area material handoff for vanilla-style breakdown repair with one component target: the source-equipped pawn carries the component to the first neutral exterior cell, then prepares the destination outfit and resumes the exact repair against the staged component.
+- Preserved incompatible source-transit and destination outfits as sequential stages instead of repeatedly combining them into an impossible requirement.
+- Detached protected-boundary retries from RimWorld's pooled live `Job` object, including mutable target queues, so cleanup cannot erase or alias the saved continuation.
+- Prevented compatibility-rewritten `StartJob` calls from recursively re-promoting the same retained boundary job, eliminating rapid repeated hauling and gear-change recovery storms while preserving later legitimate retries.
+- Protected a prepared meal from compatibility-inserted autonomous hauling until eating genuinely starts, with at most one fresh retry and no false buffer completion from the displaced haul.
+- Cleared transient prepared-meal retry state when a new game or save is loaded so stale pawn and job identifiers cannot cross colony sessions.
+- Kept essential personal jobs from cycling restore and re-equip when a complete managed set remains temporarily unavailable, and made status reporting tolerate a pooled job whose definition was already cleared.
+
+### Changed
+
+- Limited the per-path-step material-handoff check to breakdown repair while an eligible component is actually being carried, avoiding rule-list allocation and gear evaluation during ordinary travel.
+
 ## 0.3.7 - 2026-09-03
 
 ### Fixed

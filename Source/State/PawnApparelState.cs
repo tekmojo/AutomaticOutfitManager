@@ -39,6 +39,9 @@ namespace AutomaticOutfitManager.State
         public int LastWeaponPreparationAttemptTick = -1;
         public int LastWeaponPreparationThingId = -1;
         public int WeaponPreparationRetriesForCurrentCandidate;
+        public int WeaponPreparationStartedTick = -1;
+        public int WeaponPreparationAttemptsThisTransition;
+        public int WeaponPreparationRetriesThisTransition;
         public int RejectedWeaponPreparationThingId = -1;
         public int RejectedWeaponPreparationTick = -1;
         public List<RejectedWeaponPreparation> RejectedWeaponPreparations =
@@ -68,6 +71,7 @@ namespace AutomaticOutfitManager.State
         public Job PendingWorkJob;
         public bool PendingWorkIsManagedWork;
         public List<string> PendingBoundaryRuleIds = new List<string>();
+        public int PendingBoundaryWorkJobLoadId = -1;
         public string LastManagedWorkJobDefName;
         public List<NestedRuleBufferState> NestedRuleBuffers = new List<NestedRuleBufferState>();
         public string LastNestedBufferStatus;
@@ -123,6 +127,12 @@ namespace AutomaticOutfitManager.State
                 "lastWeaponPreparationThingId", -1);
             Scribe_Values.Look(ref WeaponPreparationRetriesForCurrentCandidate,
                 "weaponPreparationRetriesForCurrentCandidate", 0);
+            Scribe_Values.Look(ref WeaponPreparationStartedTick,
+                "weaponPreparationStartedTick", -1);
+            Scribe_Values.Look(ref WeaponPreparationAttemptsThisTransition,
+                "weaponPreparationAttemptsThisTransition", 0);
+            Scribe_Values.Look(ref WeaponPreparationRetriesThisTransition,
+                "weaponPreparationRetriesThisTransition", 0);
             Scribe_Values.Look(ref RejectedWeaponPreparationThingId,
                 "rejectedWeaponPreparationThingId", -1);
             Scribe_Values.Look(ref RejectedWeaponPreparationTick,
@@ -178,6 +188,8 @@ namespace AutomaticOutfitManager.State
             Scribe_Values.Look(ref PendingWorkIsManagedWork, "pendingWorkIsManagedWork", false);
             Scribe_Collections.Look(ref PendingBoundaryRuleIds,
                 "pendingBoundaryRuleIds", LookMode.Value);
+            Scribe_Values.Look(ref PendingBoundaryWorkJobLoadId,
+                "pendingBoundaryWorkJobLoadId", -1);
             Scribe_Values.Look(ref LastManagedWorkJobDefName, "lastManagedWorkJobDefName");
             Scribe_Collections.Look(ref NestedRuleBuffers, "nestedRuleBuffers", LookMode.Deep);
             Scribe_Values.Look(ref LastNestedBufferStatus, "lastNestedBufferStatus");
@@ -190,6 +202,10 @@ namespace AutomaticOutfitManager.State
             CurrentRuleIds ??= new List<string>();
             PauseRecallRuleIds ??= new List<string>();
             PendingBoundaryRuleIds ??= new List<string>();
+            if (PendingBoundaryRuleIds.Count == 0)
+                PendingBoundaryWorkJobLoadId = -1;
+            else if (PendingBoundaryWorkJobLoadId < 0 && PendingWorkJob != null)
+                PendingBoundaryWorkJobLoadId = PendingWorkJob.loadID;
             NestedRuleBuffers ??= new List<NestedRuleBufferState>();
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
@@ -308,6 +324,7 @@ namespace AutomaticOutfitManager.State
                 WeaponInterventionActive = true;
                 WeaponPlayerOverride = false;
                 WeaponRuleOverrideExplicit = false;
+                ClearWeaponPreparationRetry();
                 RejectedWeaponPreparations?.Clear();
             }
 
@@ -325,25 +342,46 @@ namespace AutomaticOutfitManager.State
         public void RecordWeaponPreparationAttempt(ThingWithComps weapon)
         {
             int weaponId = weapon?.thingIDNumber ?? -1;
+            int currentTick = Find.TickManager?.TicksGame ?? 0;
+            if (WeaponPreparationStartedTick < 0)
+                WeaponPreparationStartedTick = currentTick;
+            if (weaponId >= 0 &&
+                (LastWeaponPreparationAttemptTick < 0 ||
+                 LastWeaponPreparationThingId != weaponId))
+            {
+                WeaponPreparationAttemptsThisTransition++;
+            }
             if (LastWeaponPreparationThingId != weaponId)
                 WeaponPreparationRetriesForCurrentCandidate = 0;
-            LastWeaponPreparationAttemptTick = Find.TickManager?.TicksGame ?? 0;
+            LastWeaponPreparationAttemptTick = currentTick;
             LastWeaponPreparationThingId = weaponId;
         }
 
         public bool TryUseWeaponPreparationRetry(
-            ThingWithComps weapon, int retryLimit = 1)
+            ThingWithComps weapon, int retryLimit = 1,
+            int transitionRetryLimit = 1)
         {
             if (weapon == null ||
                 LastWeaponPreparationThingId != weapon.thingIDNumber ||
-                WeaponPreparationRetriesForCurrentCandidate >= retryLimit)
+                WeaponPreparationRetriesForCurrentCandidate >= retryLimit ||
+                WeaponPreparationRetriesThisTransition >= transitionRetryLimit)
             {
                 return false;
             }
 
             WeaponPreparationRetriesForCurrentCandidate++;
+            WeaponPreparationRetriesThisTransition++;
+            WeaponPreparationAttemptsThisTransition++;
             LastWeaponPreparationAttemptTick = Find.TickManager?.TicksGame ?? 0;
             return true;
+        }
+
+        public bool WeaponPreparationBudgetExceeded(
+            int currentTick, int attemptLimit, int timeLimitTicks)
+        {
+            return WeaponPreparationAttemptsThisTransition >= attemptLimit ||
+                   (WeaponPreparationStartedTick >= 0 &&
+                    currentTick - WeaponPreparationStartedTick >= timeLimitTicks);
         }
 
         public void RejectLastWeaponPreparationAttempt()
@@ -472,6 +510,9 @@ namespace AutomaticOutfitManager.State
             LastWeaponPreparationAttemptTick = -1;
             LastWeaponPreparationThingId = -1;
             WeaponPreparationRetriesForCurrentCandidate = 0;
+            WeaponPreparationStartedTick = -1;
+            WeaponPreparationAttemptsThisTransition = 0;
+            WeaponPreparationRetriesThisTransition = 0;
         }
 
         public void ClearPendingBufferedTask()

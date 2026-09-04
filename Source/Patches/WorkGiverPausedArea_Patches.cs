@@ -882,13 +882,36 @@ namespace AutomaticOutfitManager.Patches
             if (!ActivityAllowedAtRuleBoundary(pawn, job, rule))
                 return false;
 
-            // Direct targets are handled by RuleEvaluator.MatchesRule. This
-            // branch covers every unrelated destination whose actual route
-            // crosses the protected area, including beds and other essential
-            // personal destinations. Activity type never exempts pass-through
-            // from the complete apparel and primary-weapon requirement.
-            return !RuleEvaluator.JobTargetsArea(job, rule.Area) &&
-                   JobPathCrossesArea(pawn, job, rule.Area);
+            // The actual worksite is handled by RuleEvaluator.MatchesRule.
+            // Auxiliary materials inside an area do not make that area own an
+            // outside work job. Pre-prepare for transit only when even the
+            // strong protected-area avoidance route still crosses the area;
+            // the path-cell guard remains the authority for late-bound entry.
+            if (RuleEvaluator.JobPreparationTargetsArea(job, rule.Area) ||
+                !ProtectedPathAvoidance.JobPathCrossesArea(
+                    pawn, job, rule.Area))
+            {
+                return false;
+            }
+
+            bool unavoidable = ProtectedPathAvoidance
+                .RouteRequiresRestrictedArea(
+                    pawn, job, new[] { rule }, false);
+            if (unavoidable && AomLog.DetailedEnabled &&
+                AomLog.ShouldLogDetailed(
+                    pawn,
+                    $"unavoidable-protected-transit:{rule.Id}:" +
+                    $"{job.def?.defName}",
+                    600))
+            {
+                AomLog.Detailed(
+                    $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
+                    $"qualified {job.def?.defName ?? "job"} for " +
+                    $"'{rule.Name}' because every viable route crosses the " +
+                    "protected area.");
+            }
+
+            return unavoidable;
         }
 
         private static bool JobPathCrossesArea(Pawn pawn, Job job, Area area)

@@ -411,9 +411,15 @@ namespace AutomaticOutfitManager.UI
 
         private static string JobActivity(Pawn pawn, Job job)
         {
-            string activity = job?.GetReport(pawn);
+            // A Job returned to RimWorld's pool can remain briefly observable
+            // during error recovery with its def already cleared. Status text
+            // must not ask such a Job to construct a driver/report.
+            if (job?.def == null)
+                return "Task";
+
+            string activity = job.GetReport(pawn);
             if (string.IsNullOrEmpty(activity))
-                activity = job?.def?.label ?? "Task";
+                activity = job.def.label ?? "Task";
             return activity.CapitalizeFirst();
         }
 

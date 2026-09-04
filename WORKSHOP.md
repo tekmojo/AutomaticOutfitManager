@@ -24,8 +24,9 @@ Create a RimWorld area, choose required apparel and optional exact primary-weapo
 
 [quote][b]RimWorld 1.6[/b] | [b]Harmony required[/b] | Vanilla and modded gear | Basic logging by default[/quote]
 
-[quote][b]Latest update — 0.3.7[/b]
-Post-job handoffs, locker return, and saved-outfit restoration now recover promptly without extended Standing pauses. Completed buffer counts match between worker rows and compact hovers, and AOM-owned gear transitions no longer use unrelated managed areas as shortcuts.
+[quote][b]Latest update — 0.3.8[/b]
+Cross-area breakdown repairs can hand one required component out of a differently equipped source area before changing for the destination. Prepared meals now resist opportunistic hauling long enough to begin eating, without unbounded retries or false buffer progress.
+Retained boundary jobs are admitted once even when another compatibility patch rewrites the job start, preventing rapid repeated hauling and gear changes.
 [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788]Read the full change notes[/url][/quote]
 
 [h1]How it works[/h1]
@@ -114,6 +115,12 @@ If Automatic Outfit Manager helps your colony, a rating or favorite helps other 
 Automatic Outfit Manager's original source code and documentation are licensed under the MIT License. Third-party software, RimWorld materials, trademarks, and game-derived screenshots retain their respective rights; see LICENSE and NOTICE.md in the source repository and mod package.
 
 Portions of the materials used to create this content/mod are trademarks and/or copyrighted works of Ludeon Studios Inc. All rights reserved by Ludeon. This content/mod is not official and is not endorsed by Ludeon.
+```
+
+## Version 0.3.8 change note
+
+```text
+Fixes the tested cross-area task-continuity failures and their gear-change loops. Ordinary managed work is now classified by its actual worksite rather than an auxiliary material target. For vanilla-style breakdown repair with one component target, a source-equipped pawn can carry the component to the first neutral exterior cell, change for the destination area, and resume the exact repair without oscillating between incompatible outfits. Protected boundary retries keep detached job data instead of retaining a pooled live job, and compatibility-rewritten job starts cannot recursively re-admit the same retained haul. Prepared meal jobs receive one bounded recovery when opportunistic hauling tries to replace them, and the displaced haul cannot consume task-buffer progress. Essential personal jobs also avoid restore/re-equip cycling during a confirmed temporary gear shortage. No rule setup changes are required.
 ```
 
 ## Version 0.3.7 change note
