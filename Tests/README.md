@@ -1,6 +1,6 @@
 # Testing and audit records
 
-[Workshop 0.4.0 closeout](WORKSHOP-CLOSEOUT-0.4.0.md) records public copy/gallery verification, the exact downloaded package and restored local junction. GitHub publication remains pending.
+[Workshop 0.4.0 closeout](WORKSHOP-CLOSEOUT-0.4.0.md) records public copy/gallery verification, the exact downloaded package and restored local junction. [GitHub closeout](GITHUB-CLOSEOUT-0.4.0.md) records the completed release, tag and verified assets/gallery.
 
 Use [NEXT-UPDATE-READINESS.md](NEXT-UPDATE-READINESS.md) and the [release checklist](../RELEASE-CHECKLIST.md) for the current 0.4.0 candidate. [RELEASE-COPY-AUDIT-0.4.0.md](RELEASE-COPY-AUDIT-0.4.0.md) covers this copy/inspection build, its checks and the distinction from the last gameplay-tested DLL.
 

@@ -1,6 +1,6 @@
 # 0.4.0 release checklist
 
-**Status: 0.4.0 published on Workshop; downloaded package verified. GitHub publication in progress.** This is the current checklist. Earlier audit decisions remain in the [release history](RELEASE-HISTORY-0.3.x.md); later fixes supersede older unresolved findings there.
+**Status: 0.4.0 published on Workshop; downloaded package verified. GitHub 0.4.0 published and verified.** This is the current checklist. Earlier audit decisions remain in the [release history](RELEASE-HISTORY-0.3.x.md); later fixes supersede older unresolved findings there.
 
 User-authorized local deployment verified on 2026-09-06T19:08:41.8328008-06:00: DLL and the three updated runtime XML files match RC/live/installed. Current DLL `F00A4B06756118DBE8C6EA50681980F6A52248024F2AD1AA811761C65B08AF24`. The maintainer subsequently confirmed blocked saved-item recovery, cooking after a Non-Work outfit change and Delete confirmation passed. These are maintainer-reported results; no new recording/log accompanied that confirmation. See [package validation](Tests/RELEASE-PACKAGE-0.4.0.md).
 
@@ -38,13 +38,13 @@ Raw local evidence links remain in the history; they are development records out
 - [x] Prepare the matching GitHub guide/gallery and retire the nine older active gallery files; preserve Git history and a local backup. Public rendering is checked during closeout.
 - [x] Retain and verify the current branded cover (640×360, 369,895 bytes) and transparent 64×64 icons. These are separate from the eight replacement gameplay screenshots.
 - [x] Verify the published Workshop description, Latest update and full change note, including the maintainer's final wording change.
-- [ ] Complete the GitHub wording/date check at its publication.
+- [x] Verify GitHub release wording/date, ZIP/checksum digests and all eight rendered gallery images.
 
 ## Release operations
 
-Workshop 0.4.0 is public on item **3792731788**, Automatic Outfit Manager by tekmojo, with Harmony required. Its eight replacement images and copy are verified. Steam manifest `1496049653910862886` contains the exact 12 staged files (981,162 bytes). The installed junction is restored to the live repository with the release DLL. See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.0.md). GitHub publication remains pending.
+Workshop 0.4.0 is public on item **3792731788**, Automatic Outfit Manager by tekmojo, with Harmony required. Its eight replacement images and copy are verified. Steam manifest `1496049653910862886` contains the exact 12 staged files (981,162 bytes). The installed junction is restored to the live repository with the release DLL. See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.0.md). GitHub 0.4.0 is also public and latest. [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.0.md) records the immutable release commit, asset digests and gallery verification.
 
-- [ ] Freeze the tested candidate; review intentional source changes and create the authorized release commit/tag.
+- [x] Freeze all 100 validated inputs; commit release content as `6a3fa943636d721ac39d6727d594b143bc1ba06d`, tag `v0.4.0` and fast-forward main. Preserve the separate dirty live checkout.
 - [x] Stage with `package-workshop.ps1`, inspect the exact 12-file allowlist/manifest and verify DLL, metadata and assets. Package bytes: 981,162; ZIP bytes: 593,543. Every ZIP entry matches the stage. [Recorded hashes and results](Tests/RELEASE-PACKAGE-0.4.0.md).
 - [x] Verify existing Workshop item **3792731788** and preserve its `PublishedFileId.txt` in the stage. Updating an existing public item does not authorize changing its identity or visibility. Validate without disrupting current subscribers.
 - [x] Verify the staged About card and runtime for the authorized upload; maintainer completed the upload.
@@ -52,6 +52,6 @@ Workshop 0.4.0 is public on item **3792731788**, Automatic Outfit Manager by tek
 - [x] Restore the temporary stage junction to the live repository with RimWorld closed; verify installed DLL and official Workshop ID.
 - [ ] Optional subscriber-loaded in-game smoke with the development junction disabled; not performed in closeout.
 - [x] Publish and verify the approved Workshop description, compact update, full change note and eight-image gallery.
-- [ ] Publish the matching GitHub release/package; verify remote asset size/digest and record the release commit/tag.
+- [x] Publish GitHub 0.4.0 as latest; verify ZIP and checksum asset sizes/digests and release notes. Verify eight new gallery images load in order with their original dimensions; nine old active images are retired.
 
-Build, deployment, game testing, packaging and publication are separate recorded states. Workshop runtime, copy and gallery publication are complete. GitHub release/gallery publication and native subscriber smoke remain separate pending states.
+Build, deployment, game testing, packaging and publication are separate recorded states. Workshop runtime, copy and gallery publication are complete. GitHub release/gallery publication is also complete. Native subscriber smoke, the full UI/load matrix and optional measured performance baseline remain unclaimed checks.

@@ -1,5 +1,7 @@
 # Workshop 0.4.0 closeout — 2026-09-06
 
+Subsequent GitHub publication is complete; see [GitHub closeout](GITHUB-CLOSEOUT-0.4.0.md). The statements below describe the earlier Workshop-only closeout.
+
 Workshop publication is complete. The maintainer uploaded the runtime, saved the final description/change note and replaced the gameplay gallery. Read-only browser checks confirmed the public result. GitHub release publication remains pending; no release commit, tag or push was made during this closeout.
 
 - Public item: [Automatic Outfit Manager](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788), creator tekmojo, ID `3792731788`, public, Mod/1.6, Harmony required.

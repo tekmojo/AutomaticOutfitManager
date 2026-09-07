@@ -34,7 +34,7 @@ Before uploading, recheck actual file sizes and the active Workshop uploader's f
 - [x] Replace every existing Workshop gameplay screenshot with these eight in the listed order; confirm the old gallery entries are gone.
 - [x] Update the GitHub guide/gallery in this release to these eight images and retire the nine previous active gallery files, preserving history and a local backup.
 - [x] Verify Workshop image identities and ordering. The table captions remain local descriptive copy; individual public caption text is not certified.
-- [ ] Verify the published GitHub gallery when released.
+- [x] Verify the published GitHub gallery: all eight images load in order at their original dimensions, with the documented captions; nine previous active gallery files are retired. See [GitHub closeout](../Tests/GITHUB-CLOSEOUT-0.4.0.md).
 
 The screenshots show portions of the new interface. They do not by themselves certify save/load continuity, Delete confirmation, completed recovery jobs or measured performance. Those checks remain in the [release checklist](../RELEASE-CHECKLIST.md). The current set shows All Work Outfits enabled, not a selective-removal example; it shows conflicts and source names, but no [Retained] row. Captions deliberately describe what is visible.
 

@@ -4,7 +4,7 @@
 
 Automatic Outfit Manager lets you choose outfits and access permissions for RimWorld map areas. Use **Work Area Rules** for protective clothing, uniforms or primary weapons. Use **Non-Work Area Rules** to return work outfits before entering a dining room, lounge or bedroom.
 
-**Version 0.4.0** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [GitHub releases](https://github.com/tekmojo/AutomaticOutfitManager/releases) · [Changelog](CHANGELOG.md)
+**Version 0.4.0** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [GitHub download](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.0) · [Changelog](CHANGELOG.md)
 
 Requires **RimWorld 1.6** and **Harmony**. Vanilla and modded apparel and primary weapons are supported. Radiation equipment inspired the original mod, but Rimatomics is not required. You choose the areas and gear; AOM does not create rules from detected hazards.
 
