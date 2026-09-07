@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using AutomaticOutfitManager.Core;
 using AutomaticOutfitManager.Detection;
 using AutomaticOutfitManager.Rules;
@@ -76,6 +77,12 @@ namespace AutomaticOutfitManager.Patches
             if (!nextCell.IsValid || !nextCell.InBounds(pawn.Map))
                 return true;
 
+            if (BufferedTransitGuard.BlockUnnecessaryEntry(pawn, currentJob, nextCell))
+                return false;
+
+            if (NonWorkMealHandoff.BlockEntry(pawn, nextCell))
+                return false;
+
             // A compound work job can collect its required material from one
             // protected rule and finish at another rule whose outfit cannot be
             // worn yet. Once the source-equipped pawn reaches that rule's
@@ -150,6 +157,21 @@ namespace AutomaticOutfitManager.Patches
             if (rule == null)
                 return true;
 
+            // Only inspect conflicts after a real block, keeping the ordinary
+            // path-cell fast path allocation-free. Late-bound chairs, beds and
+            // routes must not alternate incompatible work/personal outfits.
+            bool conflictingOutfits = !managedTransitionJob && rules.Any(candidate =>
+                    candidate.IsNonWork && !candidate.WorkAreaPaused && candidate.Area[nextCell]) &&
+                (RuleEvaluator.SavedNonWorkOutfitConflicts(pawn, rules.Where(candidate =>
+                    !candidate.WorkAreaPaused && candidate.Area[nextCell])) ||
+                 RuleEvaluator.SelectedNonWorkOutfitConflicts(pawn, rules.Where(candidate =>
+                    !candidate.WorkAreaPaused && candidate.Area[nextCell])));
+            if (conflictingOutfits)
+            {
+                UnavailableWorkRegistry.Block(pawn, rule, currentJob);
+                pawn.jobs.ClearQueuedJobs(false);
+            }
+
             if (AomLog.DetailedEnabled)
             {
                 int tick = Find.TickManager?.TicksGame ?? 0;
@@ -187,7 +209,7 @@ namespace AutomaticOutfitManager.Patches
             if (rule.WorkAreaPaused)
                 pawn.jobs.ClearQueuedJobs(false);
 
-            if (!blockedByActivity && !managedTransitionJob)
+            if (!blockedByActivity && !managedTransitionJob && !conflictingOutfits)
             {
                 // Some native drivers choose their real destination after
                 // StartJob. Record the concrete job that exposed this boundary
@@ -197,46 +219,16 @@ namespace AutomaticOutfitManager.Patches
                 ProtectedBoundaryRetryRegistry.Record(pawn, currentJob, rule);
             }
 
-            if (blockedByActivity &&
-                PawnAccessClassifier.IsHostedGuest(pawn))
+            if (blockedByActivity)
             {
-                // Ingest and several recreation drivers choose their final
-                // dining/interaction cell only after StartJob. If that late
-                // destination reaches a guest-disabled boundary, ending the job
-                // alone lets the thinker select the same activity and route on
-                // the next tick. Move an inside guest out when possible, or
-                // yield safely in place when they are already outside.
+                // The same late-bound activity denial applies to every
+                // humanlike group, including slaves and prisoners. Use a
+                // bounded safe wait if no exit exists, never a recursive retry.
                 pawn.jobs.ClearQueuedJobs(false);
-                Job safeGuestJob;
-                if (!PausedAreaWorkFilter.TryMakeWanderingExitJob(
-                        pawn, out safeGuestJob))
-                {
-                    safeGuestJob =
-                        PawnJobTracker_StartJob_Patch.MakeSafeWaitJob(
-                            pawn, 180);
-                }
-                pawn.jobs.StartJob(
-                    safeGuestJob, JobCondition.InterruptForced,
-                    null, false, true);
-                return false;
-            }
-
-            if (blockedByActivity &&
-                PawnAccessClassifier.IsColonyPrisoner(pawn) &&
-                PawnJobTracker_StartJob_Patch
-                    .IsNativePrisonerUnavailableGearFallbackJobFamily(
-                        pawn, currentJob))
-            {
-                // A prisoner's native think tree can have no second roaming
-                // choice after its GotoWander is rejected at an area boundary.
-                // Starting a fixed prisoner-safe posture wait avoids IdleError
-                // without allowing the prohibited cell or synchronously asking
-                // the thinker for the same route again.
-                pawn.jobs.ClearQueuedJobs(false);
-                Job safeWait = PawnJobTracker_StartJob_Patch.MakeSafeWaitJob(
-                    pawn, 120);
-                pawn.jobs.StartJob(
-                    safeWait, JobCondition.InterruptForced,
+                if (!PausedAreaWorkFilter.TryMakeAccessExitJob(
+                        pawn, currentJob, out Job safeAccessJob))
+                    safeAccessJob = PawnJobTracker_StartJob_Patch.MakeSafeWaitJob(pawn, 180);
+                pawn.jobs.StartJob(safeAccessJob, JobCondition.InterruptForced,
                     null, false, true);
                 return false;
             }
@@ -280,8 +272,8 @@ namespace AutomaticOutfitManager.Patches
                 return true;
             }
 
-            bool trackedRule = state.ActiveRuleId == rule.Id ||
-                state.CurrentRuleIds?.Contains(rule.Id) == true;
+            bool trackedRule = GearRetrievalRoute.IsTrackedSource(
+                state, currentJob.targetA.Thing, rule);
 
             // Same-map locker-return targets are selected outside the
             // state-protected rules. A cross-map return may legitimately need a

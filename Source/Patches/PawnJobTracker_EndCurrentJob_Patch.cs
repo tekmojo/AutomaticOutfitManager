@@ -28,16 +28,22 @@ namespace AutomaticOutfitManager.Patches
             if (pawn == null || endingJob == null)
                 return;
 
+            ConstructionDeliveryDiagnostics.Report(pawn, endingJob, "ended " + condition);
+            if (ChildcareContinuation.End(pawn, endingJob, condition)) return;
+            NonWorkBufferTracker.End(pawn, endingJob, condition);
+            NonWorkMealHandoff.NotifyEnded(pawn, endingJob);
             PreparedIngestRetryRegistry.NotifyEnded(
                 pawn, endingJob, condition);
 
             AutomaticOutfitManagerGameComponent component =
                 AutomaticOutfitManagerGameComponent.Current;
             component?.NotifySavedWeaponHaulReleased(pawn, endingJob);
+            SavedGearRecovery.NotifyEnded(pawn, endingJob);
             PawnApparelState state = component?.StateFor(pawn);
             if (state == null)
                 return;
 
+            WeaponPreparationDiagnostics.Ended(pawn, state, endingJob, condition);
             MaterialHandoff.NotifyJobEnded(pawn, endingJob, state);
 
             if (condition == JobCondition.Succeeded &&
@@ -53,6 +59,18 @@ namespace AutomaticOutfitManager.Patches
             RecordDepartureRestorationProgress(state, endingJob, condition);
             RecordSavedWeaponRestorationOutcome(
                 pawn, state, endingJob, condition);
+            if (PreparationJobHandoff.PreservePreparedActivity(pawn, state, endingJob))
+            {
+                // This exact native cleanup precedes the queued prepared job;
+                // it is not an additional task after leaving that work area.
+                if (state.PendingBufferedJobLoadId == endingJob.loadID)
+                    state.ClearPendingBufferedTask();
+                foreach (NestedRuleBufferState progress in
+                         state.NestedRuleBuffers ?? new List<NestedRuleBufferState>())
+                    if (progress?.PendingJobLoadId == endingJob.loadID)
+                        progress.PendingJobLoadId = -1;
+                return;
+            }
             if (PreparedIngestRetryRegistry.TrySuppressCompletedHaulBuffer(
                     pawn, state, endingJob, condition,
                     out string ingestBufferDescription))

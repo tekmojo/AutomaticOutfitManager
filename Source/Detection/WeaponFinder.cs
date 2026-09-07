@@ -15,7 +15,8 @@ namespace AutomaticOutfitManager.Detection
             Pawn pawn,
             CombinedWeaponRequirement requirement,
             Area changingArea = null,
-            ISet<Thing> excludedThings = null)
+            ISet<Thing> excludedThings = null,
+            System.Predicate<ThingWithComps> candidateAllowed = null)
         {
             if (pawn?.Map == null || requirement?.HasRequirement != true)
                 return null;
@@ -26,7 +27,7 @@ namespace AutomaticOutfitManager.Detection
             {
                 ThingWithComps preferred = FindClosest(
                     pawn, requirement, changingArea, preferredDef,
-                    excludedThings: excludedThings);
+                    excludedThings: excludedThings, candidateAllowed: candidateAllowed);
                 if (preferred != null)
                     return ReportSelection(
                         pawn, preferred, preferredRanged, "locker");
@@ -38,7 +39,7 @@ namespace AutomaticOutfitManager.Detection
                         requirement,
                         changingArea,
                         preferredRanged: preferredRanged,
-                        excludedThings: excludedThings);
+                        excludedThings: excludedThings, candidateAllowed: candidateAllowed);
                     if (categoryPreferred != null)
                     {
                         return ReportSelection(
@@ -54,7 +55,7 @@ namespace AutomaticOutfitManager.Detection
             {
                 ThingWithComps mapPreferred = FindClosest(
                     pawn, requirement, null, preferredDef,
-                    excludedThings: excludedThings);
+                    excludedThings: excludedThings, candidateAllowed: candidateAllowed);
                 if (mapPreferred != null)
                     return ReportSelection(
                         pawn, mapPreferred, preferredRanged, "map");
@@ -67,7 +68,7 @@ namespace AutomaticOutfitManager.Detection
                     requirement,
                     null,
                     preferredRanged: preferredRanged,
-                    excludedThings: excludedThings);
+                    excludedThings: excludedThings, candidateAllowed: candidateAllowed);
                 if (categoryPreferred != null)
                 {
                     return ReportSelection(
@@ -86,7 +87,7 @@ namespace AutomaticOutfitManager.Detection
             {
                 ThingWithComps lockerFallback = FindClosest(
                     pawn, requirement, changingArea,
-                    excludedThings: excludedThings);
+                    excludedThings: excludedThings, candidateAllowed: candidateAllowed);
                 if (lockerFallback != null)
                 {
                     return ReportSelection(
@@ -95,7 +96,7 @@ namespace AutomaticOutfitManager.Detection
             }
 
             ThingWithComps mapFallback = FindClosest(
-                pawn, requirement, null, excludedThings: excludedThings);
+                pawn, requirement, null, excludedThings: excludedThings, candidateAllowed: candidateAllowed);
             return ReportSelection(
                 pawn, mapFallback, preferredRanged, "map fallback");
         }
@@ -106,7 +107,8 @@ namespace AutomaticOutfitManager.Detection
             Area area,
             ThingDef exactDef = null,
             bool? preferredRanged = null,
-            ISet<Thing> excludedThings = null)
+            ISet<Thing> excludedThings = null,
+            System.Predicate<ThingWithComps> candidateAllowed = null)
         {
             return GenClosest.ClosestThingReachable(
                 pawn.Position,
@@ -135,8 +137,10 @@ namespace AutomaticOutfitManager.Detection
                              .IsManagedWeaponAssignedToOtherPawn(weapon, pawn) != true &&
                          AutomaticOutfitManagerGameComponent.Current?
                              .StateFor(pawn)?.IsTemporarilyRejectedWeapon(weapon) != true &&
+                         !WeaponPreparationRetryRegistry.IsDeferred(pawn, weapon) &&
                          ReservationUtility_SavedApparel_Patch
-                             .CanReserveForOutfit(pawn, weapon)) as ThingWithComps;
+                             .CanReserveForOutfit(pawn, weapon) &&
+                         (candidateAllowed == null || candidateAllowed(weapon))) as ThingWithComps;
         }
 
         private static ThingDef PreferredExactDefinition(

@@ -15,7 +15,8 @@ namespace AutomaticOutfitManager.Detection
             ThingDef def,
             Area changingArea = null,
             ISet<Thing> excludedThings = null,
-            IEnumerable<ApparelRule> standards = null)
+            IEnumerable<ApparelRule> standards = null,
+            System.Predicate<Apparel> candidateAllowed = null)
         {
             if (pawn?.Map == null || def == null)
                 return null;
@@ -25,9 +26,9 @@ namespace AutomaticOutfitManager.Detection
                 .Distinct()
                 .ToList() ?? new List<ApparelRule>();
             Apparel preferred = FindClosest(
-                pawn, def, changingArea, excludedThings, requiredStandards);
+                pawn, def, changingArea, excludedThings, requiredStandards, candidateAllowed);
             return preferred ?? FindClosest(
-                pawn, def, null, excludedThings, requiredStandards);
+                pawn, def, null, excludedThings, requiredStandards, candidateAllowed);
         }
 
         private static Apparel FindClosest(
@@ -35,7 +36,7 @@ namespace AutomaticOutfitManager.Detection
             ThingDef def,
             Area area,
             ISet<Thing> excludedThings,
-            IReadOnlyList<ApparelRule> standards)
+            IReadOnlyList<ApparelRule> standards, System.Predicate<Apparel> candidateAllowed)
         {
             return GenClosest.ClosestThingReachable(
                 pawn.Position,
@@ -56,7 +57,8 @@ namespace AutomaticOutfitManager.Detection
                          AutomaticOutfitManager.Core.AutomaticOutfitManagerGameComponent.Current?
                              .IsManagedApparelAssignedToOtherPawn(apparel, pawn) != true &&
                          ReservationUtility_SavedApparel_Patch
-                             .CanReserveForOutfit(pawn, apparel)) as Apparel;
+                             .CanReserveForOutfit(pawn, apparel) &&
+                         (candidateAllowed == null || candidateAllowed(apparel))) as Apparel;
         }
     }
 }

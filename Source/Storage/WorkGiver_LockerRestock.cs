@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using AutomaticOutfitManager.Core;
+using AutomaticOutfitManager.Detection;
 using AutomaticOutfitManager.Rules;
 using RimWorld;
 using Verse;
@@ -21,12 +22,12 @@ namespace AutomaticOutfitManager.Storage
         public override PathEndMode PathEndMode => PathEndMode.ClosestTouch;
 
         public override bool HasJobOnThing(Pawn pawn, Thing t, bool forced = false) =>
-            TryMakeJob(pawn, t as Apparel, out _);
+            TryMakeJob(pawn, t as Apparel, forced, out _);
 
         public override Job JobOnThing(Pawn pawn, Thing t, bool forced = false) =>
-            TryMakeJob(pawn, t as Apparel, out Job job) ? job : null;
+            TryMakeJob(pawn, t as Apparel, forced, out Job job) ? job : null;
 
-        private static bool TryMakeJob(Pawn pawn, Apparel apparel, out Job job)
+        private static bool TryMakeJob(Pawn pawn, Apparel apparel, bool forced, out Job job)
         {
             job = null;
             if (apparel?.Spawned != true || pawn?.Map == null ||
@@ -36,6 +37,14 @@ namespace AutomaticOutfitManager.Storage
             }
 
             AutomaticOutfitManagerGameComponent component = AutomaticOutfitManagerGameComponent.Current;
+            if (!forced && ManagedWorkClaimRegistry.IsClaimedByOther(
+                    pawn, pawn.Map, apparel, apparel.Position)) return false;
+
+            // Saved personal gear is not necessarily a work-rule definition.
+            // Offer its exact recovery through ordinary Hauling work as well.
+            if (component?.RestoringOwnerForSavedGear(apparel) != null)
+                return SavedGearRecovery.TryMakeRecoveryJob(pawn, apparel, forced, out job);
+
             List<ApparelRule> rules = null;
             if (component?.Rules != null)
             {
@@ -82,9 +91,8 @@ namespace AutomaticOutfitManager.Storage
 
                 foreach (ISlotGroup slotGroup in lockerStorage)
                 {
-                    if (!StoreUtility.TryFindBestBetterStoreCellForIn(
-                            apparel, pawn, pawn.Map, StoragePriority.Unstored,
-                            pawn.Faction, slotGroup, out IntVec3 destination))
+                    if (!LockerHaulDestination.TryFind(pawn, apparel, rule.ChangingArea,
+                            slotGroup, forced, out IntVec3 destination))
                     {
                         continue;
                     }
@@ -92,6 +100,11 @@ namespace AutomaticOutfitManager.Storage
                     job = JobMaker.MakeJob(JobDefOf.HaulToCell, apparel, destination);
                     job.count = 1;
                     job.haulOpportunisticDuplicates = false;
+                    if (!forced && ManagedWorkCandidateFilter.Rejects(pawn, job))
+                    {
+                        job = null;
+                        continue;
+                    }
                     return true;
                 }
             }
@@ -116,9 +129,9 @@ namespace AutomaticOutfitManager.Storage
         {
             AutomaticOutfitManagerGameComponent component =
                 AutomaticOutfitManagerGameComponent.Current;
-            return pawn?.Map == null || component?.Rules?.Any(rule =>
+            return pawn?.Map == null || (component?.Rules?.Any(rule =>
                 rule?.Enabled == true && rule.ChangingArea?.Map == pawn.Map &&
-                rule.UsesExactWeapons) != true;
+                rule.UsesExactWeapons) != true && !SavedGearRecovery.SavedWeaponsOnMap(pawn.Map).Any());
         }
 
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
@@ -129,6 +142,9 @@ namespace AutomaticOutfitManager.Storage
                 yield break;
 
             var visitedDefs = new HashSet<ThingDef>();
+            var visitedThings = new HashSet<Thing>();
+            foreach (Thing weapon in SavedGearRecovery.SavedWeaponsOnMap(pawn.Map))
+                if (visitedThings.Add(weapon)) yield return weapon;
             foreach (ApparelRule rule in component.Rules.Where(rule =>
                          rule?.Enabled == true &&
                          rule.ChangingArea?.Map == pawn.Map &&
@@ -138,19 +154,19 @@ namespace AutomaticOutfitManager.Storage
                              def?.IsWeapon == true && visitedDefs.Add(def)))
                 {
                     foreach (Thing weapon in pawn.Map.listerThings.ThingsOfDef(def))
-                        yield return weapon;
+                        if (visitedThings.Add(weapon)) yield return weapon;
                 }
             }
         }
 
         public override bool HasJobOnThing(Pawn pawn, Thing t, bool forced = false) =>
-            TryMakeJob(pawn, t as ThingWithComps, out _);
+            TryMakeJob(pawn, t as ThingWithComps, forced, out _);
 
         public override Job JobOnThing(Pawn pawn, Thing t, bool forced = false) =>
-            TryMakeJob(pawn, t as ThingWithComps, out Job job) ? job : null;
+            TryMakeJob(pawn, t as ThingWithComps, forced, out Job job) ? job : null;
 
         private static bool TryMakeJob(
-            Pawn pawn, ThingWithComps weapon, out Job job)
+            Pawn pawn, ThingWithComps weapon, bool forced, out Job job)
         {
             job = null;
             if (weapon?.def?.IsWeapon != true || weapon.Spawned != true ||
@@ -161,6 +177,10 @@ namespace AutomaticOutfitManager.Storage
 
             AutomaticOutfitManagerGameComponent component =
                 AutomaticOutfitManagerGameComponent.Current;
+            if (!forced && ManagedWorkClaimRegistry.IsClaimedByOther(
+                    pawn, pawn.Map, weapon, weapon.Position)) return false;
+            if (component?.RestoringOwnerForSavedGear(weapon) != null)
+                return SavedGearRecovery.TryMakeRecoveryJob(pawn, weapon, forced, out job);
             if (component?.IsManagedWeaponDefinition(weapon.def) != true)
                 return false;
 
@@ -210,9 +230,8 @@ namespace AutomaticOutfitManager.Storage
 
                 foreach (ISlotGroup slotGroup in lockerStorage)
                 {
-                    if (!StoreUtility.TryFindBestBetterStoreCellForIn(
-                            weapon, pawn, pawn.Map, StoragePriority.Unstored,
-                            pawn.Faction, slotGroup, out IntVec3 destination))
+                    if (!LockerHaulDestination.TryFind(pawn, weapon, rule.ChangingArea,
+                            slotGroup, forced, out IntVec3 destination))
                     {
                         continue;
                     }
@@ -221,6 +240,11 @@ namespace AutomaticOutfitManager.Storage
                         JobDefOf.HaulToCell, weapon, destination);
                     job.count = 1;
                     job.haulOpportunisticDuplicates = false;
+                    if (!forced && ManagedWorkCandidateFilter.Rejects(pawn, job))
+                    {
+                        job = null;
+                        continue;
+                    }
                     return true;
                 }
             }

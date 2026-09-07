@@ -3,7 +3,7 @@
   <SpecialThingFilterDef>
     <defName>AutomaticOutfitManager_AllowManaged</defName>
     <label>allow managed apparel</label>
-    <description>Allow apparel required by an Automatic Outfit Manager rule, retained as managed locker stock, or protected as an exact managed or saved item. Removing or clearing a requirement keeps the apparel type managed; use Forget in Choose apparel when unused stock should return to ordinary storage.</description>
+    <description>Allow apparel selected by Work or Non-Work rules, retained locker stock and individual saved or borrowed garments. Remove or Clear keeps a type managed; use Forget in Choose apparel to release unused stock.</description>
     <parentCategory>Apparel</parentCategory>
     <allowedByDefault>false</allowedByDefault>
     <saveKey>allowAutomaticOutfitManagerManaged</saveKey>
@@ -13,7 +13,7 @@
   <SpecialThingFilterDef>
     <defName>AutomaticOutfitManager_AllowUnmanaged</defName>
     <label>allow non-managed apparel</label>
-    <description>Allow ordinary apparel that is not required by a rule, retained as managed locker stock, or protected as an exact managed or saved item by Automatic Outfit Manager.</description>
+    <description>Allow ordinary apparel outside AOM selections, retained stock and individual saved or borrowed garments.</description>
     <parentCategory>Apparel</parentCategory>
     <allowedByDefault>true</allowedByDefault>
     <saveKey>allowAutomaticOutfitManagerUnmanaged</saveKey>
@@ -23,7 +23,7 @@
   <SpecialThingFilterDef>
     <defName>AutomaticOutfitManager_AllowManagedWeapons</defName>
     <label>allow managed weapons</label>
-    <description>Allow primary weapons selected by an Automatic Outfit Manager rule, retained as managed locker stock, or protected as an exact managed or saved weapon. Removing or clearing a requirement keeps the weapon type managed; use Forget in Choose weapons when unused stock should return to ordinary storage.</description>
+    <description>Allow weapons selected by Work or Non-Work rules, retained locker stock and individual saved or borrowed weapons. Remove or Clear keeps a type managed; use Forget in Choose weapons to release unused stock.</description>
     <parentCategory>Weapons</parentCategory>
     <allowedByDefault>false</allowedByDefault>
     <saveKey>allowAutomaticOutfitManagerManagedWeapons</saveKey>
@@ -33,7 +33,7 @@
   <SpecialThingFilterDef>
     <defName>AutomaticOutfitManager_AllowUnmanagedWeapons</defName>
     <label>allow non-managed weapons</label>
-    <description>Allow ordinary weapons that are not selected by a rule, retained as managed locker stock, or protected as an exact managed or saved weapon by Automatic Outfit Manager.</description>
+    <description>Allow ordinary weapons outside AOM selections, retained stock and individual saved or borrowed weapons.</description>
     <parentCategory>Weapons</parentCategory>
     <allowedByDefault>true</allowedByDefault>
     <saveKey>allowAutomaticOutfitManagerUnmanagedWeapons</saveKey>

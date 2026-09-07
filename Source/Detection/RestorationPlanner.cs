@@ -381,10 +381,14 @@ namespace AutomaticOutfitManager.Detection
                 jobs.Add(JobMaker.MakeJob(JobDefOf.RemoveApparel, item));
             }
 
+            var replacementJobs = new HashSet<Job>();
             var plannedReplacements = new HashSet<Apparel>();
             foreach (Apparel item in state.OriginalApparel)
             {
-                if (item == null || item.Destroyed)
+                // An already-worn saved item is restored. Do not enqueue an
+                // optional upgrade that would outlive the finished snapshot
+                // after the remaining exact saved jobs complete.
+                if (item == null || item.Destroyed || pawn.apparel.WornApparel.Contains(item))
                     continue;
 
                 Apparel replacement = FindBetterSavedApparelReplacement(
@@ -398,6 +402,7 @@ namespace AutomaticOutfitManager.Detection
                     // succeeds, then releases the one displaced saved item.
                     replacementJob.playerForced = true;
                     jobs.Add(replacementJob);
+                    replacementJobs.Add(replacementJob);
                     plannedReplacements.Add(replacement);
                     if (AomLog.DetailedEnabled)
                     {
@@ -417,7 +422,8 @@ namespace AutomaticOutfitManager.Detection
                     item.SetForbidden(false, false);
 
                 if (!item.Spawned || item.Map != pawn.Map || item.IsForbidden(pawn) ||
-                    !pawn.CanReserve(item) || !pawn.CanReach(item, PathEndMode.ClosestTouch, Danger.Deadly))
+                    !pawn.CanReserve(item) || !pawn.CanReach(item, PathEndMode.ClosestTouch, Danger.Deadly) ||
+                    !GearRetrievalRoute.CanReach(pawn, item))
                 {
                     hasUnavailableOriginal = true;
                     continue;
@@ -437,9 +443,15 @@ namespace AutomaticOutfitManager.Detection
                 pawn, state, out bool hasUnavailableOriginalWeapon);
             jobs.AddRange(weaponJobs);
             hasUnavailableOriginal |= hasUnavailableOriginalWeapon;
+            if (hasUnavailableOriginal) SavedGearRestorationDiagnostics.Report(pawn, state);
 
-            return jobs;
+            return RestorationJobOrder.Order(pawn, activeRule?.ChangingArea, jobs, replacementJobs);
         }
+
+        // The shortest existing recovery interval. This does not cache a plan
+        // or extend unavailable-item backoff, and a material wake bypasses it.
+        internal static bool RecoveryCooldownActive(int currentTick, int lastAttemptTick) =>
+            lastAttemptTick >= 0 && currentTick >= lastAttemptTick && currentTick - lastAttemptTick < 120;
 
         private static Apparel FindBetterSavedApparelReplacement(
             Pawn pawn,
@@ -448,6 +460,7 @@ namespace AutomaticOutfitManager.Detection
             ISet<Apparel> excluded)
         {
             if (pawn?.Map?.listerThings == null || state == null ||
+                NonWorkMealHandoff.For(pawn) != null ||
                 saved == null || saved.Destroyed ||
                 HitPointPercent(saved) >= TatteredHitPointThreshold)
             {
@@ -488,7 +501,8 @@ namespace AutomaticOutfitManager.Detection
                     !ReservationUtility_SavedApparel_Patch
                         .CanReserveForOutfit(pawn, candidate) ||
                     !pawn.CanReach(
-                        candidate, PathEndMode.ClosestTouch, Danger.Deadly))
+                        candidate, PathEndMode.ClosestTouch, Danger.Deadly) ||
+                    !GearRetrievalRoute.CanReach(pawn, candidate))
                 {
                     continue;
                 }
@@ -567,7 +581,8 @@ namespace AutomaticOutfitManager.Detection
                 if (original.Destroyed || !original.Spawned || original.Map != pawn.Map ||
                     original.IsForbidden(pawn) || !pawn.CanReserve(original) ||
                     !pawn.CanReach(original, PathEndMode.ClosestTouch, Danger.Deadly) ||
-                    !CanAttemptSavedWeaponEquip(original, pawn, out _))
+                    !CanAttemptSavedWeaponEquip(original, pawn, out _) ||
+                    !GearRetrievalRoute.CanReach(pawn, original))
                 {
                     hasUnavailableOriginal = true;
                     return jobs;

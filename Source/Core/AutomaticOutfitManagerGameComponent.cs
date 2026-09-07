@@ -53,6 +53,241 @@ namespace AutomaticOutfitManager.Core
 
         public List<ApparelRule> Rules = new List<ApparelRule>();
         public List<PawnApparelState> PawnStates = new List<PawnApparelState>();
+        public List<SavedNonWorkOutfit> SavedNonWorkOutfits = new List<SavedNonWorkOutfit>();
+        public List<NonWorkMealTrip> NonWorkMealTrips = new List<NonWorkMealTrip>();
+        public List<NonWorkOutfitBuffer> NonWorkOutfitBuffers = new List<NonWorkOutfitBuffer>();
+        private bool workSnapshotCleanupPending = true;
+        private readonly Dictionary<Pawn, int> staleSnapshotJobs = new Dictionary<Pawn, int>();
+        private readonly Dictionary<Pawn, SavedNonWorkOutfit> nonWorkOutfitIndex =
+            new Dictionary<Pawn, SavedNonWorkOutfit>();
+
+        public SavedNonWorkOutfit NonWorkOutfitFor(Pawn pawn)
+        {
+            if (pawn == null)
+                return null;
+            if (nonWorkOutfitIndex.TryGetValue(pawn, out SavedNonWorkOutfit saved))
+                return saved;
+            saved = SavedNonWorkOutfits.FirstOrDefault(item => item?.Pawn == pawn &&
+                !item.RetiredManualSnapshot);
+            nonWorkOutfitIndex[pawn] = saved;
+            return saved;
+        }
+
+        private void RestoreAutomaticNonWorkSnapshotsAfterLoad()
+        {
+            SavedNonWorkOutfits.RemoveAll(item => item?.Pawn == null || item.RetiredManualSnapshot);
+            foreach (var saved in SavedNonWorkOutfits)
+                saved.WorkGear.RemoveAll(entry => entry?.Item == null || entry.Item.Destroyed);
+            // Legacy active work sessions already own an exact original snapshot.
+            // Recover that snapshot during load, never as a side effect of viewing
+            // the UI, and never capture the currently issued outfit instead.
+            foreach (PawnApparelState state in PawnStates ?? new List<PawnApparelState>())
+            {
+                if (state?.Pawn == null || SavedNonWorkOutfits.Any(item => item.Pawn == state.Pawn))
+                    continue;
+                SavedNonWorkOutfit saved = SavedNonWorkOutfit.FromExistingWorkSession(
+                    state, Rules?.FirstOrDefault(rule => rule?.Id == state.ActiveRuleId));
+                if (saved != null)
+                    SavedNonWorkOutfits.Add(saved);
+            }
+            nonWorkOutfitIndex.Clear();
+            foreach (var state in PawnStates ?? new List<PawnApparelState>())
+                RememberUnattributedWorkGear(state);
+        }
+
+        private void RememberUnattributedWorkGear(PawnApparelState state)
+        {
+            if (state?.Pawn == null || RuleById(state.ActiveRuleId)?.IsNonWork == true) return;
+            var saved = NonWorkOutfitFor(state.Pawn);
+            if (saved == null) return;
+            foreach (ThingWithComps item in state.ManagedApparel.Cast<ThingWithComps>()
+                         .Concat(state.ManagedWeapons).Where(item => item != null && !item.Destroyed))
+                if (!saved.WorkGear.Any(entry => entry.Item == item))
+                    saved.WorkGear.Add(new WorkGearSource { Item = item });
+        }
+
+        private void RememberNonWorkOutfitBeforeWork(Pawn pawn)
+        {
+            // A partial return can leave issued work gear on the pawn after
+            // its restoration state ends. Never recapture that as personal.
+            if (NonWorkOutfitFor(pawn)?.WorkGear.Any(entry => HeldByPawn(entry.Item, pawn)) == true)
+                return;
+            SavedNonWorkOutfits.RemoveAll(item => item?.Pawn == pawn);
+            SavedNonWorkOutfit saved = SavedNonWorkOutfit.Capture(pawn);
+            WorkGearSnapshotPolicy.Clean(saved, Rules);
+            SavedNonWorkOutfits.Add(saved);
+            nonWorkOutfitIndex[pawn] = saved;
+        }
+
+        private void CleanWorkGearSnapshots(Pawn pawn, PawnApparelState state)
+        {
+            SavedNonWorkOutfit saved = NonWorkOutfitFor(pawn);
+            // Legacy compliant sessions did not need a personal snapshot until
+            // already-worn requirements became returnable Work gear.
+            if (saved == null && state != null && !state.NonWorkFallbackActive &&
+                string.IsNullOrEmpty(state.NonWorkRestorationRuleId) &&
+                RuleById(state.ActiveRuleId)?.IsNonWork == false)
+            {
+                saved = SavedNonWorkOutfit.Capture(pawn, state);
+                SavedNonWorkOutfits.Add(saved);
+                nonWorkOutfitIndex[pawn] = saved;
+            }
+            Job currentJob = pawn?.CurJob;
+            bool hadApparelSnapshot = state?.ApparelInterventionActive == true;
+            bool rebuildingRestoration = state?.Transition == ApparelTransition.Restoring ||
+                state?.Transition == ApparelTransition.ReturningToChangingArea;
+            var restoreJobIds = new HashSet<int>();
+            if (rebuildingRestoration)
+            {
+                if (WorkGearSnapshotPolicy.IsSnapshotRestoreJob(state, currentJob)) restoreJobIds.Add(currentJob.loadID);
+                if (pawn.jobs?.jobQueue != null)
+                    foreach (var queued in pawn.jobs.jobQueue)
+                        if (WorkGearSnapshotPolicy.IsSnapshotRestoreJob(state, queued.job)) restoreJobIds.Add(queued.job.loadID);
+            }
+            var removed = WorkGearSnapshotPolicy.Clean(saved, Rules);
+            bool personalChanged = removed.Count > 0;
+            removed.AddRange(WorkGearSnapshotPolicy.CleanPersonalState(state, Rules, saved,
+                item => HeldByPawn(item, pawn)));
+            if (removed.Count == 0) return;
+            if (!hadApparelSnapshot && state?.ApparelInterventionActive == true)
+                RegisterManagedApparel(state.OriginalApparel, pawn);
+
+            // Rebase an in-flight Non-Work restoration using the newly cleaned
+            // personal snapshot and its original removal subset. The target may
+            // legitimately keep unselected/shared work items.
+            ApparelRule destination = RuleById(state?.NonWorkRestorationRuleId);
+            if (personalChanged && destination?.IsNonWork == true)
+            {
+                SavedNonWorkOutfit target = NonWorkOutfitPolicy.Target(pawn, destination);
+                BeginNonWorkRestoration(pawn, destination, target, state.NonWorkGearReturnOnly);
+                var meal = Patches.NonWorkMealHandoff.For(pawn);
+                if (meal != null)
+                {
+                    meal.ReturnOutfit = new SavedNonWorkOutfit
+                    { Pawn = pawn, Apparel = target.Apparel.ToList(), Weapon = target.Weapon };
+                    if (!meal.UsesFallback)
+                        meal.DestinationOutfit = new SavedNonWorkOutfit
+                        { Pawn = pawn, Apparel = target.Apparel.ToList(), Weapon = target.Weapon };
+                }
+            }
+            foreach (var item in removed.Distinct())
+            {
+                if (item is RimWorld.Apparel apparel)
+                {
+                    // Remove the reservation index directly: ClearSavedOwner
+                    // also edits every transition target, including intentional
+                    // retained gear in a partial Non-Work return.
+                    string id = apparel.GetUniqueLoadID();
+                    ManagedApparelOwners.Remove(id);
+                    ManagedApparelOwnerIds.Remove(id);
+                    RegisterManagedApparel(new[] { apparel });
+                }
+                else RegisterManagedWeapon(item);
+            }
+            InvalidateWeaponStateIndex();
+            if (rebuildingRestoration)
+            {
+                state.LastRestorationAttemptTick = -1;
+                state.UnavailableRestorationAttempts = 0;
+                // Retire only restores that no longer belong to this target.
+                // Keep other apparel steps, exact native continuations, and
+                // player orders in their existing queue positions.
+                pawn.jobs?.jobQueue?.RemoveAll(pawn,
+                    job => restoreJobIds.Contains(job.loadID) && WorkGearSnapshotPolicy.ObsoleteSnapshotRestore(state, job, removed));
+                if (currentJob != null && restoreJobIds.Contains(currentJob.loadID) &&
+                    WorkGearSnapshotPolicy.ObsoleteSnapshotRestore(state, currentJob, removed))
+                    staleSnapshotJobs[pawn] = currentJob.loadID;
+            }
+            if (AomLog.DetailedEnabled)
+                AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
+                    $"released {removed.Distinct().Count()} matching Work Area item(s) from personal snapshots; " +
+                    "held work gear will use the normal safe locker return.");
+        }
+
+        private void CleanAllWorkGearSnapshots()
+        {
+            foreach (Pawn pawn in SavedNonWorkOutfits.Select(saved => saved?.Pawn)
+                .Concat(PawnStates.Select(state => state?.Pawn)).Where(pawn => pawn?.Map != null).Distinct().ToList())
+                CleanWorkGearSnapshots(pawn, StateFor(pawn));
+        }
+
+        private void FinishSnapshotCleanupInterrupts()
+        {
+            foreach (var pending in staleSnapshotJobs.ToList())
+            {
+                Pawn pawn = pending.Key;
+                if (pawn?.Spawned == true && !pawn.Drafted && !pawn.Downed && !pawn.InMentalState &&
+                    pawn.CurJob?.loadID == pending.Value &&
+                    !Patches.PawnJobTracker_StartJob_Patch.IsNativeEmergencySafetyJob(pawn.CurJob))
+                    pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, false, true);
+            }
+            staleSnapshotJobs.Clear();
+        }
+
+        private void RecordWorkGearSources(Pawn pawn, PawnApparelState state,
+            IEnumerable<RimWorld.Apparel> apparel, ThingWithComps weapon,
+            IEnumerable<ApparelRule> sources)
+        {
+            var saved = NonWorkOutfitFor(pawn);
+            if (saved == null) return;
+            saved.RecordIssuedGear(state, apparel, weapon, sources);
+        }
+
+        public void BeginNonWorkRestoration(
+            Pawn pawn, ApparelRule rule, SavedNonWorkOutfit saved, bool returnWorkGearOnly = false)
+        {
+            PawnApparelState state = StateFor(pawn);
+            RememberUnattributedWorkGear(state);
+            if (state == null)
+            {
+                var source = NonWorkOutfitFor(pawn)?.WorkGear
+                    .Where(entry => HeldByPawn(entry.Item, pawn) &&
+                        NonWorkOutfitPolicy.ShouldReturn(pawn, rule, entry.Item))
+                    .SelectMany(entry => entry.RuleIds).Select(RuleById)
+                    .FirstOrDefault(candidate => candidate != null && !candidate.IsNonWork);
+                state = BeginIntervention(pawn, source ?? rule, Enumerable.Empty<RimWorld.Apparel>());
+                if (state == null)
+                    return;
+            }
+            // Keep the source rule's locker when returning borrowed work gear.
+            // A fresh restoration uses the destination's optional locker.
+            state.NonWorkRestorationRuleId = rule.Id;
+            state.NonWorkGearReturnOnly = returnWorkGearOnly;
+            if (!rule.RemoveAllWorkOutfits)
+            {
+                state.ManagedApparel.RemoveAll(item => NonWorkOutfitPolicy.Keep(pawn, rule, item));
+                state.ManagedWeapons.RemoveAll(item => NonWorkOutfitPolicy.Keep(pawn, rule, item));
+            }
+            foreach (RimWorld.Apparel prior in state.OriginalApparel
+                         .Where(item => item != null && !saved.Apparel.Contains(item)).ToList())
+                ClearSavedOwner(prior);
+            state.OriginalApparel = saved.Apparel
+                .Where(item => item != null && !item.Destroyed).ToList();
+            state.ApparelInterventionActive = true;
+            state.RemoveOriginalsFromManagedApparel();
+            state.AddManagedApparel(pawn.apparel.WornApparel
+                .Where(item => !state.OriginalApparel.Contains(item)));
+            RegisterManagedApparel(state.OriginalApparel, pawn);
+            RegisterManagedApparel(state.ManagedApparel);
+            if (!state.WeaponRuleOverrideExplicit)
+            {
+                ThingWithComps primary = pawn.equipment?.Primary;
+                state.OriginalWeapon = saved.Weapon?.Destroyed == true ? null : saved.Weapon;
+                // A saved primary may have been reused as work
+                // gear. It cannot be both a removal target and the restore target.
+                state.ManagedWeapons.Remove(state.OriginalWeapon);
+                if (primary != null && primary != state.OriginalWeapon &&
+                    !state.ManagedWeapons.Contains(primary))
+                    state.ManagedWeapons.Add(primary);
+                state.WeaponInterventionActive = primary != state.OriginalWeapon ||
+                    state.ManagedWeapons.Count > 0;
+                state.RequestWeaponRestoration();
+                RegisterManagedWeapon(primary != state.OriginalWeapon ? primary : null);
+                InvalidateWeaponStateIndex();
+            }
+            ClearPendingWork(state);
+            RequestRecall(state);
+        }
         public List<string> ManagedApparelIds = new List<string>();
         public Dictionary<string, string> ManagedApparelOwners = new Dictionary<string, string>();
         public Dictionary<string, string> ManagedApparelOwnerIds = new Dictionary<string, string>();
@@ -91,8 +326,15 @@ namespace AutomaticOutfitManager.Core
 
         public AutomaticOutfitManagerGameComponent(Game game)
         {
+            WeaponPreparationRetryRegistry.ResetForLoadedGame();
+            Patches.PreparationJobHandoff.ResetForLoadedGame();
+            WeaponPreparationDiagnostics.ResetForLoadedGame();
+            TransitionActivityDiagnostics.ResetForLoadedGame();
             RuleEvaluator.ResetRuntimeCache();
             PawnAccessClassifier.ResetRuntimeCache();
+            Patches.ProtectedRouteFailureDiagnostics.ResetForLoadedGame();
+            Patches.ChildcareContinuation.ResetForLoadedGame();
+            Patches.AccessExitJobs.ResetForLoadedGame();
             PreparedIngestRetryRegistry.ResetForLoadedGame();
             Patches.ProtectedPathAvoidance.ResetForLoadedGame();
         }
@@ -105,7 +347,29 @@ namespace AutomaticOutfitManager.Core
             if (currentTick % 30 != 0)
                 return;
 
+            // Area painting and loaded saves bypass the rule assignment UI.
+            // Reuse disabling/recall rather than alternate incompatible outfits.
+            AreaNestingPolicy.DisableNestedWorkRules(Rules, (work, nonWork) =>
+            {
+                RememberManagedStockDefinitions(work.RequiredApparel);
+                RememberManagedStockDefinitions(work.RequiredWeapons);
+                InvalidateManagedDefinitionIndexes();
+                RuleEvaluator.ResetRuntimeCache();
+                NotifyRuleRequirementsChanged(work.Id, "Work Area nested inside Non-Work Area");
+                Messages.Message($"Disabled Work rule '{work.Name}': its Work Area is entirely inside " +
+                    $"Non-Work rule '{nonWork.Name}'. Change the areas or disable the Non-Work rule, " +
+                    "then enable the Work rule again.", MessageTypeDefOf.RejectInput, false);
+            });
+
+            if (workSnapshotCleanupPending || currentTick % 300 == 0)
+            {
+                workSnapshotCleanupPending = false;
+                CleanAllWorkGearSnapshots();
+            }
+            FinishSnapshotCleanupInterrupts();
+            Patches.NonWorkMealHandoff.Tick(this);
             ProcessPendingRecallInterrupts(currentTick);
+            NonWorkOutfitBuffers.RemoveAll(item => item?.Pawn?.Spawned != true || item.Map != item.Pawn.Map);
             EnforceRuntimePawnRules(currentTick);
             RecoverIdleApparelWorkers(currentTick);
         }
@@ -483,6 +747,8 @@ namespace AutomaticOutfitManager.Core
                     continue;
                 }
 
+                if (Patches.ChildcareContinuation.Admit(pawn, pawn.CurJob)) continue;
+
                 if (state.Transition == ApparelTransition.ReturningToChangingArea ||
                     state.Transition == ApparelTransition.Restoring)
                 {
@@ -584,6 +850,8 @@ namespace AutomaticOutfitManager.Core
                     RuleEvaluator.PausedRulesForMap(map);
                 foreach (Pawn pawn in map.mapPawns.AllPawnsSpawned)
                 {
+                    TransitionActivityDiagnostics.Sample(pawn, currentTick);
+                    Patches.NonWorkBufferTracker.Refresh(pawn);
                     if (pawn?.Downed == true)
                     {
                         PawnApparelState downedState = StateFor(pawn);
@@ -666,6 +934,37 @@ namespace AutomaticOutfitManager.Core
                         // decides whether a required primary is missing.
                         DetectExternalWeaponOverride(pawn, runtimeState, job);
                     }
+                    // A newly disabled child permission must resolve access
+                    // before occupancy can start another outfit intervention.
+                    if (Patches.PausedAreaWorkFilter.ShouldRejectProtectedAreaJob(pawn, job))
+                    {
+                        PawnApparelState childState = runtimeState ?? StateFor(pawn);
+                        if (childState != null)
+                            RequestRecall(childState);
+                        else if (Patches.PausedAreaWorkFilter.TryMakeProtectedChildExitJob(pawn, job, out Job childExit))
+                            TryJobTransition(pawn, currentTick, "protected-child exit", () =>
+                                pawn.jobs.StartJob(childExit, JobCondition.InterruptForced));
+                        else
+                            TryJobTransition(pawn, currentTick, "protected-child restriction", () =>
+                                pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, true));
+                        continue;
+                    }
+                    // Recheck a permission changed while an activity was
+                    // already running, before occupancy starts new preparation.
+                    // Every humanlike group uses the same recall/egress path.
+                    if (Patches.PausedAreaWorkFilter.DeniedActivityRule(pawn, job) != null)
+                    {
+                        var deniedState = runtimeState ?? StateFor(pawn);
+                        if (deniedState != null)
+                            RequestRecall(deniedState);
+                        else if (Patches.PausedAreaWorkFilter.TryMakeAccessExitJob(pawn, job, out Job activityExit))
+                            TryJobTransition(pawn, currentTick, "activity exit", () =>
+                                pawn.jobs.StartJob(activityExit, JobCondition.InterruptForced));
+                        else
+                            TryJobTransition(pawn, currentTick, "activity restriction", () =>
+                                pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, false, true));
+                        continue;
+                    }
                     if (mapActiveRules.Count > 0 &&
                         TryEnforceRuntimeProtectedGear(pawn, job, currentTick))
                         continue;
@@ -734,17 +1033,6 @@ namespace AutomaticOutfitManager.Core
                         continue;
                     }
 
-                    if (Patches.PausedAreaWorkFilter.ShouldRejectProtectedAreaJob(pawn, job))
-                    {
-                        if (Patches.PausedAreaWorkFilter.TryMakeProtectedChildExitJob(pawn, job, out Job exitJob))
-                            TryJobTransition(pawn, currentTick, "protected-child exit", () =>
-                                pawn.jobs.StartJob(exitJob, JobCondition.InterruptForced));
-                        else
-                            TryJobTransition(pawn, currentTick, "protected-child restriction", () =>
-                                pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, true));
-                        continue;
-                    }
-
                     if (Patches.PausedAreaWorkFilter.ShouldRejectHaulingJob(pawn, job))
                         TryJobTransition(pawn, currentTick, "hauling restriction", () =>
                             pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, true));
@@ -762,6 +1050,9 @@ namespace AutomaticOutfitManager.Core
             Pawn savedOwner = RestoringOwnerForJobTargetUnchecked(
                 pawn, job, out Thing savedGear);
             if (savedOwner == null || savedGear == null)
+                return false;
+
+            if (SavedGearRecovery.AllowsHaul(pawn, job, savedOwner, savedGear))
                 return false;
 
             bool carryingSavedGear = pawn.carryTracker?.CarriedThing == savedGear;
@@ -1056,8 +1347,8 @@ namespace AutomaticOutfitManager.Core
             {
                 AomLog.Detailed(
                     $"[AutomaticOutfitManager] {hauler.LabelShortCap}: completed " +
-                    $"hauling saved weapon {weapon.LabelCap}; waking " +
-                    $"{owner.LabelShortCap} to resume outfit restoration.");
+                    $"hauling saved weapon {weapon.LabelCap}; it is now available " +
+                    $"for {owner.LabelShortCap}'s saved outfit.");
             }
         }
 
@@ -1079,6 +1370,7 @@ namespace AutomaticOutfitManager.Core
             // owner's restoration immediately instead of waiting ten seconds.
             ownerState.LastRestorationAttemptTick = -1;
             ownerState.ActiveIdleTicks = 240;
+            RestorationPlanProgress.Wake(ownerState);
 
             // Availability is a real progress signal. The bounded recovery
             // backoff only applies while nothing changes; retaining it here can
@@ -1093,6 +1385,8 @@ namespace AutomaticOutfitManager.Core
         {
             if (pawn == null || state?.Transition != ApparelTransition.Restoring)
                 return;
+
+            RestorationPlanProgress.Wake(state);
 
             // A completed exact Phase 3 job is material progress. Any retry
             // window or exponential watchdog backoff belongs to the state before
@@ -1131,6 +1425,7 @@ namespace AutomaticOutfitManager.Core
             foreach (PawnApparelState state in PawnStates.ToList())
             {
                 Pawn pawn = state?.Pawn;
+                if (Patches.ChildcareContinuation.Admit(pawn, pawn?.CurJob)) continue;
                 if (TryCompleteSatisfiedRestoration(pawn, state))
                     continue;
 
@@ -1248,6 +1543,14 @@ namespace AutomaticOutfitManager.Core
                         continue;
                     }
 
+                    if (Patches.PreparationJobHandoff.HasQueuedStep(pawn, state))
+                    {
+                        state.ActiveIdleTicks = 0;
+                        if (Patches.PreparationJobHandoff.IsConnectiveWait(pawn, preparationJob))
+                            ContinueNativeQueue(pawn, state, currentTick, preparationJob, "preparation");
+                        continue;
+                    }
+
                     int apparelRetryElapsed = state.LastApparelPreparationAttemptTick < 0
                         ? PreparationRetryIntervalTicks
                         : currentTick - state.LastApparelPreparationAttemptTick;
@@ -1344,6 +1647,7 @@ namespace AutomaticOutfitManager.Core
                     state.Transition == ApparelTransition.Restoring)
                 {
                     Job restorationJob = pawn.jobs?.curJob;
+                    RestorationWaitDiagnostics.Report(pawn, state);
                     if (!IsIdleRecoveryJob(pawn, restorationJob))
                     {
                         state.ActiveIdleTicks = 0;
@@ -1428,7 +1732,12 @@ namespace AutomaticOutfitManager.Core
                                         JobCondition.InterruptForced, true);
                                 }
                             });
-                        if (resumedQueuedRestoration && AomLog.DetailedEnabled)
+                        // EndCurrentJob can synchronously finish the last queued
+                        // step and clear this state. Do not claim that restoration
+                        // continues after its completion message (or for a new session).
+                        if (resumedQueuedRestoration && StateFor(pawn) == state &&
+                            state.Transition == ApparelTransition.Restoring &&
+                            AomLog.DetailedEnabled)
                         {
                             AomLog.Detailed(
                                 $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
@@ -1440,9 +1749,26 @@ namespace AutomaticOutfitManager.Core
 
                     restorationProgress.Remove(pawn);
 
+                    // Completion and live queued progress were checked above.
+                    // No retry can start inside the shared 120-tick minimum;
+                    // avoid building discarded jobs and probing paths in it.
+                    // Exact gear release/progress wakes reset LastAttempt to -1.
+                    state.ActiveIdleTicks += 30;
+                    if (RestorationPlanner.RecoveryCooldownActive(
+                            currentTick, state.LastRestorationAttemptTick) ||
+                        !RestorationPlanProgress.CanProbe(state, currentTick))
+                        continue;
+
                     RestorationPlanner.TryMakeHeldOriginalsAccessible(pawn, state);
                     List<Job> remainingJobs = RestorationPlanner.BuildJobs(
                         pawn, state, rule, out bool hasUnavailableSavedApparel);
+                    if (RestorationPlanProgress.Observe(state, currentTick,
+                            remainingJobs.Count, hasUnavailableSavedApparel))
+                    {
+                        // A moved item, released reservation or changed route
+                        // has made a previously empty plan executable.
+                        WakeRestoringSavedGearOwner(pawn);
+                    }
                     if (remainingJobs.Count == 0 && !hasUnavailableSavedApparel)
                     {
                         state.ActiveIdleTicks = 0;
@@ -1457,7 +1783,6 @@ namespace AutomaticOutfitManager.Core
                         continue;
                     }
 
-                    state.ActiveIdleTicks += 30;
                     int idleGrace = hasUnavailableSavedApparel
                         ? 240
                         : RestorationIdleGraceTicks;
@@ -1493,6 +1818,20 @@ namespace AutomaticOutfitManager.Core
                     }
                     string idleJobDescription = DescribeRestorationProgress(
                         pawn, restorationJob);
+                    if (!RestorationPlanProgress.ShouldRestart(remainingJobs.Count))
+                    {
+                        // No Goto/queue reset can fix an unchanged blocked item.
+                        // Keep the snapshot, periodically probe for a real step,
+                        // and allow ordinary haulers to recover the exact gear.
+                        state.LastRestorationAttemptTick = currentTick;
+                        state.UnavailableRestorationAttempts++;
+                        if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
+                                pawn, "restoration-empty-plan", 2400))
+                            AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
+                                "saved-outfit restoration has no executable step; waiting for item availability " +
+                                "without restarting the empty queue.");
+                        continue;
+                    }
                     bool recoveryStarted = StartRestorationRecovery(
                         pawn, state, currentTick, "idle restoration recovery");
                     if (recoveryStarted && StateFor(pawn) != null && AomLog.DetailedEnabled)
@@ -1529,6 +1868,14 @@ namespace AutomaticOutfitManager.Core
                 {
                     if (state != null)
                         state.ActiveIdleTicks = 0;
+                    continue;
+                }
+
+                if (Patches.PreparationJobHandoff.CanResumeQueuedActivity(pawn, state))
+                {
+                    state.ActiveIdleTicks = 0;
+                    activeWorkProgress.Remove(pawn);
+                    ContinueNativeQueue(pawn, state, currentTick, pawn.jobs.curJob, "activity");
                     continue;
                 }
 
@@ -2092,9 +2439,25 @@ namespace AutomaticOutfitManager.Core
                 ReleaseUnserializableRestoringSavedWeaponsBeforeSave();
                 DiscardUnserializableSnapshotsBeforeSave();
                 DiscardInvalidPendingWorkBeforeSave();
+                NonWorkOutfitBuffers.RemoveAll(item => item?.Pawn == null ||
+                    (item.PendingWork != null && !Patches.PawnJobTracker_StartJob_Patch.PendingWorkJobIsViable(
+                        item.Pawn, item.PendingWork, out _)));
             }
             Scribe_Collections.Look(ref Rules, "automaticOutfitManagerRules", LookMode.Deep);
             Scribe_Collections.Look(ref PawnStates, "automaticOutfitManagerPawnStates", LookMode.Deep);
+            Scribe_Collections.Look(ref SavedNonWorkOutfits, "savedNonWorkOutfits", LookMode.Deep);
+            Scribe_Collections.Look(ref NonWorkMealTrips, "nonWorkMealTrips", LookMode.Deep);
+            Scribe_Collections.Look(ref NonWorkOutfitBuffers, "nonWorkOutfitBuffers", LookMode.Deep);
+            NonWorkOutfitBuffers ??= new List<NonWorkOutfitBuffer>();
+            if (Scribe.mode == LoadSaveMode.PostLoadInit)
+                NonWorkOutfitBuffers.RemoveAll(item => item?.Pawn == null || item.Map == null);
+            NonWorkMealTrips ??= new List<NonWorkMealTrip>();
+            SavedNonWorkOutfits ??= new List<SavedNonWorkOutfit>();
+            if (Scribe.mode == LoadSaveMode.PostLoadInit)
+            {
+                NonWorkMealTrips.RemoveAll(trip => trip?.Pawn == null || trip.Map == null);
+                RestoreAutomaticNonWorkSnapshotsAfterLoad();
+            }
             Scribe_Collections.Look(ref ManagedApparelIds, "automaticOutfitManagerManagedIds", LookMode.Value);
             Scribe_Collections.Look(
                 ref ManagedApparelOwners,
@@ -2131,11 +2494,15 @@ namespace AutomaticOutfitManager.Core
                 RebuildRuntimeIndexes();
                 ManagedWorkClaimRegistry.ResetForLoadedGame();
                 ProtectedBoundaryRetryRegistry.ResetForLoadedGame();
+                Patches.ProtectedRouteFailureDiagnostics.ResetForLoadedGame();
+                Patches.ChildcareContinuation.ResetForLoadedGame();
+                Patches.AccessExitJobs.ResetForLoadedGame();
                 PreparedIngestRetryRegistry.ResetForLoadedGame();
                 UnavailableWorkRegistry.ResetForLoadedGame();
                 RuleEvaluator.ResetRuntimeCache();
                 PawnAccessClassifier.ResetRuntimeCache();
                 AomLog.ResetRuntimeCache();
+                TransitionActivityDiagnostics.ResetForLoadedGame();
                 Patches.PawnPathFollower_ProtectedArea_Patch.ResetRuntimeCache();
                 UI.PawnAutomaticOutfitStatus.ResetRuntimeCache();
                 Patches.ProtectedPathAvoidance.ResetForLoadedGame();
@@ -2900,6 +3267,33 @@ namespace AutomaticOutfitManager.Core
             return true;
         }
 
+        private void ContinueNativeQueue(
+            Pawn pawn, PawnApparelState state, int tick, Job wait, string kind)
+        {
+            bool releasedWait = false;
+            bool continued = TryJobTransition(pawn, tick, "queued " + kind, () =>
+            {
+                if (pawn.jobs.curJob == wait && (pawn.jobs.jobQueue?.Count ?? 0) > 0)
+                {
+                    if (wait == null)
+                        releasedWait = Patches.PreparationJobHandoff.ResumeEmptyTracker(pawn, state);
+                    else
+                    {
+                        releasedWait = true;
+                        pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, true);
+                    }
+                }
+            });
+            // EndCurrentJob can synchronously complete an Equip and the entire
+            // transition. Describe the actual result, not the pre-call queue.
+            if (continued && releasedWait && AomLog.DetailedEnabled &&
+                AomLog.ShouldLogDetailed(pawn, "queued-" + kind, 300))
+                AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
+                    $"{(wait == null ? "empty tracker resumed" : "connective wait released")} for {kind}; state after native admission=" +
+                    $"{StateFor(pawn)?.Transition.ToString() ?? "cleared"}; " +
+                    Patches.PreparationJobHandoff.TrackerDescription(pawn) + ".");
+        }
+
         private bool TryEnforceRuntimeProtectedGear(
             Pawn pawn, Job currentJob, int currentTick)
         {
@@ -2996,6 +3390,14 @@ namespace AutomaticOutfitManager.Core
                     Patches.PawnJobTracker_StartJob_Patch
                         .IsUnavailableGearEgressJob(pawn, currentJob, rule)))
             {
+                occupiedGearRecoveryTicks.Remove(pawn);
+                return true;
+            }
+
+            if (Patches.PreparationJobHandoff.HasQueuedStep(pawn, state))
+            {
+                // The native queue already owns these missing requirements.
+                // Do not build a competing occupancy plan during a handoff.
                 occupiedGearRecoveryTicks.Remove(pawn);
                 return true;
             }
@@ -3249,7 +3651,8 @@ namespace AutomaticOutfitManager.Core
                 pawn.equipment.Primary != null ||
                 ManagedWeaponIsStillHeldByPawn(pawn, state) ||
                 !ApparelRestorationIsComplete(pawn, state) ||
-                state.UnavailableRestorationAttempts < unavailableAttemptLimit)
+                state.UnavailableRestorationAttempts < unavailableAttemptLimit ||
+                SavedGearRecovery.InProgress(pawn, state.OriginalWeapon))
             {
                 return false;
             }
@@ -3491,9 +3894,7 @@ namespace AutomaticOutfitManager.Core
 
         public bool CanForgetManagedStockDefinition(ThingDef def)
         {
-            if (def == null || Rules.Any(rule =>
-                    rule?.RequiredApparel?.Contains(def) == true ||
-                    rule?.RequiredWeapons?.Contains(def) == true))
+            if (def == null || Rules.Any(rule => GearSelectionPolicy.Selects(rule, def)))
             {
                 return false;
             }
@@ -3509,15 +3910,11 @@ namespace AutomaticOutfitManager.Core
                 return "This stock type is unavailable.";
 
             List<string> ruleNames = Rules
-                .Where(rule => rule != null &&
-                    (rule.RequiredApparel?.Contains(def) == true ||
-                     rule.RequiredWeapons?.Contains(def) == true))
+                .Where(rule => GearSelectionPolicy.Selects(rule, def))
                 .Select(rule =>
                 {
-                    string name = string.IsNullOrWhiteSpace(rule.Name)
-                        ? "Unnamed rule"
-                        : rule.Name.Trim();
-                    return rule.Enabled ? name : $"{name} (inactive)";
+                    string name = UI.RuleTypeStyle.RuleName(rule);
+                    return rule.Enabled ? name : $"{name} (disabled)";
                 })
                 .Distinct()
                 .ToList();
@@ -3536,14 +3933,12 @@ namespace AutomaticOutfitManager.Core
 
             var blockers = new List<string>();
             if (ruleNames.Count > 0)
-                blockers.Add($"required by: {string.Join(", ", ruleNames)}");
+                blockers.Add($"Selected by: {string.Join(", ", ruleNames)}");
             if (pawnStatuses.Count > 0)
-                blockers.Add($"in use by: {string.Join(", ", pawnStatuses)}");
+                blockers.Add($"In use by: {string.Join(", ", pawnStatuses)}");
 
-            return "Cannot forget this managed stock type. It is " +
-                   string.Join("; ", blockers) +
-                   ". Forget becomes available after every listed rule requirement is removed " +
-                   "and each listed outfit transition finishes.";
+            return string.Join("\n", blockers) +
+                   "\n\nRemove the listed selections and let these pawns finish using the gear before choosing Forget.";
         }
 
         private static string ForgetTransitionLabel(ApparelTransition transition)
@@ -3553,7 +3948,7 @@ namespace AutomaticOutfitManager.Core
                 case ApparelTransition.Preparing:
                     return "preparing managed outfit";
                 case ApparelTransition.Active:
-                    return "working";
+                    return "using outfit";
                 case ApparelTransition.ReturningToChangingArea:
                     return "returning to locker room";
                 case ApparelTransition.Restoring:
@@ -3588,6 +3983,8 @@ namespace AutomaticOutfitManager.Core
         {
             managedApparelDefIndexDirty = true;
             managedWeaponDefIndexDirty = true;
+            CleanAllWorkGearSnapshots();
+            workSnapshotCleanupPending = true;
             if (string.IsNullOrEmpty(ruleId))
                 return;
 
@@ -3915,6 +4312,8 @@ namespace AutomaticOutfitManager.Core
 
         public void ReleaseSavedApparel(RimWorld.Apparel apparel)
         {
+            SavedNonWorkOutfit saved = NonWorkOutfitFor(SavedPawnFor(apparel));
+            saved?.Apparel.Remove(apparel);
             ForgetSavedApparel(apparel, preserveReusedAsManaged: true);
         }
 
@@ -3927,6 +4326,7 @@ namespace AutomaticOutfitManager.Core
                 replacement == null ||
                 state.OriginalApparel?.Contains(replacement) == true ||
                 state.IsPreparationApparel(replacement) ||
+                NonWorkOutfitPolicy.IsIssued(pawn, replacement) ||
                 AutomaticOutfitManager.Storage.ManagedApparelClassifier
                     .Matches(replacement.def) ||
                 IsSavedForOtherPawn(replacement, pawn) ||
@@ -3944,6 +4344,13 @@ namespace AutomaticOutfitManager.Core
             state.OriginalApparel ??= new List<RimWorld.Apparel>();
             if (!state.OriginalApparel.Contains(replacement))
                 state.OriginalApparel.Add(replacement);
+            SavedNonWorkOutfit nonWorkOutfit = NonWorkOutfitFor(pawn);
+            if (nonWorkOutfit != null)
+            {
+                nonWorkOutfit.Apparel.RemoveAll(displaced.Contains);
+                if (!nonWorkOutfit.Apparel.Contains(replacement))
+                    nonWorkOutfit.Apparel.Add(replacement);
+            }
             RegisterManagedApparel(
                 new[] { replacement }, pawn);
             WakeRestoringSavedGearOwner(pawn);
@@ -4013,6 +4420,10 @@ namespace AutomaticOutfitManager.Core
             if (state?.OriginalWeapon != weapon)
                 return;
 
+            SavedNonWorkOutfit saved = NonWorkOutfitFor(owner);
+            if (saved?.Weapon == weapon)
+                saved.Weapon = null;
+
             state.OriginalWeapon = null;
             state.RequestWeaponRestoration();
             InvalidateWeaponStateIndex();
@@ -4079,7 +4490,8 @@ namespace AutomaticOutfitManager.Core
             Pawn pawn,
             ApparelRule rule,
             IEnumerable<RimWorld.Apparel> managedApparel,
-            ThingWithComps managedWeapon = null)
+            ThingWithComps managedWeapon = null, bool nonWorkFallback = false,
+            IEnumerable<ApparelRule> sourceRules = null)
         {
             // Access restrictions also cover animals, mechs, and modded robots,
             // but only humanlike pawns with an apparel tracker can participate
@@ -4096,10 +4508,32 @@ namespace AutomaticOutfitManager.Core
                 .Where(item => item != null)
                 .ToList() ?? new List<RimWorld.Apparel>();
 
+            // Requirements already worn at capture are still work stock. This
+            // also gives an initially compliant worker a proper return ledger.
+            if (!nonWorkFallback && !rule.IsNonWork)
+            {
+                foreach (var worn in pawn.apparel.WornApparel)
+                    if (!managedApparelList.Contains(worn) &&
+                        WorkGearSnapshotPolicy.MatchingRules(pawn, worn, Rules).Count > 0)
+                        managedApparelList.Add(worn);
+                if (managedWeapon == null && StateFor(pawn)?.WeaponRuleOverrideExplicit != true &&
+                    WorkGearSnapshotPolicy.MatchingRules(pawn, pawn.equipment?.Primary, Rules).Count > 0)
+                    managedWeapon = pawn.equipment.Primary;
+            }
+
             PawnApparelState state = StateFor(pawn);
             bool hostedGuestSession = PawnAccessClassifier.IsHostedGuest(pawn);
             if (state != null)
             {
+                if (rule != null && !state.RestorationSourceRuleIds.Contains(rule.Id))
+                    state.RestorationSourceRuleIds.Add(rule.Id);
+                state.NonWorkFallbackActive |= nonWorkFallback;
+                if (!state.NonWorkFallbackActive && !rule.IsNonWork &&
+                    !state.ApparelInterventionActive && !state.WeaponInterventionActive &&
+                    (managedApparelList.Count > 0 || managedWeapon != null))
+                {
+                    RememberNonWorkOutfitBeforeWork(pawn);
+                }
                 if (hostedGuestSession)
                     state.HostedGuestSession = true;
                 if (managedApparelList.Count > 0)
@@ -4113,6 +4547,12 @@ namespace AutomaticOutfitManager.Core
                 RegisterManagedApparel(managedApparelList);
                 state.BeginManagedWeapon(pawn, managedWeapon);
                 RegisterManagedWeapon(managedWeapon);
+                CleanWorkGearSnapshots(pawn, state);
+                foreach (var source in sourceRules ?? new[] { rule })
+                    if (source != null && !state.RestorationSourceRuleIds.Contains(source.Id))
+                        state.RestorationSourceRuleIds.Add(source.Id);
+                RecordWorkGearSources(pawn, state, managedApparelList, managedWeapon,
+                    sourceRules ?? new[] { rule });
                 state.Transition = ApparelTransition.Preparing;
                 state.ActiveIdleTicks = 0;
                 return state;
@@ -4120,9 +4560,21 @@ namespace AutomaticOutfitManager.Core
 
             state = PawnApparelState.Capture(
                 pawn, rule, managedApparelList.Count > 0);
+            state.NonWorkFallbackActive = nonWorkFallback;
+            if (!nonWorkFallback && !rule.IsNonWork &&
+                (managedApparelList.Count > 0 || managedWeapon != null))
+            {
+                RememberNonWorkOutfitBeforeWork(pawn);
+            }
             state.HostedGuestSession = hostedGuestSession;
             state.AddManagedApparel(managedApparelList);
             state.BeginManagedWeapon(pawn, managedWeapon);
+            CleanWorkGearSnapshots(pawn, state);
+            foreach (var source in sourceRules ?? new[] { rule })
+                if (source != null && !state.RestorationSourceRuleIds.Contains(source.Id))
+                    state.RestorationSourceRuleIds.Add(source.Id);
+            RecordWorkGearSources(pawn, state, managedApparelList, managedWeapon,
+                sourceRules ?? new[] { rule });
             if (state.ApparelInterventionActive)
                 RegisterManagedApparel(state.OriginalApparel, pawn);
             RegisterManagedApparel(state.ManagedApparel);
@@ -4208,6 +4660,17 @@ namespace AutomaticOutfitManager.Core
             if (state == null)
                 return;
 
+            if (!state.NonWorkGearReturnOnly && !string.IsNullOrEmpty(state.NonWorkRestorationRuleId))
+            {
+                ApparelRule nonWorkRule = RuleById(state.NonWorkRestorationRuleId);
+                SavedNonWorkOutfit saved = nonWorkRule == null ? null : NonWorkOutfitPolicy.Target(pawn, nonWorkRule);
+                // A bounded restoration failure must not enable fallback gear
+                // or recreate the same failed transition every think cycle.
+                if (saved != null && (!saved.ApparelSatisfied(pawn) ||
+                    (!state.WeaponRuleOverrideExplicit && !saved.WeaponSatisfied(pawn))))
+                    UnavailableWorkRegistry.Block(pawn, nonWorkRule);
+            }
+
             ClearPendingWork(state);
 
             bool trackedOnly = !state.ApparelInterventionActive &&
@@ -4222,11 +4685,18 @@ namespace AutomaticOutfitManager.Core
                 // independently retained as shared managed stock).
                 ClearSavedOwner(savedItem);
             }
+            NonWorkOutfitFor(pawn)?.WorkGear.RemoveAll(entry => entry.Item == null ||
+                entry.Item.Destroyed || !HeldByPawn(entry.Item, pawn));
+            ApparelRule completedNonWorkRule = string.IsNullOrEmpty(releaseReason)
+                ? RuleById(state.NonWorkRestorationRuleId) : null;
             PawnStates.Remove(state);
+            TransitionActivityDiagnostics.Cleared(pawn, releaseReason);
             AomLog.ClearPawn(pawn);
             pawnStateIndex.Remove(pawn);
             indexedPawnStateCount = PawnStates.Count;
             InvalidateWeaponStateIndex();
+            if (completedNonWorkRule != null)
+                Patches.NonWorkBufferTracker.Begin(pawn, completedNonWorkRule);
             if (AomLog.DetailedEnabled)
             {
                 if (!string.IsNullOrEmpty(releaseReason))

@@ -1,6 +1,8 @@
 using System.Linq;
 using AutomaticOutfitManager.Core;
+using AutomaticOutfitManager.Detection;
 using AutomaticOutfitManager.Storage;
+using AutomaticOutfitManager.UI;
 using HarmonyLib;
 using RimWorld;
 using Verse;
@@ -25,39 +27,28 @@ namespace AutomaticOutfitManager.Patches
             }
             else
             {
-                var matchingRules = component.Rules
-                    .Where(rule => rule != null &&
-                                   rule.Enabled &&
-                                   rule.RequiredApparel != null &&
-                                   rule.RequiredApparel.Contains(__instance.def))
-                    .ToList();
-                var workAreas = matchingRules
-                    .Where(rule => rule.Area != null)
-                    .Select(rule => rule.Area.Label)
-                    .Distinct()
-                    .ToList();
+                var matchingRules = GearSelectionPolicy.SelectingRules(__instance.def, component.Rules);
                 var lockerAreas = matchingRules
                     .Where(rule => rule.ChangingArea != null)
-                    .Select(rule => rule.ChangingArea.Label)
+                    .Select(rule => RuleTypeStyle.AreaName(rule.ChangingArea))
                     .Distinct()
                     .ToList();
 
                 if (matchingRules.Count > 0)
                 {
-                    managedLabel = "Automatic Outfit Manager: Required work apparel";
-                    if (workAreas.Count > 0)
-                        managedLabel += $"\nRequired in: {string.Join(", ", workAreas)}";
+                    managedLabel = "Automatic Outfit Manager: Selected apparel\n" +
+                        RuleTypeStyle.SourceTip(matchingRules).TrimEnd();
                     if (lockerAreas.Count > 0)
-                        managedLabel += $"\nLocker room: {string.Join(", ", lockerAreas)}";
+                        managedLabel += $"\nLocker Room: {string.Join(", ", lockerAreas)}";
                 }
                 else if (component.IsManagedApparelDefinition(__instance.def))
                 {
                     managedLabel =
-                        "Automatic Outfit Manager: Managed apparel stock — retained for locker storage";
+                        "Automatic Outfit Manager: Retained apparel stock";
                 }
                 else if (component.IsManagedApparel(__instance))
                 {
-                    managedLabel = "Automatic Outfit Manager: Managed work apparel";
+                    managedLabel = "Automatic Outfit Manager: Managed apparel";
                 }
             }
 
@@ -91,38 +82,28 @@ namespace AutomaticOutfitManager.Patches
             }
             else
             {
-                var matchingRules = component.Rules
-                    .Where(rule => rule?.Enabled == true &&
-                                   rule.UsesExactWeapons &&
-                                   rule.RequiredWeapons.Contains(__instance.def))
-                    .ToList();
-                var workAreas = matchingRules
-                    .Where(rule => rule.Area != null)
-                    .Select(rule => rule.Area.Label)
-                    .Distinct()
-                    .ToList();
+                var matchingRules = GearSelectionPolicy.SelectingRules(__instance.def, component.Rules);
                 var lockerAreas = matchingRules
                     .Where(rule => rule.ChangingArea != null)
-                    .Select(rule => rule.ChangingArea.Label)
+                    .Select(rule => RuleTypeStyle.AreaName(rule.ChangingArea))
                     .Distinct()
                     .ToList();
 
                 if (matchingRules.Count > 0)
                 {
-                    managedLabel = "Automatic Outfit Manager: Required primary weapon";
-                    if (workAreas.Count > 0)
-                        managedLabel += $"\nRequired in: {string.Join(", ", workAreas)}";
+                    managedLabel = "Automatic Outfit Manager: Selected primary weapon\n" +
+                        RuleTypeStyle.SourceTip(matchingRules).TrimEnd();
                     if (lockerAreas.Count > 0)
-                        managedLabel += $"\nLocker room: {string.Join(", ", lockerAreas)}";
+                        managedLabel += $"\nLocker Room: {string.Join(", ", lockerAreas)}";
                 }
                 else if (component.IsManagedWeaponDefinition(__instance.def))
                 {
                     managedLabel =
-                        "Automatic Outfit Manager: Managed weapon stock — retained for locker storage";
+                        "Automatic Outfit Manager: Retained weapon stock";
                 }
                 else if (component.IsManagedWeapon(__instance))
                 {
-                    managedLabel = "Automatic Outfit Manager: Managed work weapon";
+                    managedLabel = "Automatic Outfit Manager: Managed primary weapon";
                 }
             }
 

@@ -34,6 +34,7 @@ namespace AutomaticOutfitManager.Detection
         }
 
         private static readonly List<Claim> Claims = new List<Claim>();
+        internal static bool HasClaims => Claims.Count > 0;
 
         public static void ResetForLoadedGame()
         {
@@ -145,6 +146,18 @@ namespace AutomaticOutfitManager.Detection
             return relatedCount > 0
                 ? $"{primary} (+{relatedCount} related target{(relatedCount == 1 ? "" : "s")})"
                 : primary;
+        }
+
+        internal static string DescribeConflict(Pawn pawn, Job job)
+        {
+            Cleanup();
+            List<WorkTarget> targets = TargetsFor(pawn, job);
+            Claim conflict = Claims.FirstOrDefault(claim => claim.Owner != pawn &&
+                targets.Any(target => Matches(claim, target)));
+            return conflict == null ? "the preparation claim was released" :
+                $"{conflict.Owner.LabelShortCap} holds " +
+                (conflict.Thing != null ? $"{conflict.Thing.LabelCap} at {conflict.Cell}" : $"cell {conflict.Cell}") +
+                " for its prepared job";
         }
 
         private static List<WorkTarget> TargetsFor(Pawn pawn, Job job)

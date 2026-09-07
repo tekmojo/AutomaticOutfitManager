@@ -43,12 +43,12 @@ namespace AutomaticOutfitManager.Detection
         }
 
         public static ApparelConflict FindConflict(
-            IEnumerable<ApparelRule> rules, BodyDef body = null)
+            IEnumerable<ApparelRule> rules, BodyDef body = null, Pawn pawn = null)
         {
             body ??= BodyDefOf.Human;
             var requirements = (rules ?? Enumerable.Empty<ApparelRule>())
                 .Where(rule => rule != null)
-                .SelectMany(rule => (rule.RequiredApparel ?? new List<ThingDef>())
+                .SelectMany(rule => RuleEvaluator.RequiredApparelFor(pawn, rule)
                     .Where(def => def?.apparel != null)
                     .Select(def => (Def: def, Rule: rule)))
                 .GroupBy(item => item.Def)

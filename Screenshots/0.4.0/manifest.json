@@ -1,0 +1,176 @@
+{
+  "version": "0.4.0",
+  "status": "Workshop gallery verified; same eight-image gallery included in the GitHub release source",
+  "user_direction": "Replace all previous gameplay screenshots when the update is published, not append these to the old gallery.",
+  "order_status": "verified Workshop order",
+  "originals_preserved": true,
+  "images_edited": false,
+  "screenshots": [
+    {
+      "order": 1,
+      "file": "01-work-area.jpg",
+      "original_filename": "RimWorldWin64_EQBrAs1dw4.jpg",
+      "title": "Work Area setup",
+      "caption": "Set required outfits, access permissions, a locker room and a task buffer for a Work Area. Rule colors match the painted area.",
+      "width": 3290,
+      "height": 1563,
+      "format": "JPEG",
+      "bytes": 896341,
+      "sha256": "F4DAA12A62887CF9277F07DBE1F7C3B5541613B2F93D4CAB6CA8A29764EFA9C7"
+    },
+    {
+      "order": 2,
+      "file": "02-non-work-area.jpg",
+      "original_filename": "RimWorldWin64_aXEJvtnpUT.jpg",
+      "title": "Non-Work Area setup",
+      "caption": "Use a Non-Work Area to return Work outfits and prefer saved personal clothing, with optional fallback selections.",
+      "width": 2892,
+      "height": 1581,
+      "format": "JPEG",
+      "bytes": 578416,
+      "sha256": "A83E5ACFBFD4AE784B595FC9B6BB32F2B4F420777AFC64628DE5CB666A1B28C8"
+    },
+    {
+      "order": 3,
+      "file": "03-remove-work-outfits.png",
+      "original_filename": "RimWorldWin64_Ja55PZwcDe.png",
+      "title": "Choose which Work outfits to return",
+      "caption": "All Work Outfits is selected by default. Turn it off to choose individual source rules; shared items stay on if any source is unselected.",
+      "width": 1553,
+      "height": 1348,
+      "format": "PNG",
+      "bytes": 181799,
+      "sha256": "5381BC6324512C7924DF73608712A192A2503AB992B5F4C282668395D84CCCDB"
+    },
+    {
+      "order": 4,
+      "file": "04-apparel-selections.png",
+      "original_filename": "RimWorldWin64_ifROPiSbsR.png",
+      "title": "Colored selections and conflicts",
+      "caption": "Apparel selections name their source rules and use map-area colors. Muted grey entries identify outfit conflicts.",
+      "width": 1602,
+      "height": 1287,
+      "format": "PNG",
+      "bytes": 371787,
+      "sha256": "A9C690A8AD23D4E05EB6181AE45C8BD4E255BFB3C2049A2F8FCCC971EAA36B5F"
+    },
+    {
+      "order": 5,
+      "file": "05-grouped-map-areas.png",
+      "original_filename": "RimWorldWin64_myrmiZD9px.png",
+      "title": "Find your custom areas first",
+      "caption": "Editable custom areas appear above special game and mod areas, with colored names and map highlighting.",
+      "width": 1966,
+      "height": 1146,
+      "format": "PNG",
+      "bytes": 668677,
+      "sha256": "3489707CCC0044D6E629EA3136805A9C27E5BDEB27F6C3FF3167F17714F133A9"
+    },
+    {
+      "order": 6,
+      "file": "06-outfit-preparation.png",
+      "original_filename": "RimWorldWin64_UAKlcLhGwp.png",
+      "title": "Follow outfit preparation",
+      "caption": "See which apparel a pawn still needs, their completed buffer count, and separate hauling activity.",
+      "width": 1858,
+      "height": 1073,
+      "format": "PNG",
+      "bytes": 394106,
+      "sha256": "1F9ACF204B02C73A19063CFCC59383BFD963A2B700A33B16417F0E08A6523FBA"
+    },
+    {
+      "order": 7,
+      "file": "07-activity-and-return.jpg",
+      "original_filename": "RimWorldWin64_dmU3lWR72u.jpg",
+      "title": "Track work, returns and wandering",
+      "caption": "Compact hovers show the rule, completed buffer count and current outfit step. Animal and robot activity appears separately from humanlike workers.",
+      "width": 2775,
+      "height": 1552,
+      "format": "JPEG",
+      "bytes": 716350,
+      "sha256": "B9B94596A74E72FEC869D84BDB6152E3690378BF37C5A9426C1C44193A5BB2B3"
+    },
+    {
+      "order": 8,
+      "file": "08-saved-item-ownership.jpg",
+      "original_filename": "RimWorldWin64_63H9ICSQhG.jpg",
+      "title": "Saved personal item ownership",
+      "caption": "Inspect a saved garment to see its owner, jump to the pawn, recall them or release the saved item with confirmation.",
+      "width": 2982,
+      "height": 1475,
+      "format": "JPEG",
+      "bytes": 938376,
+      "sha256": "C2FBC1B5CFE3A4EBFF99173B6A3CA27F51DEF76BF8175FAE13D53B5F95A2DFA4"
+    }
+  ],
+  "supersedes_local_gallery": [
+    "Screenshots/AOM_Gravship_01.png",
+    "Screenshots/AOM_Gravship_02.png",
+    "Screenshots/AOM_Radiation_01.png",
+    "Screenshots/AOM_Radiation_02.png",
+    "Screenshots/AOM_Radiation_03.png",
+    "Screenshots/AOM_Radiation_04.png",
+    "Screenshots/AOM_Radiation_05.png",
+    "Screenshots/AOM_Radiation_06.png",
+    "Screenshots/AOM_Radiation_07.png"
+  ],
+  "workshop_size_validation": {
+    "checked_at": "2026-09-07T01:37:36.097858+00:00",
+    "source": "https://partner.steamgames.com/doc/api/ISteamUGC#AddItemPreviewFile",
+    "documented_api_image_limit": "under 1 MB per additional preview image",
+    "local_exclusive_byte_ceiling": 1000000,
+    "ceiling_note": "Conservative decimal ceiling; recheck the actual web uploader limits and rendering before publication.",
+    "formats": "JPEG and PNG preserved",
+    "all_eight_pass": true,
+    "largest_file": {
+      "file": "08-saved-item-ownership.jpg",
+      "bytes": 938376,
+      "under_1000000_bytes": true
+    },
+    "total_gallery_bytes": 4745852,
+    "files": [
+      {
+        "file": "01-work-area.jpg",
+        "bytes": 896341,
+        "under_1000000_bytes": true
+      },
+      {
+        "file": "02-non-work-area.jpg",
+        "bytes": 578416,
+        "under_1000000_bytes": true
+      },
+      {
+        "file": "03-remove-work-outfits.png",
+        "bytes": 181799,
+        "under_1000000_bytes": true
+      },
+      {
+        "file": "04-apparel-selections.png",
+        "bytes": 371787,
+        "under_1000000_bytes": true
+      },
+      {
+        "file": "05-grouped-map-areas.png",
+        "bytes": 668677,
+        "under_1000000_bytes": true
+      },
+      {
+        "file": "06-outfit-preparation.png",
+        "bytes": 394106,
+        "under_1000000_bytes": true
+      },
+      {
+        "file": "07-activity-and-return.jpg",
+        "bytes": 716350,
+        "under_1000000_bytes": true
+      },
+      {
+        "file": "08-saved-item-ownership.jpg",
+        "bytes": 938376,
+        "under_1000000_bytes": true
+      }
+    ],
+    "cover_bytes": 369895,
+    "images_modified": false
+  }
+}

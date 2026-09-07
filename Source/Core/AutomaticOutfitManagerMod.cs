@@ -31,25 +31,24 @@ namespace AutomaticOutfitManager.Core
                 listing,
                 AomLoggingLevel.Quiet,
                 "Quiet",
-                "Only genuine warnings and errors are written to the player log.");
+                "Warnings and errors only.");
             DrawLoggingOption(
                 listing,
                 AomLoggingLevel.Basic,
                 "Basic (recommended)",
-                "Logs the loaded version and rare repair or compatibility summaries.");
+                "Version information and occasional recovery messages, plus warnings and errors.");
             DrawLoggingOption(
                 listing,
                 AomLoggingLevel.Detailed,
                 "Detailed",
-                "Adds rate-limited pawn transitions and troubleshooting decisions. " +
-                "Enable this temporarily while reproducing an issue.");
+                "Records outfit changes, jobs, gear and recovery decisions in the player log. " +
+                "Use temporarily when reporting a problem.");
 
             listing.Gap();
             GameFont previousFont = Text.Font;
             Text.Font = GameFont.Tiny;
             listing.Label(
-                "Changes take effect immediately. Detailed AOM logging is " +
-                "independent of RimWorld Developer Mode.");
+                "Changes apply immediately. Detailed logging works without RimWorld Developer Mode.");
             Text.Font = previousFont;
             listing.End();
         }
@@ -63,6 +62,7 @@ namespace AutomaticOutfitManager.Core
             Rect row = listing.GetRect(30f);
             if (Widgets.RadioButtonLabeled(row, label, Settings.LoggingLevel == level))
                 SetLoggingLevel(level);
+            TooltipHandler.TipRegion(row, description);
 
             GameFont previousFont = Text.Font;
             Color previousColor = GUI.color;

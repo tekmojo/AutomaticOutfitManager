@@ -23,7 +23,11 @@ namespace AutomaticOutfitManager.Detection
         private static readonly Dictionary<int, List<Entry>> Entries =
             new Dictionary<int, List<Entry>>();
 
-        public static void ResetForLoadedGame() => Entries.Clear();
+        public static void ResetForLoadedGame()
+        {
+            Entries.Clear();
+            WeaponPreparationRetryRegistry.ResetForLoadedGame();
+        }
 
         public static void Block(Pawn pawn, ApparelRule rule, int ticks = 1200)
         {

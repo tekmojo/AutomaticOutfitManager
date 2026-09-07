@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using AutomaticOutfitManager.Core;
+using AutomaticOutfitManager.Detection;
 using AutomaticOutfitManager.Rules;
 using RimWorld;
 using Verse;
@@ -20,7 +21,13 @@ namespace AutomaticOutfitManager.State
     {
         public Pawn Pawn;
         public string ActiveRuleId;
+        public string ReturnReason;
+        public string NonWorkRestorationRuleId;
+        public bool NonWorkGearReturnOnly;
+        public bool NonWorkFallbackActive;
         public List<string> CurrentRuleIds = new List<string>();
+        // Source areas visited by this outfit session may own exact saved gear.
+        public List<string> RestorationSourceRuleIds = new List<string>();
         public List<Apparel> OriginalApparel = new List<Apparel>();
         public List<Apparel> ManagedApparel = new List<Apparel>();
         public List<Apparel> ReusedOriginalApparel = new List<Apparel>();
@@ -84,6 +91,7 @@ namespace AutomaticOutfitManager.State
             {
                 Pawn = pawn,
                 ActiveRuleId = rule?.Id,
+                RestorationSourceRuleIds = rule == null ? new List<string>() : new List<string> { rule.Id },
                 OriginalApparel = captureApparel
                     ? pawn?.apparel?.WornApparel
                         .Where(apparel => apparel != null)
@@ -99,7 +107,13 @@ namespace AutomaticOutfitManager.State
         public void ExposeData()
         {
             Scribe_References.Look(ref Pawn, "pawn");
+            Scribe_Collections.Look(ref RestorationSourceRuleIds, "restorationSourceRuleIds", LookMode.Value);
+            RestorationSourceRuleIds ??= new List<string>();
             Scribe_Values.Look(ref ActiveRuleId, "activeRuleId");
+            Scribe_Values.Look(ref ReturnReason, "outfitReturnReason");
+            Scribe_Values.Look(ref NonWorkRestorationRuleId, "nonWorkRestorationRuleId");
+            Scribe_Values.Look(ref NonWorkGearReturnOnly, "nonWorkGearReturnOnly", false);
+            Scribe_Values.Look(ref NonWorkFallbackActive, "nonWorkFallbackActive", false);
             Scribe_Collections.Look(ref CurrentRuleIds, "currentRuleIds", LookMode.Value);
             Scribe_Collections.Look(ref OriginalApparel, "originalApparel", LookMode.Reference);
             Scribe_Collections.Look(ref ManagedApparel, "managedApparel", LookMode.Reference);
@@ -195,6 +209,8 @@ namespace AutomaticOutfitManager.State
             Scribe_Values.Look(ref LastNestedBufferStatus, "lastNestedBufferStatus");
             OriginalApparel ??= new List<Apparel>();
             ManagedApparel ??= new List<Apparel>();
+            if (RestorationSourceRuleIds.Count == 0 && !string.IsNullOrEmpty(ActiveRuleId))
+                RestorationSourceRuleIds.Add(ActiveRuleId);
             ReusedOriginalApparel ??= new List<Apparel>();
             ManagedWeapons ??= new List<ThingWithComps>();
             RejectedWeaponPreparations ??=
@@ -258,11 +274,11 @@ namespace AutomaticOutfitManager.State
 
             foreach (Apparel item in apparel.Where(item => item != null))
             {
-                // A direct sibling-rule handoff can reuse an exact garment from
-                // the original personal outfit as a destination requirement.
-                // It remains personal gear even while satisfying work; adding it
-                // to the removal ledger makes restoration alternate forever
-                // between RemoveApparel and Wear for the same instance.
+                // Never put an exact restore target on the removal ledger:
+                // that makes restoration alternate RemoveApparel/Wear forever.
+                // Snapshot cleanup separately reclassifies matching Work gear
+                // by removing the personal target before adding managed gear.
+                // Partial Non-Work targets can deliberately retain work items.
                 if (OriginalApparel?.Contains(item) == true)
                 {
                     ReusedOriginalApparel ??= new List<Apparel>();
@@ -339,8 +355,9 @@ namespace AutomaticOutfitManager.State
         public bool IsManagedWeapon(ThingWithComps weapon) =>
             weapon != null && ManagedWeapons?.Contains(weapon) == true;
 
-        public void RecordWeaponPreparationAttempt(ThingWithComps weapon)
+        public void RecordWeaponPreparationAttempt(ThingWithComps weapon, Job job = null)
         {
+            WeaponPreparationDiagnostics.Proposed(Pawn, job);
             int weaponId = weapon?.thingIDNumber ?? -1;
             int currentTick = Find.TickManager?.TicksGame ?? 0;
             if (WeaponPreparationStartedTick < 0)
@@ -411,6 +428,7 @@ namespace AutomaticOutfitManager.State
                     }
                     existing.AvailabilitySignature =
                         WeaponAvailabilitySignature(rejectedWeapon, Pawn);
+                    WeaponPreparationRetryRegistry.Reject(Pawn, rejectedWeapon);
                     ReleaseRejectedSpawnedWeaponAssignment(rejectedWeapon);
                 }
             }
@@ -490,20 +508,7 @@ namespace AutomaticOutfitManager.State
 
         private static string WeaponAvailabilitySignature(
             ThingWithComps weapon, Pawn pawn)
-        {
-            if (weapon == null)
-                return "null";
-
-            Map map = weapon.MapHeld;
-            string holder = weapon.ParentHolder is Thing holderThing
-                ? holderThing.GetUniqueLoadID()
-                : weapon.ParentHolder?.GetType().FullName ?? "none";
-            bool availableOnPawnMap = weapon.Spawned && map == pawn?.Map;
-            bool forbidden = availableOnPawnMap && weapon.IsForbidden(pawn);
-            bool equippable = pawn != null && EquipmentUtility.CanEquip(weapon, pawn);
-            return $"{weapon.Destroyed}|{weapon.Spawned}|{map?.uniqueID ?? -1}|" +
-                   $"{weapon.PositionHeld}|{holder}|{forbidden}|{equippable}";
-        }
+            => WeaponPreparationRetryRegistry.AvailabilitySignature(weapon, pawn);
 
         public void ClearWeaponPreparationRetry()
         {

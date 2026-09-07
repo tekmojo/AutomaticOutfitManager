@@ -24,8 +24,17 @@ namespace AutomaticOutfitManager.Detection
         private const int RetryLifetimeTicks = 600;
         private const float MinimumFoodProgress = 0.02f;
 
+        private sealed class AdmissionAlias
+        {
+            public Job Job;
+            public int LoadId;
+            public JobDef Def;
+            public Thing Food;
+        }
+
         private sealed class Entry
         {
+            public Map Map;
             public Job Job;
             public int JobLoadId;
             public int StartedTick;
@@ -35,6 +44,13 @@ namespace AutomaticOutfitManager.Detection
             public bool RetryIssued;
             public int RetryAdmissionTick = -1;
             public bool RetryAdmissionAttempted;
+            // Transient identities only: native still owns every live/queued
+            // Job. A nested compatibility rewrite may leave an outer admission
+            // holding the original object while the late prefix uses a clone.
+            public readonly List<AdmissionAlias> Aliases = new List<AdmissionAlias>();
+            public Job ConfirmedJob;
+            public Job FinalizerJob, FinalizerParent;
+            public int FinalizerId, FinalizerParentId;
         }
 
         private sealed class DeferredHaul
@@ -56,6 +72,13 @@ namespace AutomaticOutfitManager.Detection
             DeferredHauls.Clear();
         }
 
+        internal static void Clear(Pawn pawn)
+        {
+            if (pawn == null) return;
+            Entries.Remove(pawn.thingIDNumber);
+            DeferredHauls.Remove(pawn.thingIDNumber);
+        }
+
         public static void RecordResumed(Pawn pawn, Job job)
         {
             if (pawn == null || !IsIngest(job))
@@ -68,12 +91,54 @@ namespace AutomaticOutfitManager.Detection
             DeferredHauls.Remove(pawn.thingIDNumber);
             Entries[pawn.thingIDNumber] = new Entry
             {
+                Map = pawn.Map,
                 Job = clone,
                 JobLoadId = job.loadID,
                 StartedTick = CurrentTick,
                 FoodLevel = CurrentFoodLevel(pawn)
             };
+            RememberAlias(Entries[pawn.thingIDNumber], job);
         }
+
+        private static void RememberAlias(Entry entry, Job job)
+        {
+            foreach (AdmissionAlias alias in entry.Aliases)
+                if (ReferenceEquals(alias.Job, job) && alias.LoadId == job.loadID) return;
+            // Original admission, one retry, and at most one late rewrite.
+            if (entry.Aliases.Count == 3) entry.Aliases.RemoveAt(0);
+            entry.Aliases.Add(new AdmissionAlias
+            { Job = job, LoadId = job.loadID, Def = job.def, Food = job.targetA.Thing });
+        }
+
+        internal static bool ProtectsRetry(Pawn pawn, Job job)
+        {
+            if (pawn?.Spawned != true || pawn.Drafted || pawn.Downed || pawn.InMentalState ||
+                job?.playerForced != false || !IsIngest(job) ||
+                !Entries.TryGetValue(pawn.thingIDNumber, out Entry entry) ||
+                !entry.RetryIssued || entry.EndedTick >= 0 || entry.Map != pawn.Map ||
+                CurrentTick < entry.StartedTick || HasFoodProgress(pawn, entry) ||
+                (CurrentTick - entry.StartedTick > ActiveProtectionLifetimeTicks &&
+                 !HasLiveRetryFinalizer(pawn, entry))) return false;
+            foreach (AdmissionAlias alias in entry.Aliases)
+                if (ReferenceEquals(alias.Job, job) && alias.LoadId == job.loadID &&
+                    alias.Def == job.def && ReferenceEquals(alias.Food, job.targetA.Thing)) return true;
+            return false;
+        }
+
+        internal static void RecordRetryFinalizer(Pawn pawn, Job parent, Job child)
+        {
+            if (child == null || !ProtectsRetry(pawn, parent)) return;
+            Entry entry = Entries[pawn.thingIDNumber];
+            entry.FinalizerJob = child; entry.FinalizerId = child.loadID;
+            entry.FinalizerParent = parent; entry.FinalizerParentId = parent.loadID;
+        }
+
+        private static bool HasLiveRetryFinalizer(Pawn pawn, Entry entry) =>
+            entry.FinalizerJob != null && pawn.jobs?.curJob == entry.FinalizerJob &&
+            entry.FinalizerId == entry.FinalizerJob.loadID &&
+            entry.FinalizerParent?.loadID == entry.FinalizerParentId &&
+            PreparationJobHandoff.IsQueued(pawn, entry.FinalizerParent) &&
+            PawnJobTracker_StartJob_Patch.PendingWorkJobIsViable(pawn, entry.FinalizerParent, out _);
 
         public static bool TryGuardAutonomousHaul(
             Pawn pawn,
@@ -125,10 +190,26 @@ namespace AutomaticOutfitManager.Detection
             if (!Entries.TryGetValue(pawn.thingIDNumber, out Entry entry))
                 return false;
 
+            // A real previous-driver finalizer was chosen before native queued
+            // this meal. It is mandatory cleanup, even when its JobDef is a haul.
+            if (PreparationJobHandoff.IsFinalizer(pawn,
+                    AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn), proposedJob))
+                return false;
+
+            if (entry.ConfirmedJob != null && ReferenceEquals(currentJob, entry.ConfirmedJob) &&
+                ProtectsRetry(pawn, currentJob) && ProtectsRetry(pawn, proposedJob))
+            {
+                skipOriginal = true;
+                description = $"kept confirmed prepared Ingest#{currentJob.loadID}; " +
+                    $"ignored re-entrant meal admission #{proposedJob.loadID}";
+                return true;
+            }
+
             if (entry.EndedTick >= 0)
             {
                 int retryElapsed = CurrentTick - entry.EndedTick;
-                if (retryElapsed < 0 || retryElapsed > RetryLifetimeTicks ||
+                if (retryElapsed < 0 ||
+                    (retryElapsed > RetryLifetimeTicks && !HasLiveDeferredHaul(pawn, entry)) ||
                     HasFoodProgress(pawn, entry))
                 {
                     Entries.Remove(pawn.thingIDNumber);
@@ -157,7 +238,7 @@ namespace AutomaticOutfitManager.Detection
             }
 
             int elapsed = CurrentTick - entry.StartedTick;
-            if (elapsed < 0 || elapsed > ActiveProtectionLifetimeTicks ||
+            if (elapsed < 0 || (elapsed > ActiveProtectionLifetimeTicks && !HasLiveRetryFinalizer(pawn, entry)) ||
                 HasFoodProgress(pawn, entry))
             {
                 Entries.Remove(pawn.thingIDNumber);
@@ -221,6 +302,7 @@ namespace AutomaticOutfitManager.Detection
                 else
                 {
                     entry.JobLoadId = admittedRetry.loadID;
+                    RememberAlias(entry, admittedRetry);
                     entry.RetryAdmissionTick = -1;
                     entry.RetryAdmissionAttempted = true;
                     proposedJob = admittedRetry;
@@ -317,7 +399,8 @@ namespace AutomaticOutfitManager.Detection
                 ? RetryLifetimeTicks
                 : ActiveProtectionLifetimeTicks;
             int elapsed = CurrentTick - lifetimeStart;
-            if (elapsed < 0 || elapsed > lifetime || pawn.Drafted ||
+            bool liveDeferred = wasDeferred && HasLiveDeferredHaul(pawn, entry);
+            if (elapsed < 0 || (elapsed > lifetime && !liveDeferred) || pawn.Drafted ||
                 pawn.Downed || pawn.InMentalState ||
                 HasFoodProgress(pawn, entry))
             {
@@ -327,7 +410,14 @@ namespace AutomaticOutfitManager.Detection
             }
 
             if (canScheduleRetry)
+            {
                 MarkEndedForRetry(entry);
+                // The bounded recovery window starts when the permitted haul
+                // ends, not when it started hundreds of cells away. Keep only
+                // exact live child/queued-meal ownership beyond the ordinary
+                // timeout; an orphaned or invalid meal receives no extension.
+                entry.EndedTick = CurrentTick;
+            }
             else
                 Entries.Remove(pawn.thingIDNumber);
 
@@ -352,6 +442,16 @@ namespace AutomaticOutfitManager.Detection
         public static void NotifyEnded(
             Pawn pawn, Job job, JobCondition condition)
         {
+            if (pawn != null && Entries.TryGetValue(pawn.thingIDNumber, out Entry finalizerEntry) &&
+                job != null && ReferenceEquals(job, finalizerEntry.FinalizerJob) &&
+                job.loadID == finalizerEntry.FinalizerId && HasLiveRetryFinalizer(pawn, finalizerEntry))
+            {
+                // A genuine native care finalizer may take longer than a meal
+                // retry window. Its ending opens one bounded admission window;
+                // it does not grant a new retry or task-buffer credit.
+                finalizerEntry.StartedTick = CurrentTick;
+                finalizerEntry.FinalizerJob = finalizerEntry.FinalizerParent = null;
+            }
             if (pawn == null || !IsIngest(job) ||
                 !Entries.TryGetValue(pawn.thingIDNumber, out Entry entry) ||
                 entry.JobLoadId != job.loadID)
@@ -409,7 +509,8 @@ namespace AutomaticOutfitManager.Detection
             }
 
             int elapsed = CurrentTick - entry.EndedTick;
-            if (elapsed < 0 || elapsed > RetryLifetimeTicks ||
+            bool liveDeferred = HasLiveDeferredHaul(pawn, entry);
+            if (elapsed < 0 || (elapsed > RetryLifetimeTicks && !liveDeferred) ||
                 pawn.Drafted || pawn.Downed || pawn.InMentalState ||
                 proposedJob.playerForced || HasFoodProgress(pawn, entry) ||
                 entry.RetryIssued)
@@ -418,6 +519,12 @@ namespace AutomaticOutfitManager.Detection
                 DeferredHauls.Remove(pawn.thingIDNumber);
                 return false;
             }
+
+            // Nested/outer native StartJob calls can revisit the main prefix
+            // while the one allowed haul is still running. It owns its current
+            // job until completion; do not consume or expire the queued meal.
+            if (liveDeferred && !IsTrackedIngest(proposedJob, entry))
+                return false;
 
             if (IsIngest(proposedJob))
             {
@@ -433,8 +540,11 @@ namespace AutomaticOutfitManager.Detection
                     return false;
                 }
 
+                if (!ReferenceEquals(entry.Job?.targetA.Thing, proposedJob.targetA.Thing))
+                    entry.Aliases.Clear();
                 entry.Job = admissionTemplate;
                 entry.JobLoadId = proposedJob.loadID;
+                RememberAlias(entry, proposedJob);
                 entry.StartedTick = CurrentTick;
                 entry.EndedTick = -1;
                 entry.RetryIssued = true;
@@ -461,6 +571,7 @@ namespace AutomaticOutfitManager.Detection
                 }
 
                 entry.JobLoadId = retryJob.loadID;
+                RememberAlias(entry, retryJob);
                 entry.StartedTick = CurrentTick;
                 entry.EndedTick = -1;
                 entry.RetryIssued = true;
@@ -500,7 +611,7 @@ namespace AutomaticOutfitManager.Detection
 
             if (!IsIngest(currentJob) ||
                 !Entries.TryGetValue(pawn.thingIDNumber, out Entry entry) ||
-                !entry.RetryIssued || !IsTrackedIngest(currentJob, entry))
+                !entry.RetryIssued || !ProtectsRetry(pawn, currentJob))
             {
                 return;
             }
@@ -509,6 +620,8 @@ namespace AutomaticOutfitManager.Detection
             // template; retain the lightweight identity/progress guard until
             // the meal actually ends or raises the pawn's food level.
             entry.Job = null;
+            entry.JobLoadId = currentJob.loadID;
+            entry.ConfirmedJob = currentJob;
             entry.RetryAdmissionTick = -1;
             entry.RetryAdmissionAttempted = true;
             if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
@@ -516,8 +629,8 @@ namespace AutomaticOutfitManager.Detection
             {
                 AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: confirmed " +
-                    "the prepared Ingest owns the current job; retained only " +
-                    "bounded meal protection.");
+                    $"the prepared Ingest#{currentJob.loadID} owns the current job; retained only " +
+                    $"bounded meal protection; {PreparationJobHandoff.TrackerDescription(pawn)}.");
             }
         }
 
@@ -549,10 +662,34 @@ namespace AutomaticOutfitManager.Detection
             }
 
             int elapsed = CurrentTick - deferred.DeferredTick;
-            if (elapsed >= 0 && elapsed <= ActiveProtectionLifetimeTicks)
+            if (elapsed >= 0 &&
+                (elapsed <= ActiveProtectionLifetimeTicks ||
+                 Entries.TryGetValue(pawn.thingIDNumber, out Entry entry) &&
+                 HasLiveDeferredHaul(pawn, entry)))
                 return true;
 
             DeferredHauls.Remove(pawn.thingIDNumber);
+            return false;
+        }
+
+        private static bool HasLiveDeferredHaul(Pawn pawn, Entry entry)
+        {
+            if (entry == null || entry.RetryIssued || entry.Map != pawn?.Map ||
+                pawn?.Spawned != true || pawn.Drafted || pawn.Downed || pawn.InMentalState ||
+                HasFoodProgress(pawn, entry) ||
+                !DeferredHauls.TryGetValue(pawn.thingIDNumber, out DeferredHaul deferred) ||
+                !deferred.AllowOnce || !deferred.Started ||
+                CurrentTick < deferred.DeferredTick ||
+                pawn.jobs?.curJob?.loadID != deferred.JobLoadId ||
+                !IsAutonomousHaul(pawn.jobs.curJob) || pawn.jobs.jobQueue == null)
+                return false;
+
+            for (int i = 0; i < pawn.jobs.jobQueue.Count; i++)
+            {
+                Job queued = pawn.jobs.jobQueue[i].job;
+                if (IsTrackedIngest(queued, entry))
+                    return PawnJobTracker_StartJob_Patch.PendingWorkJobIsViable(pawn, queued, out _);
+            }
             return false;
         }
 
@@ -632,7 +769,8 @@ namespace AutomaticOutfitManager.Detection
             {
                 AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
-                    $"{description}.");
+                    $"{description}; proposed={deferredJob.def?.defName}#{deferredJob.loadID}; " +
+                    $"{PreparationJobHandoff.TrackerDescription(pawn)}.");
             }
             return !skipOriginal;
         }

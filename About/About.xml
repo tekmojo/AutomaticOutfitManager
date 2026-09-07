@@ -4,7 +4,7 @@
   <author>tekmojo</author>
   <url>https://github.com/tekmojo/AutomaticOutfitManager</url>
   <packageId>tekmojo.automaticoutfitmanager</packageId>
-  <modVersion>0.3.8</modVersion>
+  <modVersion>0.4.0</modVersion>
   <supportedVersions>
     <li>1.6</li>
   </supportedVersions>
@@ -18,9 +18,11 @@
   <loadAfter>
     <li>brrainz.harmony</li>
   </loadAfter>
-  <description>Create area-based outfit rules for apparel, personal protective equipment (PPE), and optional exact primary-weapon alternatives, with independent condition and quality standards. Eligible undrafted humanlike pawns equip the complete requirement before entry and retain it through work, hauling, wandering, personal activities, sleep, and pass-through. They return items through an optional locker room and restore their saved apparel and exact previous primary weapon after leaving and successfully completing any configured buffer. Original apparel is restored by default; tattered personal apparel may be replaced by a valid better item after it is successfully worn.
+  <description>Set outfits and access permissions for Work and Non-Work Areas. Pawns wear the required apparel and one selected primary weapon before entering a Work Area, then return borrowed outfits and restore personal gear. Use Non-Work rules for dining rooms, lounges or bedrooms: prefer saved personal outfits, choose fallback gear, and decide which Work outfits to remove.
 
-  Includes nested rules, pause and Recall controls, access permissions, live status, locker restocking, managed storage filters, bounded saved-item recovery, safe retention of already-managed protection across hazardous routes, gravship area remapping, and generic vanilla or modded gear support. Rules remain player-configured rather than automatically triggered by hazards. Harmony is required.
+  Optional locker rooms, successful-task buffers and managed storage filters keep outfits organized. Map-area colors, concise activity hovers and editable rule descriptions make rules easier to follow. Hover a badge to highlight its area; click to center the map. Deleting a rule asks for confirmation.
+
+  Supports vanilla and modded apparel and primary weapons. Rules are configured by the player; AOM does not choose outfits from detected hazards. Animals and robots follow access permissions without changing outfits. Requires RimWorld 1.6 and Harmony. Quiet, Basic and Detailed logging are available in mod settings.
 
   Automatic Outfit Manager is a community-created mod. Its original software and documentation are licensed under the MIT License; see LICENSE and NOTICE.md in the mod distribution or source repository.
 

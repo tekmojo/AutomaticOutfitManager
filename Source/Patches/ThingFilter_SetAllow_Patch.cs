@@ -12,28 +12,46 @@ namespace AutomaticOutfitManager.Patches
         private static SpecialThingFilterDef managedWeapons;
         private static SpecialThingFilterDef unmanagedWeapons;
         [System.ThreadStatic] private static int storageAcceptanceDepth;
-        [System.ThreadStatic] private static bool classifiedDuringStorageAcceptance;
+        [System.ThreadStatic] private static ThingFilter classifiedFilter;
+        [System.ThreadStatic] private static Thing classifiedThing;
+        [System.ThreadStatic] private static bool classifiedManaged;
 
         public static void BeginStorageAcceptance()
         {
-            if (storageAcceptanceDepth++ == 0)
-                classifiedDuringStorageAcceptance = false;
+            storageAcceptanceDepth++;
+            classifiedFilter = null;
+            classifiedThing = null;
         }
 
-        public static void NoteThingFilterClassification()
+        public static void NoteThingFilterClassification(ThingFilter filter, Thing thing, bool managed)
         {
-            if (storageAcceptanceDepth > 0)
-                classifiedDuringStorageAcceptance = true;
+            if (storageAcceptanceDepth <= 0)
+                return;
+            classifiedFilter = filter;
+            classifiedThing = thing;
+            classifiedManaged = managed;
         }
 
-        public static bool EndStorageAcceptance()
+        public static bool EndStorageAcceptance(ThingFilter filter, Thing thing, out bool managed)
         {
-            bool classified = classifiedDuringStorageAcceptance;
+            // Reuse only the category of this exact filter/item pair, never
+            // an earlier acceptance result. The destination's flags are checked
+            // again even if a framework overrides ThingFilter's rejection.
+            bool classified = classifiedFilter != null && classifiedThing != null &&
+                ReferenceEquals(classifiedFilter, filter) && ReferenceEquals(classifiedThing, thing);
+            managed = classifiedManaged;
             if (storageAcceptanceDepth > 0)
                 storageAcceptanceDepth--;
-            if (storageAcceptanceDepth == 0)
-                classifiedDuringStorageAcceptance = false;
+            classifiedFilter = null;
+            classifiedThing = null;
             return classified;
+        }
+
+        public static void ResetStorageAcceptance()
+        {
+            storageAcceptanceDepth = 0;
+            classifiedFilter = null;
+            classifiedThing = null;
         }
 
         public static SpecialThingFilterDef For(bool weapon, bool managed)
@@ -112,12 +130,13 @@ namespace AutomaticOutfitManager.Patches
             {
                 return;
             }
-            ManagedGearStorageFilterDefs.NoteThingFilterClassification();
+            ManagedGearStorageFilterDefs.NoteThingFilterClassification(__instance, t, automatic);
             SpecialThingFilterDef filterDef =
                 ManagedGearStorageFilterDefs.For(t.def.IsWeapon, automatic);
 
             if (filterDef != null && !__instance.Allows(filterDef))
                 __result = false;
+
         }
     }
 
@@ -131,33 +150,32 @@ namespace AutomaticOutfitManager.Patches
         public static void Prefix() =>
             ManagedGearStorageFilterDefs.BeginStorageAcceptance();
 
+        public static void Finalizer(System.Exception __exception)
+        {
+            if (__exception != null)
+                ManagedGearStorageFilterDefs.ResetStorageAcceptance();
+        }
+
         public static void Postfix(
             ThingFilter ___filter, Thing t, ref bool __result)
         {
-            bool alreadyClassified =
-                ManagedGearStorageFilterDefs.EndStorageAcceptance();
-            if (!__result || t?.def == null)
-                return;
-
-            // Vanilla StorageSettings calls ThingFilter.Allows, whose patch has
-            // already enforced the managed/unmanaged split. Skip the duplicate
-            // classifier pass there while retaining this fallback for storage
-            // frameworks that bypass or replace ThingFilter evaluation.
-            if (___filter == null || alreadyClassified)
-                return;
-
             bool automatic;
-            if (t.def.apparel != null)
-            {
-                automatic = ManagedApparelClassifier.Matches(t);
-            }
-            else if (t.def.IsWeapon)
-            {
-                automatic = ManagedWeaponClassifier.Matches(t);
-            }
-            else
-            {
+            bool alreadyClassified = ManagedGearStorageFilterDefs.EndStorageAcceptance(
+                ___filter, t, out automatic);
+            if (!__result || t?.def == null || ___filter == null)
                 return;
+
+            // A nested check of another filter/item cannot satisfy this one.
+            // Matching categories avoid duplicate work, but never skip enforcing
+            // this destination's current managed/non-managed selection.
+            if (!alreadyClassified)
+            {
+                if (t.def.apparel != null)
+                    automatic = ManagedApparelClassifier.Matches(t);
+                else if (t.def.IsWeapon)
+                    automatic = ManagedWeaponClassifier.Matches(t);
+                else
+                    return;
             }
             SpecialThingFilterDef filterDef =
                 ManagedGearStorageFilterDefs.For(t.def.IsWeapon, automatic);

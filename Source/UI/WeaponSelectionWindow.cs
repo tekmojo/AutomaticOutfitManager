@@ -45,13 +45,13 @@ namespace AutomaticOutfitManager.UI
         {
             Text.Font = GameFont.Medium;
             Widgets.Label(new Rect(inRect.x, inRect.y, inRect.width, 32f),
-                "Choose primary weapons");
+                "Choose Primary Weapons");
             Text.Font = GameFont.Small;
 
             Rect searchRect = new Rect(inRect.x, inRect.y + 40f, inRect.width, 30f);
             searchText = Widgets.TextField(searchRect, searchText ?? "");
             TooltipHandler.TipRegion(searchRect,
-                "Search by the weapon's displayed name or technical DefName.");
+                "Search weapons by name.");
 
             List<ThingDef> filtered = FilteredDefs();
             Rect countRect = new Rect(inRect.x, searchRect.yMax + 6f, inRect.width, 24f);
@@ -60,7 +60,7 @@ namespace AutomaticOutfitManager.UI
                 : "any weapon allowed";
             Widgets.Label(countRect, $"{filtered.Count} weapon(s) — {selectionHint}");
             TooltipHandler.TipRegion(countRect,
-                "A pawn equips one green primary-weapon alternative before entry and retains it throughout every activity or protected route inside the active area. When both types are selected, higher Shooting prefers ranged and higher Melee prefers melee. The locker and then the map are searched for that type before falling back to the weaker category; tied pawns are distributed across valid selections. Cyan entries are retained managed stock. With nothing selected, there is no primary-weapon requirement: a pawn may remain unarmed or keep any current weapon. Inventory sidearms do not count.");
+                RuleTypeStyle.GearPolicyTip(rule) + "\n\n" + "Choose acceptable primary weapons; each pawn equips one. Empty selections add no requirement. Higher Shooting prefers ranged and higher Melee prefers melee when both are available. Inventory sidearms do not count. Selected items appear first. [Rule Name] shows who else selects an item; +number means more rules. [Retained] is remembered locker stock, not a current requirement or an availability count. Grey entries have a conflict; hover to see why.");
 
             Rect outRect = new Rect(
                 inRect.x, countRect.yMax + 4f,
@@ -129,30 +129,61 @@ namespace AutomaticOutfitManager.UI
             bool retainedStock = !selected &&
                 component?.IsManagedWeaponDefinition(def) == true;
             bool conflict = !selected && ConflictsIfAdded(def);
+            var removalSource = NonWorkFallbackPolicy.ConflictingSource(rule, def, component?.Rules);
+            var affectedNonWork = NonWorkFallbackPolicy.ConflictingDestination(rule, def, component?.Rules);
+            string conflictReason = removalSource != null
+                ? $"This item is part of {RuleTypeStyle.RuleName(removalSource)}, an outfit selected under Remove Work Outfits. " +
+                  "Choose different gear or change the 'Remove Work Outfits' selection."
+                : affectedNonWork != null ? RuleTypeStyle.ReverseConflictTip(rule, affectedNonWork)
+                : conflict ? "The overlapping areas need a primary weapon they can all accept. Choose a shared weapon and compatible condition and quality ranges." : null;
             string type = def.IsMeleeWeapon ? "melee" : "ranged";
-            string label = $"{def.LabelCap} [{def.defName}] — {type}";
+            var sources = RuleTypeStyle.GearSources(rule, def);
+            string sourceHeading = RuleTypeStyle.SourceTip(selected
+                ? new[] { rule }.Concat(sources).ToList() : sources);
+            Color conflictColor = RuleConflictStyle.Color;
+            string label = $"{def.LabelCap} — {type}";
+            bool retainedOnly = GearSelectionPolicy.IsRetained(def, retainedStock, sources);
             Color previousColor = GUI.color;
-            if (selected)
-                GUI.color = Color.green;
-            else if (retainedStock)
-                GUI.color = Color.cyan;
+            if (conflictReason != null)
+                GUI.color = conflictColor;
+            else if (selected)
+                GUI.color = RuleTypeStyle.ForRule(rule);
+            else if (sources.Count > 0)
+                GUI.color = RuleTypeStyle.SourceColor(sources, muted: false);
+
             float reservedButtonWidth = retainedStock ? 188f : 100f;
             Rect labelRect = new Rect(
                 rect.x + 4f, rect.y + 5f,
                 rect.width - reservedButtonWidth, 24f);
-            Widgets.Label(labelRect, label);
+            if (conflictReason == null)
+                labelRect = RuleTypeStyle.DrawSourceMarks(labelRect, sources, muted: false);
+            if (retainedStock || (!selected && sources.Count > 0))
+                label = (retainedOnly ? "[Retained] " : RuleTypeStyle.SourceLabel(sources, labelRect.width * 0.45f)) + label;
+            string suffix = conflictReason != null ? " — Conflict" : "";
+            Widgets.Label(labelRect, label.Truncate(Mathf.Max(0f, labelRect.width - Text.CalcSize(suffix).x)) + suffix);
             GUI.color = previousColor;
-            if (selected)
+            if (conflictReason != null)
+                TooltipHandler.TipRegion(labelRect,
+                    sourceHeading + conflictReason + "\n\n" + RuleTypeStyle.GearPolicyTip(rule));
+            else if (selected)
             {
                 TooltipHandler.TipRegion(
                     new Rect(rect.x + 4f, rect.y, rect.width - 100f, rect.height),
-                    "Selected for this rule. Green weapons are alternatives; an eligible pawn equips and retains one acceptable primary weapon, not every selected weapon, throughout every activity or protected route inside the active area.");
+                    sourceHeading + $"Selected for this rule ({RuleTypeStyle.RuleName(rule)}). Equip one of the selected primary weapons." + "\n\n" + RuleTypeStyle.GearPolicyTip(rule));
             }
             else if (retainedStock)
             {
                 TooltipHandler.TipRegion(
                     new Rect(rect.x + 4f, rect.y, rect.width - 188f, rect.height),
-                    "Retained managed weapon stock. It remains classified for Automatic Outfit Manager locker storage even though this rule does not currently require it.");
+                    sourceHeading + (sources.Count > 0
+                        ? "Not selected for this rule. Use Add to select it here. Remove it from the rules above before using Forget."
+                        : "Remembered as locker stock, but not selected by a rule. Add makes it a requirement here. Forget returns unused stock to ordinary storage.") + "\n\n" + RuleTypeStyle.GearPolicyTip(rule));
+            }
+
+            else
+            {
+                TooltipHandler.TipRegion(labelRect,
+                    sourceHeading + $"{def.LabelCap} is not selected for {RuleTypeStyle.RuleName(rule)}. Use Add to select this type." + "\n\n" + RuleTypeStyle.GearPolicyTip(rule));
             }
 
             Rect buttonRect = new Rect(rect.xMax - 88f, rect.y + 2f, 84f, 27f);
@@ -167,21 +198,16 @@ namespace AutomaticOutfitManager.UI
                         rule.Id, $"removed weapon {def.LabelCap}");
                 }
                 TooltipHandler.TipRegion(buttonRect,
-                    "Stop accepting this weapon for this rule. Its type remains retained managed stock until Forget is used when no rule or active transition still needs it.");
+                    "Remove this selection. Its type remains managed locker stock until you use Forget; other rules can still select it.");
             }
             else
             {
                 Rect addRect = retainedStock
                     ? new Rect(rect.xMax - 176f, rect.y + 2f, 84f, 27f)
                     : buttonRect;
-                if (conflict)
+                if (conflictReason != null)
                 {
-                    bool previousEnabled = GUI.enabled;
-                    GUI.enabled = false;
-                    Widgets.ButtonText(addRect, "Conflict");
-                    GUI.enabled = previousEnabled;
-                    TooltipHandler.TipRegion(addRect,
-                        "This weapon cannot satisfy the exact primary-weapon requirements of the overlapping work areas.");
+                    RuleConflictStyle.DrawBlockedButton(addRect, conflictReason);
                 }
                 else if (Widgets.ButtonText(addRect, "Add"))
                 {
@@ -191,15 +217,16 @@ namespace AutomaticOutfitManager.UI
                         rule.RequiredWeapons.Add(def);
                         component?.RememberManagedStockDefinition(def);
                         component?.InvalidateManagedWeaponDefinitionIndex();
+                        component?.NotifyRuleRequirementsChanged(rule.Id, "outfit selection added");
                         filteredDefsDirty = true;
                     }
                 }
-                if (!conflict)
+                if (conflictReason == null)
                 {
                     TooltipHandler.TipRegion(addRect,
-                        retainedStock
-                            ? "Add this retained weapon type back as an acceptable primary-weapon alternative."
-                            : "Add this exact weapon type as an acceptable primary-weapon alternative for this rule.");
+                        RuleTypeStyle.GearPolicyTip(rule) + "\n\n" + (retainedStock
+                            ? "Select this weapon type as a primary-weapon alternative for this rule."
+                            : "Add this exact weapon type as an acceptable primary-weapon alternative for this rule."));
                 }
 
                 if (retainedStock)
@@ -215,9 +242,9 @@ namespace AutomaticOutfitManager.UI
                     GUI.enabled = previousEnabled;
                     TooltipHandler.TipRegion(buttonRect,
                         canForget
-                            ? "Stop classifying spare copies of this weapon type as managed Automatic Outfit Manager stock. Exact saved or currently tracked weapons remain protected individually."
+                            ? "Return unused stock of this type to ordinary storage. Individual saved or borrowed items stay protected."
                             : component?.ManagedStockForgetBlockReason(def) ??
-                              "This weapon type is still required by another rule or used by an active outfit transition.");
+                              "A rule or current outfit change still uses this type.");
                 }
             }
         }

@@ -353,18 +353,21 @@ namespace AutomaticOutfitManager.Patches
             return DeniedHaulingRule(pawn, job) != null;
         }
 
-        public static ApparelRule DeniedOrdinaryWorkRule(Pawn pawn, Job job)
+        public static ApparelRule DeniedActivityRule(Pawn pawn, Job job, ThinkNode jobGiver = null)
         {
-            if (pawn?.Map == null || job?.workGiverDef == null || !IsManagedPawn(pawn) ||
-                IsHaulingJob(job) || IsRestrictedRoamingJob(pawn, job, job.jobGiver))
+            if (pawn?.Map == null || job?.def == null || !IsManagedPawn(pawn) ||
+                HasNativeActivityOverride(pawn, job) ||
+                IsHaulingJob(job) || IsRestrictedRoamingJob(pawn, job, jobGiver ?? job.jobGiver))
                 return null;
 
             List<ApparelRule> restrictedRules =
                 AutomaticOutfitManagerGameComponent.Current?.Rules?.Where(rule =>
                 rule != null && rule.Enabled && rule.Area?.Map == pawn.Map &&
                 !WorkAllowedFor(rule, pawn)).ToList() ?? new List<ApparelRule>();
+            if (ShouldAllowEssentialActivityFallback(pawn, job, restrictedRules)) return null;
             ApparelRule directRule = restrictedRules.FirstOrDefault(rule =>
-                RuleEvaluator.JobTargetsArea(job, rule.Area));
+                RuleEvaluator.JobTargetsArea(job, rule.Area) ||
+                (pawn.Position.IsValid && rule.Area[pawn.Position]));
             if (directRule != null)
                 return directRule;
 
@@ -449,18 +452,33 @@ namespace AutomaticOutfitManager.Patches
 
         public static bool ShouldRejectProtectedAreaJob(Pawn pawn, Job job)
         {
-            if (pawn?.Map == null || job == null || pawn.Drafted ||
-                pawn.DevelopmentalStage == DevelopmentalStage.Adult)
+            if (!ChildAreaAccessPolicy.IsChild(pawn) || pawn.Map == null || job == null || !IsManagedPawn(pawn) ||
+                ChildActivityHasNativeOverride(pawn, job))
                 return false;
 
             bool isWorkWatching = IsWorkWatchingJob(job);
             return AutomaticOutfitManagerGameComponent.Current?.Rules?.Any(rule =>
-                rule != null &&
-                rule.Enabled &&
+                ChildAreaAccessPolicy.Disallows(pawn, rule) &&
                 rule.Area?.Map == pawn.Map &&
                 ProtectedJobTargetsArea(pawn, job, rule.Area, isWorkWatching) &&
-                !(isWorkWatching && rule.AllowChildWorkWatching)) == true;
+                !IsChildExitJob(pawn, job, rule)) == true;
         }
+
+        private static bool ChildActivityHasNativeOverride(Pawn pawn, Job job,
+            bool allowOutfitTransition = true)
+        {
+            bool transition = IsAutomaticOutfitManagerTransitionJob(pawn, job);
+            return pawn.Drafted || pawn.Downed || pawn.InMentalState ||
+                (job.playerForced && !transition) ||
+                PawnAccessClassifier.IsNativeCustodyEscapeActive(pawn) ||
+                PawnJobTracker_StartJob_Patch.IsNativeEmergencySafetyJob(job) ||
+                PawnJobTracker_StartJob_Patch.IsMapDepartureJob(job) ||
+                (allowOutfitTransition && transition);
+        }
+
+        private static bool IsChildExitJob(Pawn pawn, Job job, ApparelRule rule) =>
+            (job.def == JobDefOf.Goto || job.def == JobDefOf.GotoWander) &&
+            IsRestrictedRoamingEgress(pawn, job, rule);
 
         private static bool ProtectedJobTargetsArea(
             Pawn child, Job job, Area area, bool isWorkWatching)
@@ -472,8 +490,10 @@ namespace AutomaticOutfitManager.Patches
                 return true;
             }
 
+            if (JobPathCrossesArea(child, job, area))
+                return true;
             if (!isWorkWatching)
-                return JobPathCrossesArea(child, job, area);
+                return false;
 
             // Work watching follows an adult dynamically. The child's job can
             // therefore target only the adult, while the adult's workstation
@@ -511,6 +531,7 @@ namespace AutomaticOutfitManager.Patches
             rejectedJob.targetC = LocalTargetInfo.Invalid;
             rejectedJob.expiryInterval = 300;
             rejectedJob.locomotionUrgency = LocomotionUrgency.Jog;
+            AccessExitJobs.Mark(pawn, rejectedJob);
             return true;
         }
 
@@ -531,18 +552,17 @@ namespace AutomaticOutfitManager.Patches
             exitJob = JobMaker.MakeJob(JobDefOf.Goto, safeCell);
             exitJob.expiryInterval = 300;
             exitJob.locomotionUrgency = LocomotionUrgency.Jog;
+            AccessExitJobs.Mark(pawn, exitJob);
             return true;
         }
 
         private static List<ApparelRule> ProtectedChildRules(Pawn pawn, Job job)
         {
-            bool isWorkWatching = IsWorkWatchingJob(job);
+            // Exit destinations must avoid every child-disabled rule on this map,
+            // not just the area touched by the rejected job.
             return AutomaticOutfitManagerGameComponent.Current?.Rules?
-                .Where(rule => rule != null &&
-                               rule.Enabled &&
-                               rule.Area?.Map == pawn.Map &&
-                               ProtectedJobTargetsArea(pawn, job, rule.Area, isWorkWatching) &&
-                               !(isWorkWatching && rule.AllowChildWorkWatching))
+                .Where(rule => ChildAreaAccessPolicy.Disallows(pawn, rule) &&
+                               rule.Area?.Map == pawn.Map)
                 .ToList() ?? new List<ApparelRule>();
         }
 
@@ -558,6 +578,7 @@ namespace AutomaticOutfitManager.Patches
                 AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn)?.RecallRequested == true)
                 return null;
 
+            if (HasNativeActivityOverride(pawn, job)) return null;
             bool hauling = IsHaulingJob(job);
             bool wandering = IsRestrictedRoamingJob(pawn, job, job.jobGiver);
             if (IsEssentialPersonalJob(job) && !wandering)
@@ -682,47 +703,36 @@ namespace AutomaticOutfitManager.Patches
                 return false;
             }
 
+            if (ChildAreaAccessPolicy.Disallows(pawn, rule))
+                // The path guard separately admits a transition's exact owning
+                // area. Do not grant it entry through unrelated child-disabled areas.
+                return ChildActivityHasNativeOverride(pawn, job, false) || IsChildExitJob(pawn, job, rule);
+
             if (IsHaulingJob(job))
                 return HaulingAllowedFor(rule, pawn);
 
+            // Native/explicit control and exact transitions are handled by
+            // callers. Here a transition still needs permission for unrelated
+            // areas; only the path guard can admit its actual owning rule.
+            if (HasNativeActivityOverride(pawn, job, false)) return true;
+            if ((job.def == JobDefOf.Goto || job.def == JobDefOf.GotoWander) &&
+                IsRestrictedRoamingEgress(pawn, job, rule)) return true;
+
             if (IsRestrictedRoamingJob(pawn, job, job.jobGiver))
+                return WanderingAllowedFor(rule, pawn);
+
+            if (!WorkAllowedFor(rule, pawn))
             {
-                // A pawn already occupying a newly restricted area must retain
-                // one safe route out. The boundary still enforces complete gear
-                // while the pawn crosses protected cells, and the exemption
-                // ends as soon as the pawn reaches the outside destination.
-                if (WanderingAllowedFor(rule, pawn) ||
-                    IsRestrictedRoamingEgress(pawn, job, rule))
-                {
-                    return true;
-                }
-
-                // A guest already inside a restricted area must not be left
-                // awake and Standing when no safe exit cell exists. Preserve
-                // the essential sleep fallback in that one case; the caller
-                // still enforces complete protective gear while they remain.
-                List<ApparelRule> restrictedGuestRules =
-                    AutomaticOutfitManagerGameComponent.Current?.Rules?
-                        .Where(candidate => candidate?.Enabled == true &&
-                            candidate.Area?.Map == pawn.Map &&
-                            !WanderingAllowedFor(candidate, pawn))
-                        .ToList() ?? new List<ApparelRule>();
-                return ShouldAllowEssentialGuestFallback(
-                    pawn, job, restrictedGuestRules);
+                var denied = AutomaticOutfitManagerGameComponent.Current?.Rules?
+                    .Where(candidate => candidate?.Enabled == true &&
+                        candidate.Area?.Map == pawn.Map && !WorkAllowedFor(candidate, pawn))
+                    .ToList() ?? new List<ApparelRule>();
+                return rule.Area[pawn.Position] &&
+                    ShouldAllowEssentialActivityFallback(pawn, job, denied);
             }
-
-            // Sleeping remains the narrowly established personal exception for
-            // colonists and other pawn categories. Hosted guests are classified
-            // above so their Wandering toggle governs entry to the area.
-            if (IsEssentialPersonalJob(job))
-                return true;
-
-            bool ordinaryWork = job.workGiverDef != null ||
-                                job.jobGiver is JobGiver_Work;
-            if (rule.WorkAreaPaused)
-                return false;
-
-            return !ordinaryWork || WorkAllowedFor(rule, pawn);
+            // Preserve native essential rest during a pause, consistently for
+            // colonists, guests, slaves and prisoners.
+            return !rule.WorkAreaPaused || IsEssentialPersonalJob(job);
         }
 
         public static bool IsHaulingOrWanderingActivityForRule(
@@ -793,7 +803,7 @@ namespace AutomaticOutfitManager.Patches
 
             bool relevantJob = hauling
                 ? IsHaulingJob(job)
-                : IsRestrictedRoamingJob(pawn, job, job.jobGiver);
+                : IsObservedRestrictedRoamingJob(pawn, job, job.jobGiver);
             if (!relevantJob)
                 return false;
 
@@ -876,6 +886,11 @@ namespace AutomaticOutfitManager.Patches
                 return false;
             }
 
+            // Leaving an occupied area does not start another outfit session.
+            // Other areas on the route still use the ordinary boundary checks.
+            if (AccessExitJobs.IsOwned(pawn, job) && IsRestrictedRoamingEgress(pawn, job, rule))
+                return false;
+
             // A disabled activity whose target is outside the rule is routed
             // around the area. It must not trigger an unnecessary outfit swap
             // merely because RimWorld's uncustomized shortest path crosses it.
@@ -947,11 +962,6 @@ namespace AutomaticOutfitManager.Patches
             restrictedRules = restrictedRules.Where(rule =>
                     !IsRestrictedRoamingEgress(pawn, job, rule))
                 .ToList();
-            if (ShouldAllowEssentialGuestFallback(
-                    pawn, job, restrictedRules))
-            {
-                return false;
-            }
             if (restrictedRules.Any(rule =>
                     RuleEvaluator.JobTargetsArea(job, rule.Area) ||
                     (IsRestrictedRoamingWaitJob(pawn, job, jobGiver) &&
@@ -992,14 +1002,21 @@ namespace AutomaticOutfitManager.Patches
             if (restrictedRules == null || restrictedRules.Count == 0)
                 return false;
 
-            if (AomLog.DetailedEnabled && IsFriendlyGuest(pawn) &&
+            var blockingCandidates = restrictedRules.Where(rule =>
+                !IsRestrictedRoamingEgress(pawn, job, rule)).ToList();
+            var blockingRule = blockingCandidates.FirstOrDefault(rule =>
+                RuleEvaluator.JobTargetsArea(job, rule.Area) ||
+                (IsRestrictedRoamingWaitJob(pawn, job, jobGiver) && rule.Area[pawn.Position])) ??
+                blockingCandidates.FirstOrDefault(rule =>
+                    ProtectedPathAvoidance.JobPathCrossesArea(pawn, job, rule.Area));
+            if (AomLog.DetailedEnabled && blockingRule != null && IsFriendlyGuest(pawn) &&
                 AomLog.ShouldLogDetailed(
-                    pawn, $"guest-roaming-disabled:{restrictedRules[0].Id}"))
+                    pawn, $"guest-roaming-disabled:{blockingRule.Id}"))
             {
                 AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: redirected " +
                     $"autonomous guest {job.def?.defName ?? "movement"} away from " +
-                    $"'{restrictedRules[0].Name}'; guest wandering is disabled.");
+                    $"'{blockingRule.Name}'; guest wandering is disabled.");
             }
 
             bool startsInside = restrictedRules.Any(rule => rule.Area[pawn.Position]);
@@ -1016,6 +1033,7 @@ namespace AutomaticOutfitManager.Patches
                 job.targetB = LocalTargetInfo.Invalid;
                 job.targetC = LocalTargetInfo.Invalid;
                 job.expiryInterval = 180;
+                AccessExitJobs.Mark(pawn, job);
                 return true;
             }
 
@@ -1028,6 +1046,8 @@ namespace AutomaticOutfitManager.Patches
             job.targetA = safeCell;
             job.targetB = LocalTargetInfo.Invalid;
             job.targetC = LocalTargetInfo.Invalid;
+            job.expiryInterval = 300;
+            AccessExitJobs.Mark(pawn, job);
             return true;
         }
 
@@ -1053,6 +1073,7 @@ namespace AutomaticOutfitManager.Patches
             exitJob = JobMaker.MakeJob(JobDefOf.Goto, safeCell);
             exitJob.expiryInterval = 300;
             exitJob.locomotionUrgency = LocomotionUrgency.Jog;
+            AccessExitJobs.Mark(pawn, exitJob);
             return true;
         }
 
@@ -1070,6 +1091,11 @@ namespace AutomaticOutfitManager.Patches
                                cell.InBounds(pawn.Map) &&
                                cell != pawn.Position &&
                                cell.Standable(pawn.Map) &&
+                               !cell.IsForbidden(pawn) &&
+                               // An area toggle must not walk a prisoner out
+                               // through the cell door. Native labor/departure
+                               // jobs retain their own authority separately.
+                               (!IsPrisoner(pawn) || cell.GetRoom(pawn.Map) == pawn.GetRoom()) &&
                                restrictedRules.All(rule => !rule.Area[cell]) &&
                                HasRestrictedAreaClearance(
                                    pawn.Map, cell, restrictedRules, 3.9f) &&
@@ -1085,7 +1111,7 @@ namespace AutomaticOutfitManager.Patches
 
             foreach (IntVec3 candidate in candidates)
             {
-                if (startsInside || restrictedRules.All(rule =>
+                if (restrictedRules.All(rule => rule.Area[pawn.Position] ||
                     !PathCrossesArea(pawn, pawn.Position, candidate, rule.Area)))
                 {
                     safeCell = candidate;
@@ -1111,131 +1137,28 @@ namespace AutomaticOutfitManager.Patches
             return true;
         }
 
-        private static bool IsWanderingJob(Job job, ThinkNode jobGiver)
-        {
-            string defName = job?.def?.defName;
-            string giverName = (jobGiver ?? job?.jobGiver)?.GetType().Name;
-            return job?.def == JobDefOf.GotoWander ||
-                   job?.def == JobDefOf.Wait_Wander ||
-                   (!string.IsNullOrEmpty(defName) &&
-                    defName.IndexOf("Wander", StringComparison.OrdinalIgnoreCase) >= 0) ||
-                   (!string.IsNullOrEmpty(giverName) &&
-                    giverName.IndexOf("Wander", StringComparison.OrdinalIgnoreCase) >= 0);
-        }
+        private static bool HasNativeActivityOverride(Pawn pawn, Job job,
+            bool allowTransition = true) =>
+            pawn == null || job == null || pawn.Drafted || pawn.Downed || pawn.InMentalState ||
+            ActivityJobClassifier.IsRobotBaseDuty(pawn, job) ||
+            (job.playerForced && !IsAutomaticOutfitManagerTransitionJob(pawn, job)) ||
+            PawnAccessClassifier.IsNativeCustodyEscapeActive(pawn) ||
+            PawnJobTracker_StartJob_Patch.IsNativeEmergencySafetyJob(job) ||
+            PawnJobTracker_StartJob_Patch.IsMapDepartureJob(job) ||
+            (allowTransition && IsAutomaticOutfitManagerTransitionJob(pawn, job));
 
         private static bool IsRestrictedRoamingJob(Pawn pawn, Job job, ThinkNode jobGiver)
         {
-            if (IsWanderingJob(job, jobGiver))
-                return true;
-
-            // Autonomous recreation chooses a personal destination in the same
-            // way as ordinary wandering and must obey the Wandering access row.
-            // GoSwimming is the important modded case: its name and joy kind do
-            // not contain "Wander", so colonists previously treated a disabled
-            // Wandering row as an allowed protected-area recreation route.
-            if (IsAutonomousRecreationJob(pawn, job, jobGiver))
-                return true;
-
-            // Vanilla and Hospitality visitor duties commonly expose their
-            // autonomous visit movement as plain Goto followed by
-            // Wait_MaintainPosture. Neither name contains "Wander", and those
-            // jobs normally have no WorkGiver context, so they previously fell
-            // through as unrestricted activity. A direct destination inside a
-            // guest-disabled area then caused AOM to outfit the visitor instead
-            // of honoring the Wandering access row. Classify only the generic
-            // movement/posture family for hosted guests; real work, hauling,
-            // sleep, emergencies, and map departure keep their own contracts.
-            if (IsHostedGuestDutyRoamingJob(pawn, job, jobGiver))
-                return true;
-
-            // Autonomous cleaning bots use ordinary Clean jobs rather than a
-            // wander-family job. They still roam the map opportunistically and
-            // cannot outfit protective apparel, so the Robots/mechs wandering
-            // toggle must govern this movement as well. Limiting the extension
-            // to robot/mech pawns keeps colonist cleaning classified as work.
-            if (!IsRobotOrMechanoid(pawn))
-                return false;
-
-            string defName = job?.def?.defName;
-            string giverName = (jobGiver ?? job?.jobGiver)?.GetType().Name;
-            string driverName = job?.def?.driverClass?.Name;
-            return ContainsIgnoreCase(defName, "Clean") ||
-                   ContainsIgnoreCase(giverName, "Clean") ||
-                   ContainsIgnoreCase(driverName, "Clean");
+            if (HasNativeActivityOverride(pawn, job)) return false;
+            return ActivityJobClassifier.IsWandering(pawn, job, IsRobotOrMechanoid(pawn), jobGiver);
         }
 
-        private static bool IsAutonomousRecreationJob(
+        private static bool IsObservedRestrictedRoamingJob(
             Pawn pawn, Job job, ThinkNode jobGiver)
         {
-            if (job?.def == null || job.playerForced ||
-                IsAutomaticOutfitManagerTransitionJob(pawn, job) ||
-                IsHaulingJob(job) || job.workGiverDef != null ||
-                jobGiver is JobGiver_Work || job.jobGiver is JobGiver_Work ||
-                IsEssentialPersonalJob(job) || IsWorkWatchingJob(job) ||
-                PawnJobTracker_StartJob_Patch.IsNativeEmergencySafetyJob(job) ||
-                PawnJobTracker_StartJob_Patch.IsMapDepartureJob(job))
-            {
-                return false;
-            }
-
-            if (job.def.joyKind != null)
-                return true;
-
-            string defName = job.def.defName ?? string.Empty;
-            string giverName = (jobGiver ?? job.jobGiver)?.GetType().Name ??
-                               string.Empty;
-            string driverName = job.def.driverClass?.Name ?? string.Empty;
-            return ContainsAutonomousRecreationName(defName) ||
-                   ContainsAutonomousRecreationName(giverName) ||
-                   ContainsAutonomousRecreationName(driverName);
-        }
-
-        private static bool ContainsAutonomousRecreationName(string value)
-        {
-            return ContainsIgnoreCase(value, "Joy") ||
-                   ContainsIgnoreCase(value, "Recreation") ||
-                   ContainsIgnoreCase(value, "Relax") ||
-                   ContainsIgnoreCase(value, "Meditat") ||
-                   ContainsIgnoreCase(value, "Watch") ||
-                   ContainsIgnoreCase(value, "Play") ||
-                   ContainsIgnoreCase(value, "Read") ||
-                   ContainsIgnoreCase(value, "Swim");
-        }
-
-        private static bool IsHostedGuestDutyRoamingJob(
-            Pawn pawn, Job job, ThinkNode jobGiver)
-        {
-            if (!IsFriendlyGuest(pawn) || job?.def == null ||
-                job.playerForced || pawn.Downed || pawn.InMentalState ||
-                IsAutomaticOutfitManagerTransitionJob(pawn, job) ||
-                IsHaulingJob(job) || job.workGiverDef != null ||
-                jobGiver is JobGiver_Work || job.jobGiver is JobGiver_Work ||
-                PawnJobTracker_StartJob_Patch.IsNativeEmergencySafetyJob(job) ||
-                PawnJobTracker_StartJob_Patch.IsMapDepartureJob(job))
-            {
-                return false;
-            }
-
-            string defName = job.def.defName ?? string.Empty;
-            string giverName = (jobGiver ?? job.jobGiver)?.GetType().Name ??
-                               string.Empty;
-            string driverName = job.def.driverClass?.Name ?? string.Empty;
-            return job.def == JobDefOf.Goto ||
-                   job.def == JobDefOf.Wait ||
-                   job.def == JobDefOf.Ingest ||
-                   IsEssentialPersonalJob(job) ||
-                   job.def.isIdle ||
-                   job.def.joyKind != null ||
-                   // Temporary quest workers collect travel supplies, eat,
-                   // rest, meditate, and recreate through untyped duty jobs.
-                   // They are autonomous guest activity, not Work, so the
-                   // Guest Wandering row must govern protected-area access.
-                   defName.Equals("TakeInventory", StringComparison.OrdinalIgnoreCase) ||
-                   defName.StartsWith("Goto", StringComparison.OrdinalIgnoreCase) ||
-                   defName.StartsWith("Wait", StringComparison.OrdinalIgnoreCase) ||
-                   ContainsGuestPersonalActivityName(defName) ||
-                   ContainsGuestPersonalActivityName(giverName) ||
-                   ContainsGuestPersonalActivityName(driverName);
+            return !ActivityJobClassifier.IsHauling(job) &&
+                   (IsRestrictedRoamingJob(pawn, job, jobGiver) ||
+                    ActivityJobClassifier.IsObservedNonHumanIdle(pawn, job));
         }
 
         private static bool IsAutomaticOutfitManagerTransitionJob(
@@ -1262,33 +1185,31 @@ namespace AutomaticOutfitManager.Patches
                     job.targetA.Cell == pawn.Position);
         }
 
-        private static bool ContainsGuestPersonalActivityName(string value)
-        {
-            return ContainsIgnoreCase(value, "Ingest") ||
-                   ContainsIgnoreCase(value, "Joy") ||
-                   ContainsIgnoreCase(value, "Recreation") ||
-                   ContainsIgnoreCase(value, "Relax") ||
-                   ContainsIgnoreCase(value, "Meditat") ||
-                   ContainsIgnoreCase(value, "Watch") ||
-                   ContainsIgnoreCase(value, "Play") ||
-                   ContainsIgnoreCase(value, "Read");
-        }
-
-        private static bool ShouldAllowEssentialGuestFallback(
+        // A confined pawn with no reachable safe exterior cell must retain
+        // essential bed rest. This exception is identical for all humanlikes;
+        // it never admits a new arrival or waives equipment checks.
+        private static bool ShouldAllowEssentialActivityFallback(
             Pawn pawn, Job job, List<ApparelRule> restrictedRules)
         {
-            if (!IsFriendlyGuest(pawn) || !IsEssentialPersonalJob(job) ||
-                pawn?.Map == null || restrictedRules == null ||
-                restrictedRules.Count == 0 || !pawn.Position.IsValid ||
-                !pawn.Position.InBounds(pawn.Map) ||
-                !restrictedRules.Any(rule =>
-                    rule?.Area?.Map == pawn.Map && rule.Area[pawn.Position]))
-            {
-                return false;
-            }
+            return pawn?.RaceProps?.Humanlike == true && IsEssentialPersonalJob(job) &&
+                pawn.Map != null && restrictedRules?.Count > 0 && pawn.Position.IsValid &&
+                restrictedRules.Any(rule => rule.Area[pawn.Position]) &&
+                !TryFindSafeWanderingCell(pawn, restrictedRules, out _);
+        }
 
-            return !TryFindSafeWanderingCell(
-                pawn, restrictedRules, out _);
+        public static bool TryMakeAccessExitJob(Pawn pawn, Job rejectedJob, out Job exitJob)
+        {
+            exitJob = null;
+            if (pawn?.Map == null || rejectedJob == null) return false;
+            var rules = AutomaticOutfitManagerGameComponent.Current?.Rules?
+                .Where(rule => rule?.Enabled == true && rule.Area?.Map == pawn.Map &&
+                    !ActivityAllowedAtRuleBoundary(pawn, rejectedJob, rule)).ToList();
+            if (rules == null || !rules.Any(rule => rule.Area[pawn.Position]) ||
+                !TryFindSafeWanderingCell(pawn, rules, out IntVec3 cell)) return false;
+            exitJob = JobMaker.MakeJob(JobDefOf.Goto, cell);
+            exitJob.expiryInterval = 300;
+            AccessExitJobs.Mark(pawn, exitJob);
+            return true;
         }
 
         private static bool IsRestrictedRoamingWaitJob(
@@ -1341,28 +1262,8 @@ namespace AutomaticOutfitManager.Patches
                    defName.IndexOf("GotoBed", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        public static bool IsHaulingJob(Job job)
-        {
-            if (job?.def == null)
-                return false;
-
-            WorkTypeDef workType = job.workGiverDef?.workType;
-            if (workType != null)
-                return workType == WorkTypeDefOf.Hauling;
-
-            // Player-forced, direct, and some modded jobs have no originating
-            // work giver. Fall back to their concrete hauling implementation
-            // only when no work type is available. In particular, an item-
-            // carrying job from a Warden work giver is ordinary Work and must
-            // never be demoted to Hauling by its driver or report string.
-            if (job.def == JobDefOf.HaulToCell ||
-                job.def == JobDefOf.HaulToContainer)
-                return true;
-
-            Type driverClass = job.def.driverClass;
-            return driverClass != null &&
-                   driverClass.Name.IndexOf("Haul", StringComparison.OrdinalIgnoreCase) >= 0;
-        }
+        public static bool IsHaulingJob(Job job) =>
+            ActivityJobClassifier.IsHauling(job);
 
         public static bool UsesManagedWorkPreparation(Job job)
         {
@@ -1387,64 +1288,27 @@ namespace AutomaticOutfitManager.Patches
                        "RearmTurrets", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static bool HaulingAllowedFor(ApparelRule rule, Pawn pawn)
-        {
-            if (pawn?.RaceProps == null)
-                return rule.AllowColonistHauling;
+        private static AccessGroup PermissionGroup(Pawn pawn) =>
+            AreaActivityPermissions.Group(IsPrisoner(pawn), pawn?.IsSlave == true,
+                IsRobotOrMechanoid(pawn), pawn?.RaceProps?.Animal == true, IsFriendlyGuest(pawn));
 
-            if (IsPrisoner(pawn))
-                return rule.AllowPrisonerHauling;
-            if (IsFriendlyGuest(pawn))
-                return rule.AllowGuestHauling;
-            if (pawn.IsSlave)
-                return rule.AllowSlaveHauling;
-            if (IsRobotOrMechanoid(pawn))
-                return rule.AllowRobotHauling;
-            if (pawn.RaceProps.Animal)
-                return rule.AllowAnimalHauling;
-            return rule.AllowColonistHauling;
-        }
+        private static bool HaulingAllowedFor(ApparelRule rule, Pawn pawn) =>
+            !ChildAreaAccessPolicy.Disallows(pawn, rule) &&
+            AreaActivityPermissions.Allows(rule, PermissionGroup(pawn), AccessActivity.Hauling);
 
-        private static bool WorkAllowedFor(ApparelRule rule, Pawn pawn)
-        {
-            if (pawn?.RaceProps == null)
-                return rule.AllowColonistWork;
-            if (IsPrisoner(pawn))
-                return rule.AllowPrisonerWork;
-            if (IsFriendlyGuest(pawn))
-                return rule.AllowGuestWork;
-            if (pawn.IsSlave)
-                return rule.AllowSlaveWork;
-            if (IsRobotOrMechanoid(pawn))
-                return rule.AllowRobotWork;
-            if (pawn.RaceProps.Animal)
-                return rule.AllowAnimalWork;
-            return rule.AllowColonistWork;
-        }
+        internal static bool WorkAllowedFor(ApparelRule rule, Pawn pawn) =>
+            !ChildAreaAccessPolicy.Disallows(pawn, rule) &&
+            AreaActivityPermissions.Allows(rule, PermissionGroup(pawn), AccessActivity.Activities);
 
-        private static bool WanderingAllowedFor(ApparelRule rule, Pawn pawn)
-        {
-            if (pawn?.RaceProps == null)
-                return rule.AllowColonistWandering;
-
-            if (IsPrisoner(pawn))
-                return rule.AllowPrisonerWandering;
-            if (IsFriendlyGuest(pawn))
-                return rule.AllowGuestWandering;
-            if (pawn.IsSlave)
-                return rule.AllowSlaveWandering;
-            if (IsRobotOrMechanoid(pawn))
-                return rule.AllowRobotWandering;
-            if (pawn.RaceProps.Animal)
-                return rule.AllowAnimalWandering;
-            return rule.AllowColonistWandering;
-        }
+        private static bool WanderingAllowedFor(ApparelRule rule, Pawn pawn) =>
+            !ChildAreaAccessPolicy.Disallows(pawn, rule) &&
+            AreaActivityPermissions.Allows(rule, PermissionGroup(pawn), AccessActivity.Wandering);
 
         private static bool IsManagedPawn(Pawn pawn)
         {
             Faction playerFaction = Faction.OfPlayerSilentFail;
             return (playerFaction != null && pawn?.Faction == playerFaction) ||
-                   IsFriendlyGuest(pawn) || IsPrisoner(pawn);
+                   IsFriendlyGuest(pawn) || IsPrisoner(pawn) || PawnAccessClassifier.IsFriendlyForeignUnit(pawn);
         }
 
         private static bool IsPrisoner(Pawn pawn) =>
@@ -1488,7 +1352,7 @@ namespace AutomaticOutfitManager.Patches
     [HarmonyPatch]
     internal static class WorkGiverPausedArea_HasJobThing_Patch
     {
-        private static bool Prepare() => TargetMethods().Any();
+        private static bool Prepare() => DeferredWorkScannerPatches.Ready && TargetMethods().Any();
 
         private static IEnumerable<MethodBase> TargetMethods() =>
             PausedAreaWorkFilter.ScannerMethods(
@@ -1570,7 +1434,7 @@ namespace AutomaticOutfitManager.Patches
     [HarmonyPatch]
     internal static class WorkGiverPausedArea_HasJobCell_Patch
     {
-        private static bool Prepare() => TargetMethods().Any();
+        private static bool Prepare() => DeferredWorkScannerPatches.Ready && TargetMethods().Any();
 
         private static IEnumerable<MethodBase> TargetMethods() =>
             PausedAreaWorkFilter.ScannerMethods(
@@ -1590,7 +1454,7 @@ namespace AutomaticOutfitManager.Patches
     [HarmonyPatch]
     internal static class WorkGiverPausedArea_HasJobFallback_Patch
     {
-        private static bool Prepare() => TargetMethods().Any();
+        private static bool Prepare() => DeferredWorkScannerPatches.Ready && TargetMethods().Any();
 
         private static IEnumerable<MethodBase> TargetMethods() =>
             PausedAreaWorkFilter.ScannerMethods(
@@ -1612,7 +1476,7 @@ namespace AutomaticOutfitManager.Patches
     [HarmonyPatch]
     internal static class WorkGiverPausedArea_JobOnThing_Patch
     {
-        private static bool Prepare() => TargetMethods().Any();
+        private static bool Prepare() => DeferredWorkScannerPatches.Ready && TargetMethods().Any();
 
         private static IEnumerable<MethodBase> TargetMethods() =>
             PausedAreaWorkFilter.ScannerMethods(
@@ -1623,7 +1487,8 @@ namespace AutomaticOutfitManager.Patches
             bool __2)
         {
             if (__result != null && !__2 &&
-                (PausedAreaWorkFilter.ShouldReject(__0, __1) ||
+                (ManagedWorkCandidateFilter.Rejects(__0, __result) ||
+                 PausedAreaWorkFilter.ShouldReject(__0, __1) ||
                  PausedAreaWorkFilter.ShouldRejectScannerTarget(__instance, __0, __1)))
                 __result = null;
         }
@@ -1632,7 +1497,7 @@ namespace AutomaticOutfitManager.Patches
     [HarmonyPatch]
     internal static class WorkGiverPausedArea_JobOnCell_Patch
     {
-        private static bool Prepare() => TargetMethods().Any();
+        private static bool Prepare() => DeferredWorkScannerPatches.Ready && TargetMethods().Any();
 
         private static IEnumerable<MethodBase> TargetMethods() =>
             PausedAreaWorkFilter.ScannerMethods(
@@ -1643,7 +1508,8 @@ namespace AutomaticOutfitManager.Patches
             bool __2)
         {
             if (__result != null && !__2 &&
-                (PausedAreaWorkFilter.ShouldReject(__0, __1) ||
+                (ManagedWorkCandidateFilter.Rejects(__0, __result) ||
+                 PausedAreaWorkFilter.ShouldReject(__0, __1) ||
                  PausedAreaWorkFilter.ShouldRejectScannerTarget(__instance, __0, __1)))
                 __result = null;
         }
@@ -1652,7 +1518,7 @@ namespace AutomaticOutfitManager.Patches
     [HarmonyPatch]
     internal static class WorkGiverPausedArea_JobOnFallback_Patch
     {
-        private static bool Prepare() => TargetMethods().Any();
+        private static bool Prepare() => DeferredWorkScannerPatches.Ready && TargetMethods().Any();
 
         private static IEnumerable<MethodBase> TargetMethods() =>
             PausedAreaWorkFilter.ScannerMethods(
@@ -1665,7 +1531,8 @@ namespace AutomaticOutfitManager.Patches
             if (__result != null &&
                 !PausedAreaWorkFilter.IsPlayerForcedScannerCall(
                     __originalMethod, __args) &&
-                (PausedAreaWorkFilter.ShouldReject(__args) ||
+                (ManagedWorkCandidateFilter.Rejects(__args.OfType<Pawn>().FirstOrDefault(), __result) ||
+                 PausedAreaWorkFilter.ShouldReject(__args) ||
                  PausedAreaWorkFilter.ShouldRejectScannerTarget(__instance, __args)))
                 __result = null;
         }
@@ -1681,6 +1548,8 @@ namespace AutomaticOutfitManager.Patches
     [HarmonyPatch]
     internal static class ThinkNodeJobGiver_ProtectedArea_Patch
     {
+        private static bool Prepare() => DeferredWorkScannerPatches.Ready;
+
         private static IEnumerable<MethodBase> TargetMethods()
         {
             return GenTypes.AllTypes
@@ -1706,12 +1575,24 @@ namespace AutomaticOutfitManager.Patches
                 return;
 
             Pawn pawn = __0;
+            if (ManagedWorkCandidateFilter.Rejects(pawn, __result.Job))
+            {
+                __result = default;
+                return;
+            }
+            if (IngestReservationAdmission.Rejects(pawn, __result.Job))
+            {
+                TransitionActivityDiagnostics.Rejected(pawn, __result.Job, "meal reservation admission");
+                __result = default;
+                return;
+            }
 
             if (PausedAreaWorkFilter.TryGetUnassignedAutomaticManagedGear(
                     pawn, __result.Job, __instance, out Thing managedGear))
             {
                 PawnJobTracker_StartJob_Patch.LogAutomaticManagedGearRejection(
                     pawn, __result.Job, managedGear, "job selection");
+                TransitionActivityDiagnostics.Rejected(pawn, __result.Job, "unassigned managed outfit item");
                 __result = default;
                 return;
             }
@@ -1732,12 +1613,14 @@ namespace AutomaticOutfitManager.Patches
                         pawn, __result.Job) &&
                 !unavailableEssentialFallback && unavailableGearBlocked)
             {
+                TransitionActivityDiagnostics.Rejected(pawn, __result.Job, "unavailable outfit cooldown");
                 __result = default;
                 return;
             }
 
-            if (PausedAreaWorkFilter.DeniedOrdinaryWorkRule(pawn, __result.Job) != null)
+            if (PausedAreaWorkFilter.DeniedActivityRule(pawn, __result.Job, __instance) != null)
             {
+                TransitionActivityDiagnostics.Rejected(pawn, __result.Job, "area activity access denied");
                 __result = default;
                 return;
             }
@@ -1753,6 +1636,7 @@ namespace AutomaticOutfitManager.Patches
                 PausedAreaWorkFilter.ShouldRejectProtectedAreaJob(pawn, __result.Job) ||
                 PausedAreaWorkFilter.ShouldRejectWanderingJob(pawn, __result.Job, __instance))
             {
+                TransitionActivityDiagnostics.Rejected(pawn, __result.Job, "paused or protected area access denied");
                 __result = default;
             }
         }

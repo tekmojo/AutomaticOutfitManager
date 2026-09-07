@@ -34,6 +34,8 @@ namespace AutomaticOutfitManager.Detection
         private static readonly List<Entry> Entries = new List<Entry>();
         private static long nextRecordSequence;
 
+        internal static void Clear(Pawn pawn) => Entries.RemoveAll(entry => entry.Pawn == pawn);
+
         public static void ResetForLoadedGame()
         {
             // Entries are runtime observations. Persisted pending continuations
@@ -118,7 +120,7 @@ namespace AutomaticOutfitManager.Detection
             });
         }
 
-        private static Job DetachedClone(Job job)
+        internal static Job DetachedClone(Job job)
         {
             Job clone = job?.Clone();
             if (clone == null)

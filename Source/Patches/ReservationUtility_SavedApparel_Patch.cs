@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using AutomaticOutfitManager.Core;
+using AutomaticOutfitManager.Detection;
 using AutomaticOutfitManager.State;
 using AutomaticOutfitManager.Storage;
 using HarmonyLib;
@@ -67,7 +68,8 @@ namespace AutomaticOutfitManager.Patches
                     if (weaponOwnerState != null &&
                         (weaponOwnerState.Transition == ApparelTransition.ReturningToChangingArea ||
                          weaponOwnerState.Transition == ApparelTransition.Restoring ||
-                         weaponOwnerState.WeaponRestorationRequested))
+                         weaponOwnerState.WeaponRestorationRequested) &&
+                        (IsOutfitSearchProbe(pawn, weapon) || !SavedGearRecovery.AllowsReservation(pawn, weapon)))
                     {
                         __result = false;
                     }
@@ -102,7 +104,8 @@ namespace AutomaticOutfitManager.Patches
             PawnApparelState ownerState = component.StateFor(owner);
             if (owner != null && owner != pawn && ownerState != null &&
                 (ownerState.Transition == ApparelTransition.ReturningToChangingArea ||
-                 ownerState.Transition == ApparelTransition.Restoring))
+                 ownerState.Transition == ApparelTransition.Restoring) &&
+                (IsOutfitSearchProbe(pawn, apparel) || !SavedGearRecovery.AllowsReservation(pawn, apparel)))
             {
                 __result = false;
                 return;
@@ -125,7 +128,8 @@ namespace AutomaticOutfitManager.Patches
 
             if (ownerState != null &&
                 (ownerState.Transition == ApparelTransition.ReturningToChangingArea ||
-                 ownerState.Transition == ApparelTransition.Restoring))
+                 ownerState.Transition == ApparelTransition.Restoring) &&
+                (IsOutfitSearchProbe(pawn, apparel) || !SavedGearRecovery.AllowsReservation(pawn, apparel)))
             {
                 __result = false;
             }

@@ -18,6 +18,19 @@ namespace AutomaticOutfitManager.UI
         private static readonly Dictionary<Pawn, CachedStatus> StatusCache =
             new Dictionary<Pawn, CachedStatus>();
 
+        private sealed class CachedRetrievalRoute
+        {
+            public float CreatedAt;
+            public Thing Item;
+            public Map Map;
+            public IntVec3 PawnPosition;
+            public IntVec3 ItemPosition;
+            public bool Available;
+        }
+
+        private static readonly Dictionary<Pawn, CachedRetrievalRoute> RetrievalRoutes =
+            new Dictionary<Pawn, CachedRetrievalRoute>();
+
         private sealed class CachedStatus
         {
             public float CreatedAt;
@@ -36,7 +49,81 @@ namespace AutomaticOutfitManager.UI
             public string Text;
         }
 
-        internal static void ResetRuntimeCache() => StatusCache.Clear();
+        internal static void ResetRuntimeCache()
+        {
+            StatusCache.Clear();
+            RetrievalRoutes.Clear();
+        }
+
+        private static bool RetrievalRouteAvailable(Pawn pawn, Thing item)
+        {
+            // Non-Work details are drawn every frame. Keep path probes at the
+            // same half-second refresh cadence as the ordinary status cache.
+            float now = Time.realtimeSinceStartup;
+            if (RetrievalRoutes.TryGetValue(pawn, out var cached) &&
+                now >= cached.CreatedAt && now - cached.CreatedAt < CacheSeconds &&
+                cached.Item == item && cached.Map == pawn.Map &&
+                cached.PawnPosition == pawn.Position && cached.ItemPosition == item.Position)
+                return cached.Available;
+            bool available = GearRetrievalRoute.CanReach(pawn, item);
+            RetrievalRoutes[pawn] = new CachedRetrievalRoute
+            {
+                CreatedAt = now, Item = item, Map = pawn.Map,
+                PawnPosition = pawn.Position, ItemPosition = item.Position, Available = available
+            };
+            return available;
+        }
+
+        internal static string BuildForRule(Pawn pawn, ApparelRule context)
+        {
+            if (context == null || !context.IsNonWork)
+                return Build(pawn);
+
+            var component = AutomaticOutfitManagerGameComponent.Current;
+            var state = component?.StateFor(pawn);
+            var retained = NonWorkBufferTracker.For(pawn);
+            if (retained?.RuleId != context.Id) retained = null;
+            var progress = RuleBufferProgress.For(context.Id, context.ReturnTaskBuffer, state, retained);
+            string ruleName = RuleTypeStyle.RuleName(context);
+            string activity = JobActivity(pawn, pawn?.CurJob);
+            string headline;
+            string detail;
+            if (retained != null)
+            {
+                headline = retained.PendingWork != null ? "Leaving for a different outfit"
+                    : retained.PendingJobId >= 0 && retained.PendingJobId == pawn?.CurJob?.loadID
+                        ? progress.Headline(activity) : $"Active: {activity}";
+                detail = retained.PendingWork != null
+                    ? $"Next: {JobActivity(pawn, retained.PendingWork)}"
+                    : $"Current: {activity}\nNon-Work outfit retained.";
+            }
+            else if (state != null)
+            {
+                bool changingForThisRule = state.NonWorkRestorationRuleId == context.Id &&
+                    state.ActiveRuleId != context.Id;
+                var rules = new List<ApparelRule> { context };
+                headline = changingForThisRule ? "Changing into Non-Work outfit"
+                    : state.RecallInterruptPending ? "Recall pending"
+                    : state.Transition == ApparelTransition.Active
+                        ? RuleEvaluator.HasMissingRequiredGear(pawn, context) ? "Required outfit item missing"
+                        : progress.PendingJobId >= 0 && progress.PendingJobId == pawn?.CurJob?.loadID
+                            ? progress.Headline(activity) : $"Active: {activity}"
+                        : TransitionLabel(pawn, state, rules, context.ReturnTaskBuffer);
+                // Restoration details may reference the actual source locker/item,
+                // but its completed Work tasks are not the destination's buffer.
+                detail = DetailFor(pawn, state,
+                    changingForThisRule ? component.RuleById(state.ActiveRuleId) : context, rules);
+                if ((changingForThisRule || state.RecallRequested || state.Transition == ApparelTransition.ReturningToChangingArea ||
+                     state.Transition == ApparelTransition.Restoring) && !string.IsNullOrEmpty(state.ReturnReason))
+                    detail = $"Reason: {state.ReturnReason}" + (string.IsNullOrEmpty(detail) ? "" : $"\n{detail}");
+            }
+            else
+            {
+                return null;
+            }
+            return $"Automatic Outfit Manager: {headline}\nRule: {ruleName}\n{progress.Summary()}" +
+                (string.IsNullOrEmpty(detail) ? "" : $"\n{detail}");
+        }
 
         public static string Build(Pawn pawn)
         {
@@ -46,7 +133,9 @@ namespace AutomaticOutfitManager.UI
             {
                 if (pawn != null)
                     StatusCache.Remove(pawn);
-                return null;
+                var retained = NonWorkBufferTracker.For(pawn);
+                var retainedRule = retained == null ? null : component.RuleById(retained.RuleId);
+                return retainedRule?.IsNonWork == true ? BuildForRule(pawn, retainedRule) : null;
             }
 
             ApparelRule rule = component.RuleById(state.ActiveRuleId);
@@ -93,13 +182,22 @@ namespace AutomaticOutfitManager.UI
                 ? "Recall pending"
                 : TransitionLabel(
                     pawn, state, requiredSessionRules, returnTaskBuffer);
+            if (state.NonWorkGearReturnOnly)
+            {
+                if (state.Transition == ApparelTransition.Restoring)
+                    transition = "Returning work outfits";
+                else if (state.RecallInterruptPending)
+                    transition = "Work outfit return pending";
+            }
             string text = $"Automatic Outfit Manager: {transition}";
+            if (!string.IsNullOrEmpty(state.NonWorkRestorationRuleId))
+                text += $"\nChanging for Non-Work Area: {RuleTypeStyle.RuleName(component.RuleById(state.NonWorkRestorationRuleId))}";
             if (currentRules.Count > 1)
-                text += $"\nRules: {string.Join(" → ", currentRules.Select(current => current.Name))}";
+                text += $"\nRules: {string.Join(" → ", currentRules.Select(current => RuleTypeStyle.RuleName(current)))}";
             else if (currentRules.Count == 1)
-                text += $"\nRule: {currentRules[0].Name}";
+                text += $"\nRule: {RuleTypeStyle.RuleName(currentRules[0])}";
             else if (rule != null)
-                text += $"\nRule: {rule.Name}";
+                text += $"\nRule: {RuleTypeStyle.RuleName(rule)}";
 
             // Show nested buffers as soon as an overlapping rule is selected,
             // including while the pawn is still outfitting. The persisted
@@ -117,12 +215,14 @@ namespace AutomaticOutfitManager.UI
                 .Concat(nestedProgressByRule.Keys)
                 .Distinct()
                 .ToList();
+            bool nameBuffers = currentRules.Count > 1 ||
+                nestedRuleIds.Any(id => component.RuleById(id) != null);
             var bufferStatuses = new List<string>();
             int completedOuterBufferCount = state.BufferedTasksCompleted;
             if (rule != null)
             {
                 bufferStatuses.Add(BufferStatus(
-                    rule.Name, completedOuterBufferCount,
+                    nameBuffers ? RuleTypeStyle.RuleName(rule) : null, completedOuterBufferCount,
                     returnTaskBuffer, false));
             }
             else
@@ -141,14 +241,17 @@ namespace AutomaticOutfitManager.UI
                     int completedNestedBufferCount =
                         hasProgress ? nested.Completed : 0;
                     bufferStatuses.Add(BufferStatus(
-                        nestedRule.Name,
+                        RuleTypeStyle.RuleName(nestedRule),
                         completedNestedBufferCount,
                         nestedRule.ReturnTaskBuffer,
                         hasProgress && nested.Finished));
                 }
             }
-            text += $"\nBuffers: {string.Join(" · ", bufferStatuses)}";
+            text += $"\n{(nameBuffers ? "Buffers" : "Buffer")}: {string.Join(" · ", bufferStatuses)}";
 
+            if ((state.RecallRequested || state.Transition == ApparelTransition.ReturningToChangingArea ||
+                 state.Transition == ApparelTransition.Restoring) && !string.IsNullOrEmpty(state.ReturnReason))
+                text += $"\nReason: {state.ReturnReason}";
             string detail = DetailFor(
                 pawn, state, rule, requiredSessionRules);
             if (!string.IsNullOrEmpty(detail))
@@ -307,7 +410,7 @@ namespace AutomaticOutfitManager.UI
                     if (IsIdleJob(pawn, currentJob))
                         return "Waiting for saved outfit item";
                     return currentJob?.def == JobDefOf.Wear
-                        ? $"Restoring saved apparel: {JobActivity(pawn, currentJob)}"
+                        ? $"{RestorationActivity.WearLabel(state, currentJob)}: {JobActivity(pawn, currentJob)}"
                         : "Restoring saved outfit";
                 default:
                     return transition.ToString();
@@ -342,7 +445,7 @@ namespace AutomaticOutfitManager.UI
                 bool missingWeapon = requiredSessionRules.Any(candidate =>
                     RuleEvaluator.HasMissingRequiredWeapon(pawn, candidate));
                 if (missingWeapon && state.WeaponRuleOverrideExplicit)
-                    return "Player weapon override retained; required primary weapon is not equipped.";
+                    return "Keeping the player-selected weapon; the required weapon is not equipped.";
                 var missingLabels = missing.Select(def => def.LabelCap.ToString()).ToList();
                 if (missingWeapon)
                     missingLabels.Add("required primary weapon");
@@ -352,7 +455,7 @@ namespace AutomaticOutfitManager.UI
             }
 
             if (state.Transition == ApparelTransition.ReturningToChangingArea)
-                return rule?.ChangingArea == null ? null : $"Destination: {rule.ChangingArea.Label}";
+                return rule?.ChangingArea == null ? null : $"Destination: {RuleTypeStyle.AreaName(rule.ChangingArea)}";
 
             if (state.Transition == ApparelTransition.Active)
             {
@@ -364,7 +467,7 @@ namespace AutomaticOutfitManager.UI
                 bool missingWeapon = requiredSessionRules.Any(candidate =>
                     RuleEvaluator.HasMissingRequiredWeapon(pawn, candidate));
                 if (missingWeapon && state.WeaponRuleOverrideExplicit)
-                    return "Player weapon override retained; required primary weapon is not equipped.";
+                    return "Keeping the player-selected weapon; the required weapon is not equipped.";
                 var missingLabels = missing.Select(def => def.LabelCap.ToString()).ToList();
                 if (missingWeapon)
                     missingLabels.Add("required primary weapon");
@@ -391,6 +494,9 @@ namespace AutomaticOutfitManager.UI
                            $"{savedOwner.LabelShortCap}.";
                 }
             }
+
+            string currentRestoration = RestorationActivity.Detail(pawn, state, pawn.CurJob);
+            if (!string.IsNullOrEmpty(currentRestoration)) return currentRestoration;
 
             Apparel missingItem = state.OriginalApparel.FirstOrDefault(item =>
                 item != null && !item.Destroyed &&
@@ -457,7 +563,9 @@ namespace AutomaticOutfitManager.UI
             Job job, PawnApparelState state)
         {
             if (job?.def == null || !IsMeaningfulActivity(job) ||
-                PausedAreaWorkFilter.IsHaulingJob(job))
+                PausedAreaWorkFilter.IsHaulingJob(job) ||
+                PausedAreaWorkFilter.IsEssentialPersonalJob(job) ||
+                job.def == JobDefOf.Ingest || job.def.joyKind != null)
                 return false;
 
             bool isPendingContinuation = state?.PendingWorkJob != null &&
@@ -503,7 +611,9 @@ namespace AutomaticOutfitManager.UI
                 return "reserved by another task";
             if (!pawn.CanReach(apparel, PathEndMode.ClosestTouch, Danger.Deadly))
                 return "unreachable";
-            return "ready to retrieve";
+            if (!RetrievalRouteAvailable(pawn, apparel))
+                return "area restrictions block retrieval";
+            return "ready to restore";
         }
 
         private static string PreparingRequirementsLabel(
@@ -554,7 +664,9 @@ namespace AutomaticOutfitManager.UI
                     ? "cannot be equipped"
                     : cantReason;
             }
-            return "ready to retrieve";
+            if (!RetrievalRouteAvailable(pawn, weapon))
+                return "area restrictions block retrieval";
+            return "ready to restore";
         }
 
         private static Pawn HoldingPawnFor(Thing thing)

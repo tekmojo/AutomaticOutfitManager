@@ -36,7 +36,7 @@ namespace AutomaticOutfitManager.Detection
 
         public static bool IsHostedGuest(Pawn pawn)
         {
-            if (pawn == null || pawn.guest?.IsPrisoner == true || pawn.IsSlave)
+            if (pawn?.RaceProps?.Humanlike != true || pawn.guest?.IsPrisoner == true || pawn.IsSlave)
                 return false;
 
             EnsureClassificationCache();
@@ -56,6 +56,17 @@ namespace AutomaticOutfitManager.Detection
                              !pawn.Faction.HostileTo(playerFaction))));
             HostedGuestCache[pawn] = result;
             return result;
+        }
+
+        // Visiting pack animals/robots keep their species column rather than
+        // inheriting human Guest permissions. They were already managed by the
+        // friendly-faction fallback; this does not change their ownership.
+        public static bool IsFriendlyForeignUnit(Pawn pawn)
+        {
+            if (pawn?.RaceProps == null || pawn.RaceProps.Humanlike) return false;
+            Faction player = Faction.OfPlayerSilentFail;
+            return player != null && (pawn.HostFaction == player ||
+                (pawn.Faction != null && pawn.Faction != player && !pawn.Faction.HostileTo(player)));
         }
 
         private static bool IsArrivedHospitalityGuest(Pawn pawn)

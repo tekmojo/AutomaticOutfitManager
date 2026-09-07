@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.4.0 — 2026-09-06
+
+Published on Steam Workshop with the eight replacement screenshots. The downloaded 12-file package matches the audited stage. The GitHub package uses the same audited files. See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.0.md) for verification and the [release checklist](RELEASE-CHECKLIST.md) for publication status.
+
+### Added
+
+- Non-Work Area Rules with automatic saved personal outfits, optional fallback apparel/primary weapons, and a preference switch for always using the selected outfit.
+- All Work Outfits removal by default, individual Work-rule selections, shared-source retention, saved-outfit viewing, and conflict checks when Work and Non-Work choices contradict removal settings.
+- Non-Work outfit buffers that retain personal or selected outfits for compatible follow-up tasks and yield early when another task needs a different outfit.
+- Map-area colors for rule badges, gear sources and references; click a badge to center the map. Custom areas appear before special game/mod areas.
+- Editable rule descriptions, compact rule summaries, selecting-rule names, [Retained] stock markers and confirmed rule deletion.
+
+### Changed
+
+- Activities permissions cover work, meals, rest, learning and recreation consistently for colonists, guests, slaves and prisoners. Hauling stays separate; idle wandering and robot cleaning use Wandering.
+- Allow Children covers ordinary child activity and transit, while group permissions and usable outfit requirements still apply. Babies, carried pawns and native safety exceptions retain their behavior.
+- Workers/Occupants prioritize active tasks and distinguish outfit changes, buffered tasks and other activity. Animals and robots appear under Haulers/Wanderers with their actual activity.
+- Player tooltips are shorter, keep relevant colored references and show completed buffer counts without repeated rule headings. Technical definition IDs are hidden from selector rows; name and ID searching remain supported.
+- Fallback field labels follow the saved-outfit preference. Item inspection identifies selecting Work or Non-Work rules instead of calling every selection required Work gear.
+- About/loading description, player guide, Workshop draft and technical documentation describe both rule types. Detailed logging retains troubleshooting evidence independently of Developer Mode.
+
+### Fixed
+
+- Prepared work and meals retain their intended continuation through compatible native job handoffs. Optional hauling and brief waits do not consume the parent task's buffer credit.
+- Buffered travel avoids unnecessary Work-area shortcuts. Conflicting new Work tasks can end a Non-Work allowance and prepare the destination outfit safely.
+- Saved personal gear near the locker restores before optional distant replacements; tattered replacements enter the saved outfit only after successful wear.
+- Child access changes and childcare continuations preserve safe native handling during outfit returns.
+- Exact saved-item recovery can use eligible locker-restock haulers and accepting, owner-accessible storage of equal or higher priority. Empty blocked restoration plans wait for availability without repeatedly restarting the pawn.
+- Locker-restock availability and job creation check the same source and destination claims, including alternate storage cells, avoiding accepted targets that yield no job.
+- Work areas wholly inside Non-Work areas are rejected; repaint/load conflicts disable the Work rule and recall its pawns safely.
+- Status labels use the owning outfit change when a pawn is observed from another rule, avoiding a false Untracked warning and borrowed buffer counts.
+
 ## 0.3.8 - 2026-09-04
 
 ### Fixed

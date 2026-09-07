@@ -4,6 +4,7 @@ using System.Linq;
 using AutomaticOutfitManager.Core;
 using AutomaticOutfitManager.Patches;
 using AutomaticOutfitManager.Rules;
+using AutomaticOutfitManager.State;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -280,8 +281,109 @@ namespace AutomaticOutfitManager.Detection
             rules.Add(candidate);
         }
 
+        public static bool UsesSavedNonWorkOutfit(Pawn pawn, ApparelRule rule) =>
+            rule?.IsNonWork == true && rule.DefaultToSavedPersonalOutfit &&
+            AutomaticOutfitManagerGameComponent.Current?.NonWorkOutfitFor(pawn) != null;
+
+        public static IEnumerable<ThingDef> RequiredApparelFor(Pawn pawn, ApparelRule rule) =>
+            UsesSavedNonWorkOutfit(pawn, rule)
+                ? Enumerable.Empty<ThingDef>()
+                : rule?.RequiredApparel ?? Enumerable.Empty<ThingDef>();
+
+        public static bool NeedsNonWorkGearReturn(Pawn pawn, ApparelRule rule)
+        {
+            if (rule?.IsNonWork != true || UsesSavedNonWorkOutfit(pawn, rule))
+                return false;
+            var state = AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn);
+            return pawn.apparel?.WornApparel.Any(item =>
+                    NonWorkOutfitPolicy.ShouldReturn(pawn, rule, item)) == true ||
+                (state?.WeaponRuleOverrideExplicit != true &&
+                 NonWorkOutfitPolicy.ShouldReturn(pawn, rule, pawn.equipment?.Primary));
+        }
+
+        public static bool SelectedNonWorkOutfitConflicts(Pawn pawn, IEnumerable<ApparelRule> rules)
+        {
+            var requirements = rules.Where(rule => rule != null).ToList();
+            var selectedRules = requirements.Where(rule => rule.IsNonWork &&
+                !UsesSavedNonWorkOutfit(pawn, rule)).ToList();
+            if (selectedRules.Count == 0)
+                return false;
+            if (selectedRules.Any(rule => NonWorkFallbackPolicy.FirstConflict(rule,
+                    AutomaticOutfitManagerGameComponent.Current?.Rules) != null))
+                return true;
+            var state = AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn);
+            var nonWork = requirements.Where(rule => rule.IsNonWork).ToList();
+            foreach (var source in nonWork)
+            {
+                foreach (var kept in pawn.apparel.WornApparel.Where(item =>
+                             NonWorkOutfitPolicy.Keep(pawn, source, item)))
+                {
+                    if (nonWork.Any(other => NonWorkOutfitPolicy.ShouldReturn(pawn, other, kept)))
+                        return true;
+                    if (selectedRules.Any(other => other.RequiredApparel.Any(def => def != null &&
+                        (def == kept.def ? !other.Allows(kept) :
+                         !ApparelUtility.CanWearTogether(def, kept.def, pawn.RaceProps.body)))))
+                        return true;
+                }
+                var primary = pawn.equipment?.Primary;
+                if (state?.WeaponRuleOverrideExplicit != true && NonWorkOutfitPolicy.Keep(pawn, source, primary) &&
+                    (nonWork.Any(other => NonWorkOutfitPolicy.ShouldReturn(pawn, other, primary)) ||
+                     selectedRules.Any(other => other.HasWeaponRequirement &&
+                         !WeaponMatchesRequirement(primary, other)))) return true;
+            }
+            foreach (var work in requirements.Where(rule => !rule.IsNonWork))
+            {
+                foreach (ThingDef def in work.RequiredApparel.Where(def => def != null))
+                {
+                    bool personalAlreadyWorn = pawn.apparel.WornApparel.Any(item =>
+                        item.def == def && work.Allows(item) &&
+                        !selectedRules.Any(rule => NonWorkOutfitPolicy.ShouldReturn(pawn, rule, item)));
+                    if (!personalAlreadyWorn && !selectedRules.Any(rule => rule.RequiredApparel.Contains(def)))
+                        return true;
+                }
+                if (work.HasWeaponRequirement && state?.WeaponRuleOverrideExplicit != true)
+                {
+                    bool personalAlreadyEquipped = WeaponMatchesRequirement(pawn.equipment?.Primary, work) &&
+                        !selectedRules.Any(rule => NonWorkOutfitPolicy.ShouldReturn(pawn, rule, pawn.equipment?.Primary));
+                    if (!personalAlreadyEquipped && !selectedRules.Any(rule => rule.HasWeaponRequirement))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool SavedNonWorkOutfitConflicts(Pawn pawn, IEnumerable<ApparelRule> rules)
+        {
+            List<ApparelRule> requirements = rules.Where(rule => rule != null).ToList();
+            if (!requirements.Any(rule => UsesSavedNonWorkOutfit(pawn, rule)))
+                return false;
+            var component = AutomaticOutfitManagerGameComponent.Current;
+            bool weaponOverride = component.StateFor(pawn)?.WeaponRuleOverrideExplicit == true;
+            foreach (var source in requirements.Where(rule => UsesSavedNonWorkOutfit(pawn, rule)))
+            {
+                var saved = NonWorkOutfitPolicy.Target(pawn, source);
+                if (requirements.Any(other => other != source && UsesSavedNonWorkOutfit(pawn, other) &&
+                    !SameNonWorkTarget(saved, NonWorkOutfitPolicy.Target(pawn, other)))) return true;
+                if (requirements.Any(rule => !UsesSavedNonWorkOutfit(pawn, rule) &&
+                ((rule.RequiredApparel ?? new List<ThingDef>()).Any(def =>
+                    def != null && !saved.Apparel.Any(item => item != null &&
+                        !item.Destroyed && item.def == def && rule.Allows(item))) ||
+                 (!weaponOverride && !WeaponMatchesRequirement(saved.Weapon, rule))))) return true;
+            }
+            return false;
+        }
+
+        private static bool SameNonWorkTarget(SavedNonWorkOutfit left, SavedNonWorkOutfit right) =>
+            left.Weapon == right.Weapon && left.Apparel.Count == right.Apparel.Count &&
+            left.Apparel.All(right.Apparel.Contains);
+
         public static List<ThingDef> MissingRequiredApparel(Pawn pawn, ApparelRule rule)
         {
+            if (UsesSavedNonWorkOutfit(pawn, rule))
+                return NonWorkOutfitPolicy.Target(pawn, rule)
+                    .Apparel.Where(item => item != null && !item.Destroyed &&
+                        pawn.apparel?.WornApparel.Contains(item) != true)
+                    .Select(item => item.def).Distinct().ToList();
             if (pawn?.apparel == null || rule?.RequiredApparel == null)
                 return new List<ThingDef>();
 
@@ -294,6 +396,8 @@ namespace AutomaticOutfitManager.Detection
 
         public static bool HasMissingRequiredApparel(Pawn pawn, ApparelRule rule)
         {
+            if (UsesSavedNonWorkOutfit(pawn, rule))
+                return !NonWorkOutfitPolicy.Target(pawn, rule).ApparelSatisfied(pawn);
             if (pawn?.apparel == null || rule?.RequiredApparel == null)
                 return false;
 
@@ -320,13 +424,17 @@ namespace AutomaticOutfitManager.Detection
         }
 
         public static bool HasMissingRequiredGear(Pawn pawn, ApparelRule rule) =>
-            HasMissingRequiredApparel(pawn, rule) ||
+            (!UsesSavedNonWorkOutfit(pawn, rule) && NonWorkFallbackPolicy.FirstConflict(rule,
+                AutomaticOutfitManagerGameComponent.Current?.Rules) != null) ||
+            NeedsNonWorkGearReturn(pawn, rule) || HasMissingRequiredApparel(pawn, rule) ||
             (AutomaticOutfitManagerGameComponent.Current?
                  .StateFor(pawn)?.WeaponRuleOverrideExplicit != true &&
              HasMissingRequiredWeapon(pawn, rule));
 
         public static bool HasMissingRequiredWeapon(Pawn pawn, ApparelRule rule)
         {
+            if (UsesSavedNonWorkOutfit(pawn, rule))
+                return !NonWorkOutfitPolicy.Target(pawn, rule).WeaponSatisfied(pawn);
             if (rule?.HasWeaponRequirement != true)
                 return false;
 
@@ -397,13 +505,14 @@ namespace AutomaticOutfitManager.Detection
         }
 
         public static bool TryCombinedWeaponRequirement(
-            IEnumerable<ApparelRule> rules, out CombinedWeaponRequirement requirement)
+            IEnumerable<ApparelRule> rules, out CombinedWeaponRequirement requirement,
+            Pawn pawn = null)
         {
             requirement = new CombinedWeaponRequirement();
 
             foreach (ApparelRule rule in rules ?? Enumerable.Empty<ApparelRule>())
             {
-                if (rule?.HasWeaponRequirement != true)
+                if (rule?.HasWeaponRequirement != true || UsesSavedNonWorkOutfit(pawn, rule))
                     continue;
 
                 requirement.HasRequirement = true;
@@ -504,6 +613,12 @@ namespace AutomaticOutfitManager.Detection
 
         public static bool RuleCanApplyToPawn(Pawn pawn, ApparelRule rule)
         {
+            if (UsesSavedNonWorkOutfit(pawn, rule))
+                return pawn?.RaceProps?.Humanlike == true && pawn.apparel != null &&
+                    NonWorkOutfitPolicy.Target(pawn, rule)
+                        .Apparel.Where(item => item != null && !item.Destroyed)
+                        .All(item => ApparelUtility.HasPartsToWear(pawn, item.def) &&
+                            (item.def.apparel.developmentalStageFilter & pawn.DevelopmentalStage) != 0);
             if (pawn == null || pawn.RaceProps?.Humanlike != true || pawn.apparel == null ||
                 rule == null ||
                 (rule.HasWeaponRequirement && pawn.equipment == null))
@@ -557,8 +672,8 @@ namespace AutomaticOutfitManager.Detection
         }
 
         private static bool UsesPrimaryWorksiteTargets(Job job) =>
-            job?.workGiverDef != null &&
-            PausedAreaWorkFilter.UsesManagedWorkPreparation(job);
+            RepairMaterialStage.IsRepair(job) || (job?.workGiverDef != null &&
+            PausedAreaWorkFilter.UsesManagedWorkPreparation(job));
 
         private static bool TargetsInside(
             IEnumerable<LocalTargetInfo> targets, Area area) =>

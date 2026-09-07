@@ -6,6 +6,8 @@ using Verse;
 
 namespace AutomaticOutfitManager.Rules
 {
+    public enum AreaRuleKind { Work, NonWork }
+
     public enum WeaponRequirement
     {
         None,
@@ -18,6 +20,12 @@ namespace AutomaticOutfitManager.Rules
     {
         public string Id = Guid.NewGuid().ToString("N");
         public string Name = "New Outfit Rule";
+        public string CustomDescription;
+        public AreaRuleKind Kind;
+        public bool IsNonWork => Kind == AreaRuleKind.NonWork;
+        public bool DefaultToSavedPersonalOutfit = true;
+        public bool RemoveAllWorkOutfits = true;
+        public List<string> WorkOutfitsToRemove = new List<string>();
         public bool Enabled = true;
         public bool UiCollapsed;
         public bool WorkAreaPaused;
@@ -40,7 +48,7 @@ namespace AutomaticOutfitManager.Rules
         public bool AllowSlaveWandering = true;
         public bool AllowPrisonerWandering;
         public int ReturnTaskBuffer;
-        public bool AllowChildWorkWatching;
+        public bool AllowChildren;
         public Area Area;
         public Area ChangingArea;
         public List<ThingDef> RequiredApparel = new List<ThingDef>();
@@ -58,6 +66,13 @@ namespace AutomaticOutfitManager.Rules
         {
             Scribe_Values.Look(ref Id, "id");
             Scribe_Values.Look(ref Name, "name", "New Outfit Rule");
+            Scribe_Values.Look(ref CustomDescription, "customDescription");
+            Scribe_Values.Look(ref Kind, "areaRuleKind", AreaRuleKind.Work);
+            Scribe_Values.Look(ref DefaultToSavedPersonalOutfit,
+                "defaultToSavedPersonalOutfit", true);
+            Scribe_Values.Look(ref RemoveAllWorkOutfits, "removeAllWorkOutfits", true);
+            Scribe_Collections.Look(ref WorkOutfitsToRemove, "workOutfitsToRemove", LookMode.Value);
+            WorkOutfitsToRemove ??= new List<string>();
             Scribe_Values.Look(ref Enabled, "enabled", true);
             Scribe_Values.Look(ref UiCollapsed, "uiCollapsed", false);
             Scribe_Values.Look(ref WorkAreaPaused, "workAreaPaused", false);
@@ -80,7 +95,9 @@ namespace AutomaticOutfitManager.Rules
             Scribe_Values.Look(ref AllowSlaveWandering, "allowSlaveWandering", true);
             Scribe_Values.Look(ref AllowPrisonerWandering, "allowPrisonerWandering", false);
             Scribe_Values.Look(ref ReturnTaskBuffer, "returnTaskBuffer", 0);
-            Scribe_Values.Look(ref AllowChildWorkWatching, "allowChildWorkWatching", false);
+            // Keep the saved checkbox value from earlier versions. The option
+            // now permits all ordinary child activity rather than watching alone.
+            Scribe_Values.Look(ref AllowChildren, "allowChildWorkWatching", false);
             Scribe_References.Look(ref Area, "area");
             Scribe_References.Look(ref ChangingArea, "changingArea");
             Scribe_Collections.Look(ref RequiredApparel, "requiredApparel", LookMode.Def);

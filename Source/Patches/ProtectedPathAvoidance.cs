@@ -50,6 +50,7 @@ namespace AutomaticOutfitManager.Patches
         private sealed class ProtectedAreaGrid : PathRequest.IPathGridCustomizer, IDisposable
         {
             private NativeArray<ushort> grid;
+            internal readonly ApparelRule[] Rules;
 
             public ProtectedAreaGrid(Map map, IEnumerable<ApparelRule> rules)
             {
@@ -58,7 +59,8 @@ namespace AutomaticOutfitManager.Patches
                     Allocator.Persistent,
                     NativeArrayOptions.ClearMemory);
 
-                foreach (ApparelRule rule in rules)
+                Rules = rules.ToArray();
+                foreach (ApparelRule rule in Rules)
                 {
                     foreach (IntVec3 cell in rule.Area.ActiveCells)
                     {
@@ -75,6 +77,13 @@ namespace AutomaticOutfitManager.Patches
                 if (grid.IsCreated)
                     grid.Dispose();
             }
+        }
+
+        internal static string DescribeCustomizer(PathRequest.IPathGridCustomizer customizer)
+        {
+            if (customizer is ProtectedAreaGrid ours)
+                return "AOM avoidance: " + string.Join("; ", ours.Rules.Select(rule => $"{rule.Name} [{rule.Id}]"));
+            return customizer?.GetType().FullName ?? "none";
         }
 
         private static readonly Dictionary<Area, AreaFingerprint> Fingerprints =
@@ -104,12 +113,20 @@ namespace AutomaticOutfitManager.Patches
                 cached?.Grid?.Dispose();
             Grids.Clear();
             Fingerprints.Clear();
+            BufferedTransitGuard.Reset();
             gridAccessSequence = 0;
         }
 
-        public static PathRequest.IPathGridCustomizer CustomizerFor(Pawn pawn, Job job)
+        public static PathRequest.IPathGridCustomizer CustomizerFor(Pawn pawn, Job job, LocalTargetInfo? destination = null)
         {
-            IReadOnlyList<ApparelRule> rules = RestrictedTransitRules(pawn, job);
+            var meal = NonWorkMealHandoff.For(pawn);
+            if (meal != null && !pawn.Drafted && !pawn.Downed &&
+                !PawnJobTracker_StartJob_Patch.IsNativeEmergencySafetyJob(job))
+            {
+                var mealRules = NonWorkMealHandoff.Restricted(pawn, meal);
+                return mealRules.Count == 0 ? null : GridFor(pawn.Map, mealRules);
+            }
+            IReadOnlyList<ApparelRule> rules = RestrictedTransitRules(pawn, job, destination);
             return rules.Count == 0 ? null : GridFor(pawn.Map, rules);
         }
 
@@ -170,7 +187,7 @@ namespace AutomaticOutfitManager.Patches
                    SegmentCrossesArea(pawn, pickupCell, destination, area);
         }
 
-        private static IReadOnlyList<ApparelRule> RestrictedTransitRules(Pawn pawn, Job job)
+        internal static IReadOnlyList<ApparelRule> RestrictedTransitRules(Pawn pawn, Job job, LocalTargetInfo? destination = null)
         {
             if (PawnJobTracker_StartJob_Patch.IsNativeEmergencySafetyJob(job))
                 return EmptyRules;
@@ -231,9 +248,12 @@ namespace AutomaticOutfitManager.Patches
                 // targets. Direct protected targets still need the native path
                 // so boundary enforcement can prepare the pawn. Disabled
                 // activities retain their existing avoidance behavior.
-                if (PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(
+                if (!managedTransitionJob && PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(
                         pawn, job, rule) &&
-                    RuleEvaluator.JobTargetsArea(job, rule.Area))
+                    (RuleEvaluator.JobTargetsArea(job, rule.Area) ||
+                     ReadingDestination.IsCurrentDestination(pawn, job, destination, rule.Area) ||
+                     EatingDestination.IsCurrentMealDestination(pawn, job, destination, rule.Area) &&
+                     !RuleEvaluator.HasMissingRequiredGear(pawn, rule)))
                 {
                     continue;
                 }
@@ -283,17 +303,32 @@ namespace AutomaticOutfitManager.Patches
                        pawn, pickupCell, destination, customizer, rules);
         }
 
+        internal static bool SegmentAvoidsRules(Pawn pawn, IntVec3 start,
+            LocalTargetInfo destination, List<ApparelRule> restrictedRules,
+            Predicate<IntVec3> unsafeCell = null, PathEndMode? exactEndMode = null)
+        {
+            bool previous = BeginAutomaticCustomizerSuppression();
+            try
+            {
+                return SegmentFound(pawn, start, destination,
+                    restrictedRules.Count == 0 ? null : GridFor(pawn.Map, restrictedRules), restrictedRules,
+                    unsafeCell, exactEndMode);
+            }
+            finally { EndAutomaticCustomizerSuppression(previous); }
+        }
+
         private static bool SegmentFound(
             Pawn pawn, IntVec3 start, LocalTargetInfo destination,
             PathRequest.IPathGridCustomizer customizer,
-            List<ApparelRule> restrictedRules)
+            List<ApparelRule> restrictedRules, Predicate<IntVec3> unsafeCell = null,
+            PathEndMode? exactEndMode = null)
         {
             if (!start.IsValid || !start.InBounds(pawn.Map) || !destination.IsValid)
                 return false;
 
-            PathEndMode endMode = destination.HasThing
+            PathEndMode endMode = exactEndMode ?? (destination.HasThing
                 ? PathEndMode.Touch
-                : PathEndMode.OnCell;
+                : PathEndMode.OnCell);
             PawnPath path = null;
             try
             {
@@ -303,7 +338,7 @@ namespace AutomaticOutfitManager.Patches
                 return path?.Found == true &&
                        !path.NodesReversed.Any(cell =>
                            cell.IsValid && cell.InBounds(pawn.Map) &&
-                           restrictedRules.Any(rule => rule.Area[cell]));
+                           (restrictedRules.Any(rule => rule.Area[cell]) || unsafeCell?.Invoke(cell) == true));
             }
             finally
             {
@@ -496,7 +531,7 @@ namespace AutomaticOutfitManager.Patches
             Pawn pawn = __result.pawn;
             Job job = pawn?.jobs?.curJob;
             if (job != null)
-                __result.customizer = ProtectedPathAvoidance.CustomizerFor(pawn, job);
+                __result.customizer = ProtectedPathAvoidance.CustomizerFor(pawn, job, __result.Target);
         }
     }
 }

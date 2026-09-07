@@ -41,13 +41,13 @@ namespace AutomaticOutfitManager.UI
         public override void DoWindowContents(Rect inRect)
         {
             Text.Font = GameFont.Medium;
-            Widgets.Label(new Rect(inRect.x, inRect.y, inRect.width, 32f), "Choose apparel");
+            Widgets.Label(new Rect(inRect.x, inRect.y, inRect.width, 32f), "Choose Apparel");
             Text.Font = GameFont.Small;
 
             Rect searchRect = new Rect(inRect.x, inRect.y + 40f, inRect.width, 30f);
             searchText = Widgets.TextField(searchRect, searchText ?? "");
             TooltipHandler.TipRegion(searchRect,
-                "Search by the apparel's displayed name or technical DefName.");
+                "Search apparel by name.");
 
             List<ThingDef> filtered = FilteredDefs();
             Rect countRect = new Rect(inRect.x, searchRect.yMax + 6f, inRect.width, 24f);
@@ -57,7 +57,7 @@ namespace AutomaticOutfitManager.UI
             Widgets.Label(countRect,
                 $"{filtered.Count} apparel item(s) — {selectionHint}");
             TooltipHandler.TipRegion(countRect,
-                "With no selection, this rule does not change apparel. Every green entry is required and sorts to the top. Cyan entries are retained managed stock: they remain reserved for Automatic Outfit Manager storage until forgotten. Removing a green entry moves it to the cyan group in its normal alphabetical position.");
+                RuleTypeStyle.GearPolicyTip(rule) + "\n\n" + "Every selected garment must be worn together. An empty selection adds no clothing requirement. Selected items appear first. [Rule Name] shows who else selects an item; +number means more rules. [Retained] is remembered locker stock, not a current requirement or an availability count. Grey entries have a conflict; hover to see why.");
 
             Rect outRect = new Rect(inRect.x, countRect.yMax + 4f, inRect.width, inRect.yMax - countRect.yMax - 4f);
             Rect viewRect = new Rect(0f, 0f, outRect.width - 18f, filtered.Count * RowHeight);
@@ -111,6 +111,18 @@ namespace AutomaticOutfitManager.UI
             }
         }
 
+        private string ApparelWithSelectedSources(ThingDef def)
+        {
+            // FindConflictIfAdded temporarily assigns the candidate to this rule.
+            // That proposed assignment is not its existing source for display.
+            var sources = RuleTypeStyle.GearSources(rule, def);
+            if (rule.RequiredApparel.Contains(def))
+                sources.Insert(0, rule);
+            string sourceNames = sources.Count == 0 ? "not currently selected" :
+                string.Join(", ", sources.Select(RuleTypeStyle.RuleName));
+            return $"{def.LabelCap} ({sourceNames})";
+        }
+
         private void DrawApparelRow(ThingDef def, Rect rect)
         {
             if (Mouse.IsOver(rect))
@@ -124,29 +136,62 @@ namespace AutomaticOutfitManager.UI
             ApparelConflict conflict = selected
                 ? null
                 : ApparelCompatibility.FindConflictIfAdded(rule, def, overlappingRules);
-            string label = $"{def.LabelCap} [{def.defName}]";
+            var removalSource = NonWorkFallbackPolicy.ConflictingSource(rule, def, component?.Rules);
+            var affectedNonWork = NonWorkFallbackPolicy.ConflictingDestination(rule, def, component?.Rules);
+            string conflictReason = removalSource != null
+                ? $"This item is part of {RuleTypeStyle.RuleName(removalSource)}, an outfit selected under Remove Work Outfits. " +
+                  "Choose different gear or change the 'Remove Work Outfits' selection."
+                : affectedNonWork != null ? RuleTypeStyle.ReverseConflictTip(rule, affectedNonWork)
+                : conflict != null ? $"Cannot add this apparel to {RuleTypeStyle.RuleName(rule)} because " +
+                    $"{ApparelWithSelectedSources(conflict.First)} conflicts with {ApparelWithSelectedSources(conflict.Second)}. " +
+                    "Choose garments that can be worn together across the overlapping areas." : null;
+            var sources = RuleTypeStyle.GearSources(rule, def);
+            string sourceHeading = RuleTypeStyle.SourceTip(selected
+                ? new[] { rule }.Concat(sources).ToList() : sources);
+            Color conflictColor = RuleConflictStyle.Color;
+            string label = def.LabelCap.ToString();
+            bool retainedOnly = GearSelectionPolicy.IsRetained(def, retainedStock, sources);
             Color previousColor = GUI.color;
-            if (selected)
-                GUI.color = Color.green;
-            else if (retainedStock)
-                GUI.color = Color.cyan;
+            if (conflictReason != null)
+                GUI.color = conflictColor;
+            else if (selected)
+                GUI.color = RuleTypeStyle.ForRule(rule);
+            else if (sources.Count > 0)
+                GUI.color = RuleTypeStyle.SourceColor(sources, muted: false);
+
             float reservedButtonWidth = retainedStock ? 188f : 100f;
             Rect labelRect = new Rect(
                 rect.x + 4f, rect.y + 5f,
                 rect.width - reservedButtonWidth, 24f);
-            Widgets.Label(labelRect, label);
+            if (conflictReason == null)
+                labelRect = RuleTypeStyle.DrawSourceMarks(labelRect, sources, muted: false);
+            if (retainedStock || (!selected && sources.Count > 0))
+                label = (retainedOnly ? "[Retained] " : RuleTypeStyle.SourceLabel(sources, labelRect.width * 0.45f)) + label;
+            string suffix = conflictReason != null ? " — Conflict" : "";
+            Widgets.Label(labelRect, label.Truncate(Mathf.Max(0f, labelRect.width - Text.CalcSize(suffix).x)) + suffix);
             GUI.color = previousColor;
-            if (selected)
+            if (conflictReason != null)
+                TooltipHandler.TipRegion(labelRect,
+                    sourceHeading + conflictReason + "\n\n" + RuleTypeStyle.GearPolicyTip(rule));
+            else if (selected)
             {
                 TooltipHandler.TipRegion(
                     new Rect(rect.x + 4f, rect.y, rect.width - 100f, rect.height),
-                    "Selected for this rule. Every green apparel entry must be worn simultaneously before entry and throughout every activity or protected route inside the active area.");
+                    sourceHeading + $"Selected for this rule ({RuleTypeStyle.RuleName(rule)}). Wear all selected garments together." + "\n\n" + RuleTypeStyle.GearPolicyTip(rule));
             }
             else if (retainedStock)
             {
                 TooltipHandler.TipRegion(
                     new Rect(rect.x + 4f, rect.y, rect.width - 188f, rect.height),
-                    "Retained managed apparel stock. It remains classified for Automatic Outfit Manager locker storage even though this rule does not currently require it.");
+                    sourceHeading + (sources.Count > 0
+                        ? "Not selected for this rule. Use Add to select it here. Remove it from the rules above before using Forget."
+                        : "Remembered as locker stock, but not selected by a rule. Add makes it a requirement here. Forget returns unused stock to ordinary storage.") + "\n\n" + RuleTypeStyle.GearPolicyTip(rule));
+            }
+
+            else
+            {
+                TooltipHandler.TipRegion(labelRect,
+                    sourceHeading + $"{def.LabelCap} is not selected for {RuleTypeStyle.RuleName(rule)}. Use Add to select this type." + "\n\n" + RuleTypeStyle.GearPolicyTip(rule));
             }
 
             Rect buttonRect = new Rect(rect.xMax - 88f, rect.y + 2f, 84f, 27f);
@@ -161,36 +206,31 @@ namespace AutomaticOutfitManager.UI
                         rule.Id, $"removed apparel {def.LabelCap}");
                 }
                 TooltipHandler.TipRegion(buttonRect,
-                    "Stop requiring this apparel for this rule. Its type remains retained managed stock until Forget is used when no rule or active transition still needs it.");
+                    "Remove this selection. Its type remains managed locker stock until you use Forget; other rules can still select it.");
             }
             else
             {
                 Rect addRect = retainedStock
                     ? new Rect(rect.xMax - 176f, rect.y + 2f, 84f, 27f)
                     : buttonRect;
-                if (conflict != null)
+                if (conflictReason != null)
                 {
-                    bool previousEnabled = GUI.enabled;
-                    GUI.enabled = false;
-                    Widgets.ButtonText(addRect, "Conflict");
-                    GUI.enabled = previousEnabled;
-                    TooltipHandler.TipRegion(addRect,
-                        $"Cannot add this apparel because {conflict.Label}. " +
-                        "Outer and nested work-area apparel must remain wearable together.");
+                    RuleConflictStyle.DrawBlockedButton(addRect, conflictReason);
                 }
                 else if (Widgets.ButtonText(addRect, "Add"))
                 {
                     rule.RequiredApparel.Add(def);
                     component?.RememberManagedStockDefinition(def);
                     component?.InvalidateManagedApparelDefinitionIndex();
+                    component?.NotifyRuleRequirementsChanged(rule.Id, "outfit selection added");
                     filteredDefsDirty = true;
                 }
-                if (conflict == null)
+                if (conflictReason == null)
                 {
                     TooltipHandler.TipRegion(addRect,
-                        retainedStock
-                            ? "Require this retained apparel type for this rule again."
-                            : "Require every managed worker for this rule to wear this apparel item.");
+                        RuleTypeStyle.GearPolicyTip(rule) + "\n\n" + (retainedStock
+                            ? "Select this apparel type for this rule."
+                            : "Add this apparel type to the selected outfit requirements."));
                 }
 
                 if (retainedStock)
@@ -206,9 +246,9 @@ namespace AutomaticOutfitManager.UI
                     GUI.enabled = previousEnabled;
                     TooltipHandler.TipRegion(buttonRect,
                         canForget
-                            ? "Stop classifying spare copies of this apparel type as managed Automatic Outfit Manager stock. Exact saved or currently tracked items remain protected individually."
+                            ? "Return unused stock of this type to ordinary storage. Individual saved or borrowed items stay protected."
                             : component?.ManagedStockForgetBlockReason(def) ??
-                              "This apparel type is still required by another rule or used by an active outfit transition.");
+                              "A rule or current outfit change still uses this type.");
                 }
             }
         }

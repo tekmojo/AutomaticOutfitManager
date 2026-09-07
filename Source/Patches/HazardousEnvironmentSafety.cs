@@ -100,6 +100,18 @@ namespace AutomaticOutfitManager.Patches
                    TryHazardAt(pawn, cell, profile, out reason);
         }
 
+        internal static Predicate<IntVec3> RemovalHazards(
+            Pawn pawn, IEnumerable<Apparel> retained)
+        {
+            var removal = new PawnApparelState
+            {
+                ManagedApparel = pawn.apparel.WornApparel.Except(retained).ToList()
+            };
+            if (!TryBuildProfile(pawn, removal, null, out ProtectionProfile profile))
+                return null;
+            return cell => TryHazardAt(pawn, cell, profile, out _);
+        }
+
         internal static bool RemovalWouldExposePawn(
             Pawn pawn,
             PawnApparelState state,

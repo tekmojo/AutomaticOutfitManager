@@ -340,7 +340,7 @@ namespace AutomaticOutfitManager.Patches
                         yield return new Command_Action
                         {
                             defaultLabel = "Recall owner",
-                            defaultDesc = $"Recall {weaponOwner.LabelShortCap} from managed work. They return to the locker room when configured, return managed items, and restore their exact saved apparel and primary weapon.",
+                            defaultDesc = $"Recall {weaponOwner.LabelShortCap} to return borrowed outfits and restore saved personal gear. They use the assigned locker room when available.",
                             icon = TexCommand.ClearPrioritizedWork,
                             action = () => component.RequestRecall(
                                 component.StateFor(weaponOwner))
@@ -379,7 +379,7 @@ namespace AutomaticOutfitManager.Patches
                 yield return new Command_Action
                 {
                     defaultLabel = "Recall owner",
-                    defaultDesc = $"Recall {owner.LabelShortCap} from managed work. They return to the locker room when configured, return managed items, and restore their exact saved apparel and primary weapon.",
+                    defaultDesc = $"Recall {owner.LabelShortCap} to return borrowed outfits and restore saved personal gear. They use the assigned locker room when available.",
                     icon = TexCommand.ClearPrioritizedWork,
                     action = () => component.RequestRecall(
                         component.StateFor(owner))
@@ -398,8 +398,8 @@ namespace AutomaticOutfitManager.Patches
             bool weapon = item?.def?.IsWeapon == true;
             string itemKind = weapon ? "saved primary weapon" : "saved apparel";
             string consequence = weapon
-                ? $"{ownerName} will no longer restore this exact primary weapon. Automatic Outfit Manager will not choose a replacement saved weapon, so the pawn may finish restoration unarmed. The item becomes available to other pawns."
-                : $"{ownerName} will no longer restore this exact apparel item. It becomes ordinary apparel and may be worn by another pawn.";
+                ? $"{ownerName} will no longer restore this exact primary weapon. No replacement saved weapon is chosen, so the pawn may finish restoration unarmed. Normal equipment and storage rules still apply."
+                : $"{ownerName} will no longer restore this exact garment. It is no longer reserved as their saved item; normal outfit and storage rules still apply.";
 
             return new Command_Action
             {
