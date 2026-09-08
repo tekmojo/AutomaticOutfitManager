@@ -45,6 +45,7 @@ namespace AutomaticOutfitManager.Patches
 
             WeaponPreparationDiagnostics.Ended(pawn, state, endingJob, condition);
             MaterialHandoff.NotifyJobEnded(pawn, endingJob, state);
+            PausedAreaWorkFilter.NotifyPermittedHaulEnded(pawn, state, endingJob, condition);
 
             if (condition == JobCondition.Succeeded &&
                 state.Transition == ApparelTransition.Restoring &&
@@ -184,6 +185,7 @@ namespace AutomaticOutfitManager.Patches
 
             ApparelRule rule = component.RuleById(pendingRuleId);
             bool accepted = condition == JobCondition.Succeeded &&
+                PawnJobTracker_StartJob_Patch.CanCountBufferedTask(pawn, endingJob) &&
                 state.Transition == ApparelTransition.Active &&
                 !state.RecallRequested &&
                 rule?.Enabled == true &&
@@ -231,10 +233,12 @@ namespace AutomaticOutfitManager.Patches
                 progress.PendingJobLoadId = -1;
                 ApparelRule rule = component.RuleById(progress.RuleId);
                 bool accepted = condition == JobCondition.Succeeded &&
+                    PawnJobTracker_StartJob_Patch.CanCountBufferedTask(pawn, endingJob) &&
                     state.Transition == ApparelTransition.Active &&
                     !state.RecallRequested &&
                     !progress.Finished &&
                     rule?.Enabled == true &&
+                    !rule.WorkAreaPaused &&
                     progress.Completed < rule.ReturnTaskBuffer;
                 if (!accepted)
                 {

@@ -2,8 +2,8 @@
 <Defs>
   <SpecialThingFilterDef>
     <defName>AutomaticOutfitManager_AllowManaged</defName>
-    <label>allow managed apparel</label>
-    <description>Allow apparel selected by Work or Non-Work rules, retained locker stock and individual saved or borrowed garments. Remove or Clear keeps a type managed; use Forget in Choose apparel to release unused stock.</description>
+    <label>automatic outfit apparel</label>
+    <description>Allow Work and Non-Work selections, retained outfit stock, borrowed garments and exact saved personal items tagged Automatic saved apparel. Enabling this filter also enables their currently known item types. Item, condition, quality and other storage filters still apply. Remove or Clear keeps stock in this category; use Forget to release unused types.</description>
     <parentCategory>Apparel</parentCategory>
     <allowedByDefault>false</allowedByDefault>
     <saveKey>allowAutomaticOutfitManagerManaged</saveKey>
@@ -12,8 +12,8 @@
 
   <SpecialThingFilterDef>
     <defName>AutomaticOutfitManager_AllowUnmanaged</defName>
-    <label>allow non-managed apparel</label>
-    <description>Allow ordinary apparel outside AOM selections, retained stock and individual saved or borrowed garments.</description>
+    <label>non-automatic outfit apparel</label>
+    <description>Allow apparel outside automatic outfit selections, retained stock, borrowed gear and saved personal outfits. Another ordinary copy of a saved garment remains in this category unless its type is selected or retained.</description>
     <parentCategory>Apparel</parentCategory>
     <allowedByDefault>true</allowedByDefault>
     <saveKey>allowAutomaticOutfitManagerUnmanaged</saveKey>
@@ -22,8 +22,8 @@
 
   <SpecialThingFilterDef>
     <defName>AutomaticOutfitManager_AllowManagedWeapons</defName>
-    <label>allow managed weapons</label>
-    <description>Allow weapons selected by Work or Non-Work rules, retained locker stock and individual saved or borrowed weapons. Remove or Clear keeps a type managed; use Forget in Choose weapons to release unused stock.</description>
+    <label>automatic outfit weapons</label>
+    <description>Allow Work and Non-Work selections, retained outfit stock, borrowed weapons and exact saved personal items tagged Automatic saved weapons. Enabling this filter also enables their currently known item types. Item, condition, quality and other storage filters still apply. Remove or Clear keeps stock in this category; use Forget to release unused types.</description>
     <parentCategory>Weapons</parentCategory>
     <allowedByDefault>false</allowedByDefault>
     <saveKey>allowAutomaticOutfitManagerManagedWeapons</saveKey>
@@ -32,8 +32,8 @@
 
   <SpecialThingFilterDef>
     <defName>AutomaticOutfitManager_AllowUnmanagedWeapons</defName>
-    <label>allow non-managed weapons</label>
-    <description>Allow ordinary weapons outside AOM selections, retained stock and individual saved or borrowed weapons.</description>
+    <label>non-automatic outfit weapons</label>
+    <description>Allow weapons outside automatic outfit selections, retained stock, borrowed gear and saved personal outfits. Another ordinary copy of a saved weapon remains in this category unless its type is selected or retained.</description>
     <parentCategory>Weapons</parentCategory>
     <allowedByDefault>true</allowedByDefault>
     <saveKey>allowAutomaticOutfitManagerUnmanagedWeapons</saveKey>

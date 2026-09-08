@@ -198,7 +198,7 @@ namespace AutomaticOutfitManager.UI
                         rule.Id, $"removed weapon {def.LabelCap}");
                 }
                 TooltipHandler.TipRegion(buttonRect,
-                    "Remove this selection. Its type remains managed locker stock until you use Forget; other rules can still select it.");
+                    "Remove this selection. Its type remains automatic outfit stock until you use Forget; other rules can still select it.");
             }
             else
             {

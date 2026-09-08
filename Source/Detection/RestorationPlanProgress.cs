@@ -29,6 +29,9 @@ namespace AutomaticOutfitManager.Detection
             return becameReady;
         }
 
+        internal static bool IsEmptyAndBlocked(PawnApparelState state) =>
+            state != null && Probes.TryGetValue(state, out Probe probe) && probe.EmptyAndBlocked;
+
         internal static bool ShouldRestart(int jobCount) => jobCount > 0;
 
         internal static void Wake(PawnApparelState state)

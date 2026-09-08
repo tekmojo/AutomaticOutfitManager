@@ -193,14 +193,104 @@ class PreparedMealLifetimeTests
             if (invalid == "other-current") pawn.jobs.curJob = new Job { def = new JobDef { defName = "Flee" } };
             Check(!PreparationJobHandoff.ResumeEmptyTracker(pawn, s), invalid + " cannot trigger empty-tracker meal recovery");
         }
+        RejectedRetryContracts();
         harmony.UnpatchAll(harmony.Id);
     }
+    static void RejectedRetryContracts()
+    {
+        foreach (string rejection in new[] { "claim", "reservation", "foreign-wait", "exception", "expired-scope" })
+        {
+            Pawn p = RetrySetup(out _, out Job retry, out var state);
+            retry.targetA = new LocalTargetInfo { Thing = new Thing() };
+            // Start with this food identity so the exact-match registry can
+            // distinguish rejection from an unrelated/pool-reused Job.
+            PreparedIngestRetryRegistry.ResetForLoadedGame();
+            PreparedIngestRetryRegistry.RecordResumed(p, retry);
+            PreparedIngestRetryRegistry.NotifyEnded(p, retry, JobCondition.InterruptForced);
+            Check(PreparedIngestRetryRegistry.TryConsume(p, new Job { def = JobDefOf.Wait }, out retry, out _),
+                "claimed-food fixture obtains one retry");
+            p.jobs.ClaimedFood = rejection == "claim" ? retry.targetA.Thing : null;
+            p.jobs.ReservationDenied = rejection == "reservation";
+            p.jobs.RejectWithWait = rejection == "foreign-wait";
+            p.jobs.ThrowOnMeal = rejection == "exception";
+            p.jobs.OptionalHauling = true;
+            try { if (rejection != "expired-scope") p.jobs.StartJob(retry); }
+            catch (InvalidOperationException) { Check(rejection == "exception", "only injected native exception propagates"); }
+            p.jobs.ThrowOnMeal = false;
+            Job bill = new Job { def = new JobDef { defName = "DoBill" } };
+            // Native assigns the bill, then queues it and clears current before
+            // recursively starting its optional haul, in the same game tick.
+            p.jobs.StartJob(bill);
+            Check(p.jobs.curJob?.def == JobDefOf.HaulToCell && p.jobs.jobQueue.Count == 1 &&
+                p.jobs.jobQueue[0].job == bill && p.jobs.OptionalHauls == 1,
+                rejection + ": rejected meal must not strand queued cooking by blocking its hauling child");
+            Check(!PreparedIngestRetryRegistry.ProtectsRetry(p, retry),
+                rejection + ": unrelated haul retires orphan protection without waiting 600 ticks");
+            Check(!PreparedIngestRetryRegistry.TrySuppressCompletedHaulBuffer(p, state, p.jobs.curJob,
+                JobCondition.Succeeded, out _), "cooking haul is not the old meal's excluded optional child");
+        }
+
+        Pawn pawn = RetrySetup(out Job original, out Job fresh, out var s);
+        pawn.jobs.jobQueue.Add(new QueuedJob { job = fresh });
+        Job blocked = new Job { def = JobDefOf.HaulToCell };
+        pawn.jobs.StartJob(blocked);
+        Check(pawn.jobs.curJob == null && pawn.jobs.jobQueue[0].job == fresh,
+            "exact valid queued meal remains protected during a null-current child admission");
+        pawn.jobs.jobQueue.Clear();
+        pawn.jobs.StartJob(blocked);
+        Check(pawn.jobs.curJob == blocked, "same deferred child may proceed once its meal parent is abandoned");
+
+        pawn = RetrySetup(out original, out fresh, out s);
+        pawn.jobs.curJob = fresh;
+        PreparedIngestRetryRegistry.ConfirmStarted(pawn, fresh);
+        PreparedIngestRetryRegistry.RejectAdmission(pawn, original);
+        Check(PreparedIngestRetryRegistry.ProtectsRetry(pawn, fresh),
+            "rejected stale alias cannot revoke a different confirmed meal alias");
+        PreparedIngestRetryRegistry.RejectAdmission(pawn, new Job { def = JobDefOf.Ingest });
+        Check(PreparedIngestRetryRegistry.ProtectsRetry(pawn, fresh), "unrelated meal rejection does not clear actual meal");
+
+        foreach (string mode in new[] { "prefix-rewrite", "prefix-rewrite-without-queue", "synthesized-retry" })
+        {
+            pawn = RetrySetup(out original, out fresh, out s);
+            pawn.jobs.OptionalHauling = true;
+            pawn.jobs.Rewrite = true;
+            pawn.jobs.SkipRewriteQueue = mode == "prefix-rewrite-without-queue";
+            if (mode == "synthesized-retry")
+            {
+                PreparedIngestRetryRegistry.ResetForLoadedGame();
+                PreparedIngestRetryRegistry.RecordResumed(pawn, original);
+                PreparedIngestRetryRegistry.NotifyEnded(pawn, original, JobCondition.InterruptForced);
+                pawn.jobs.SynthesizeRetry = true;
+                fresh = new Job { def = JobDefOf.Wait };
+            }
+            pawn.jobs.StartJob(fresh);
+            Check(pawn.jobs.curJob?.def == JobDefOf.Ingest && pawn.jobs.OptionalHauls == 0 && pawn.jobs.jobQueue.Count == 0,
+                mode + ": exact admission survives a compatibility rewrite without permitting a second haul");
+        }
+    }
+
     static void RewriteRetry(Pawn_JobTracker __instance, ref Job newJob)
     {
+        ThinkNode giver = null; ThinkTreeDef tree = null; JobTag? tag = null;
+        // These two bodies are extracted verbatim from the production StartJob
+        // rejection boundaries by the runner, not duplicated rejection policy.
+        PawnJobTracker_StartJob_Patch.CheckClaim(__instance, ref newJob, ref giver, ref tree, ref tag);
+        PawnJobTracker_StartJob_Patch.CheckReservation(__instance, ref newJob, ref giver, ref tree, ref tag);
+        if (__instance.SynthesizeRetry)
+        {
+            __instance.SynthesizeRetry = false;
+            if (PreparedIngestRetryRegistry.TryConsume(__instance.PawnForTests, newJob, out Job retry, out _) && retry != null)
+                newJob = retry;
+        }
+        if (__instance.RejectWithWait && newJob.def == JobDefOf.Ingest)
+        {
+            __instance.RejectWithWait = false;
+            newJob = new Job { def = JobDefOf.Wait };
+        }
         if (__instance.Rewrite && newJob.def == JobDefOf.Ingest)
         {
             __instance.Rewrite = false;
-            __instance.jobQueue.Add(new QueuedJob { job = newJob });
+            if (!__instance.SkipRewriteQueue) __instance.jobQueue.Add(new QueuedJob { job = newJob });
             newJob = new Job { def = JobDefOf.HaulToCell };
         }
     }
@@ -249,11 +339,15 @@ namespace Verse.AI
     {
         private Pawn pawn; public Job curJob; public bool Rewrite, OptionalHauling;
         public Job NativeFinalizer; public int OptionalHauls;
+        public Pawn PawnForTests => pawn;
+        public Thing ClaimedFood;
+        public bool ReservationDenied, RejectWithWait, ThrowOnMeal, SkipRewriteQueue, SynthesizeRetry;
         public List<QueuedJob> jobQueue = new List<QueuedJob>();
         public Pawn_JobTracker(Pawn p) { pawn = p; }
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public void StartJob(Job newJob, ThinkNode jobGiver = null, ThinkTreeDef thinkTree = null, JobTag? tag = null)
         {
+            if (ThrowOnMeal && newJob.def == JobDefOf.Ingest) throw new InvalidOperationException("injected admission failure");
             curJob = newJob;
             Job finalizer = NativeFinalizer; NativeFinalizer = null;
             Job child = TryOpportunisticJob(finalizer, newJob);
@@ -265,7 +359,8 @@ namespace Verse.AI
         }
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public Job TryOpportunisticJob(Job finalizer, Job newJob) => finalizer ??
-            (OptionalHauling && newJob.def == JobDefOf.Ingest ? new Job { def = JobDefOf.HaulToCell } : null);
+            (OptionalHauling && (newJob.def == JobDefOf.Ingest || newJob.def.defName == "DoBill")
+                ? new Job { def = JobDefOf.HaulToCell } : null);
         private void TryFindAndStartJob()
         {
             if (curJob != null || jobQueue.Count == 0) return;
@@ -317,10 +412,30 @@ namespace AutomaticOutfitManager.Core
         public static void Detailed(string message) { }
     }
 }
+namespace AutomaticOutfitManager.Detection
+{
+    internal static class ManagedWorkClaimRegistry
+    {
+        internal static bool IsClaimedByOther(Pawn pawn, Job job) =>
+            job?.def == JobDefOf.Ingest && pawn.jobs.ClaimedFood != null && pawn.jobs.ClaimedFood == job.targetA.Thing;
+    }
+    internal static class ManagedWorkCandidateFilter { internal static void LogConflict(Pawn p, Job j, string context) { } }
+}
 namespace AutomaticOutfitManager.Patches
 {
-    public static class PawnJobTracker_StartJob_Patch
+    // This fixture has no paused rules; the paused-haul suite covers this policy.
+    internal static class PausedAreaWorkFilter { internal static Job FinalizerForPreparedHaul(Pawn p,Job parent,Job child)=>child; }
+
+    internal static class IngestReservationAdmission
     {
+        internal static bool Rejects(Pawn pawn, Job job) => job?.def == JobDefOf.Ingest && pawn.jobs.ReservationDenied;
+    }
+    public static partial class PawnJobTracker_StartJob_Patch
+    {
+        private static void ReplaceWithWait(Pawn p, int ticks, ref Job job, ref ThinkNode giver, ref JobTag? tag)
+        { job = new Job { def = JobDefOf.Wait }; giver = null; tag = null; }
+        private static void ReplaceWithBriefWait(Pawn p, ref Job job, ref ThinkNode giver, ref JobTag? tag) =>
+            ReplaceWithWait(p, 30, ref job, ref giver, ref tag);
         public static bool IsNativeEmergencySafetyJob(Job j) => j.def.defName == "Flee";
         public static bool PendingWorkJobIsViable(Pawn p, Job j, out string reason) { reason = null; return j?.Viable == true; }
     }

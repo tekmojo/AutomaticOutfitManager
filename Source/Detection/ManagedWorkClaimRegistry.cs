@@ -207,17 +207,23 @@ namespace AutomaticOutfitManager.Detection
             // target retain the former first-cell claim behavior.
             if (targets.Count == 0)
             {
-                LocalTargetInfo cellTarget = EnumerateTargets(job)
-                    .FirstOrDefault(target => target.IsValid && !target.HasThing);
-                if (cellTarget.IsValid && cellTarget.Cell.IsValid &&
-                    cellTarget.Cell.InBounds(pawn.Map))
+                // default(LocalTargetInfo) is a valid origin cell in RimWorld.
+                // FirstOrDefault would invent a reservation when a targetless
+                // Wait has no match, also blocking unrelated connective waits.
+                foreach (LocalTargetInfo cellTarget in EnumerateTargets(job))
                 {
-                    targets.Add(new WorkTarget
+                    if (!cellTarget.IsValid || cellTarget.HasThing)
+                        continue;
+                    if (cellTarget.Cell.IsValid && cellTarget.Cell.InBounds(pawn.Map))
                     {
-                        Map = pawn.Map,
-                        Thing = null,
-                        Cell = cellTarget.Cell
-                    });
+                        targets.Add(new WorkTarget
+                        {
+                            Map = pawn.Map,
+                            Thing = null,
+                            Cell = cellTarget.Cell
+                        });
+                    }
+                    break;
                 }
             }
 

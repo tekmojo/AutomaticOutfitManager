@@ -12,6 +12,13 @@ using RimWorld;
 using Verse;
 using Verse.AI;
 
+#if !AOM_PAUSED_HAUL_TESTS
+namespace AutomaticOutfitManager.Patches {
+    // This fixture has no area rules; paused finalizers use the production
+    // policy and native queue body in the paused-haul suite.
+    internal static class PausedAreaWorkFilter { internal static Job FinalizerForPreparedHaul(Pawn p,Job parent,Job child)=>child; }
+}
+#endif
 namespace AutomaticOutfitManager.Detection
 {
     // Meal policy is exercised with the production registry in the separate
@@ -28,26 +35,27 @@ namespace Verse
     public class Map { }
     public class TickManager { public int TicksGame = 100; }
     public static class Find { public static TickManager TickManager = new TickManager(); }
-    public class Thing { public bool Destroyed, Spawned = true; public Map Map; }
+    public partial class Thing { public bool Destroyed, Spawned = true; public Map Map; }
     public class ThingWithComps : Thing { }
-    public class Pawn : Thing
+    public partial class Pawn : Thing
     {
         public bool Drafted, Downed, InMentalState;
         public Pawn_JobTracker jobs;
         public Pawn() { Map = new Map(); jobs = new Pawn_JobTracker(this); }
     }
-    public struct LocalTargetInfo
+    public partial struct LocalTargetInfo
     {
         public Thing Thing;
-        public bool IsValid => Thing != null;
-        public LocalTargetInfo(Thing t) { Thing = t; }
+        public bool IsValid => Thing != null || HasCell;
+        public bool HasCell;
+        public LocalTargetInfo(Thing t) { this = default; Thing = t; }
     }
-    public class JobDef { public string defName; public bool allowOpportunisticPrefix; }
+    public class JobDef { public string defName; public Type driverClass; public bool allowOpportunisticPrefix; }
 }
 namespace RimWorld
 {
     public class Apparel : ThingWithComps { }
-    public static class JobDefOf
+    public static partial class JobDefOf
     {
         public static JobDef Wear = new JobDef { defName = "Wear", allowOpportunisticPrefix = true };
         public static JobDef Equip = new JobDef { defName = "Equip", allowOpportunisticPrefix = true };
@@ -56,7 +64,7 @@ namespace RimWorld
 }
 namespace Verse.AI
 {
-    public class Job
+    public partial class Job
     {
         public JobDef def;
         public int loadID;
@@ -65,7 +73,7 @@ namespace Verse.AI
         public List<LocalTargetInfo> targetQueueA, targetQueueB;
     }
     public class QueuedJob { public Job job; }
-    public class Pawn_JobTracker
+    public partial class Pawn_JobTracker
     {
         private Pawn pawn;
         public Job curJob, NativeFinalizer;
@@ -117,7 +125,7 @@ namespace Verse.AI
 namespace AutomaticOutfitManager.State
 {
     public enum ApparelTransition { Preparing, Active, ReturningToChangingArea, Restoring }
-    public class PawnApparelState
+    public partial class PawnApparelState
     {
         public ApparelTransition Transition = ApparelTransition.Preparing;
         public bool RecallRequested, MapDepartureRequested, WeaponRuleOverrideExplicit;
@@ -133,7 +141,7 @@ namespace AutomaticOutfitManager.State
 }
 namespace AutomaticOutfitManager.Core
 {
-    public class AutomaticOutfitManagerGameComponent
+    public partial class AutomaticOutfitManagerGameComponent
     {
         public static AutomaticOutfitManagerGameComponent Current = new AutomaticOutfitManagerGameComponent();
         public Dictionary<Pawn, PawnApparelState> States = new Dictionary<Pawn, PawnApparelState>();
@@ -142,7 +150,7 @@ namespace AutomaticOutfitManager.Core
 }
 namespace AutomaticOutfitManager.Patches
 {
-    internal static class PawnJobTracker_StartJob_Patch
+    internal static partial class PawnJobTracker_StartJob_Patch
     {
         internal static bool PendingWorkJobIsViable(Pawn p, Job j, out string reason)
         { reason = null; return j?.Viable == true; }

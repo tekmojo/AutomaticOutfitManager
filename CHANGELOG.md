@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.4.1 — 2026-09-08
+
+### Changed
+
+- **Pause activities** now describes both rule types. Pause stops ordinary work, meals, recreation and learning while allowed hauling, wandering, sleep, bed rest and animal nursing continue with access and outfit requirements.
+- Supply hauling can collect any item type from a paused Work Area for delivery outside it. This is a transport exception, not permission to cook, repair, refuel or build inside a paused area.
+- Storage filters are **Automatic outfit apparel/weapons** and **Non-automatic outfit apparel/weapons**. Exact saved items use **Automatic saved apparel/weapons** tags and remain included in automatic storage outside active outfit changes. Enabling the category includes currently known saved/borrowed types; native storage limits remain independent of rule standards.
+- The loading description focuses on gameplay. Player tooltips clarify storage limits and keep diagnostic detail in the optional Detailed log.
+
+### Added
+
+- Locker overlap and storage warnings, persistent Work/Non-Work overlap highlights while the mod tab is open, and focused hover/click navigation. Blocked saved-item hovers identify the rule obstructing retrieval.
+- Recall for observed humanlike activities, including children who have no active outfit change.
+
+### Fixed
+
+- Suspend outfit intervention during mental breaks, incapacitation and native emergency control. Preserve saved ownership, clear obsolete civilian retries and resume safely after recovery; affected pawns are omitted from area activity lists. Ordinary rest still follows PPE rules.
+- Exclude selected Work/Non-Work apparel and primary weapon types from new and existing personal snapshots, regardless of condition, quality, enabled state or map. Retained shared types remain excluded until **Forget**. Held shared gear removed from an old snapshot uses a pending safe return; loose items are released without a special retrieval trip.
+- Improve raid/departure handoffs, pause enforcement and valid job continuation so obsolete tasks do not repeatedly restart outfit changes. Preserve exact saved-gear continuation across temporary waits and allow safe essential rest while retrieval is blocked.
+- Reduce unnecessary Work-outfit preparation for unrelated locker hauling, preserve legitimate PPE-protected supply collection, and keep failed or interrupted jobs from consuming task-buffer progress.
+
+Existing rules and filter identities are retained. The existing screenshot gallery is unchanged. [Release status and validation limits](RELEASE-CHECKLIST.md) distinguish published results from remaining focused gameplay checks.
+
 ## 0.4.0 — 2026-09-06
 
 Published on Steam Workshop with the eight replacement screenshots. The downloaded 12-file package matches the audited stage. The GitHub package uses the same audited files. See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.0.md) for verification and the [release checklist](RELEASE-CHECKLIST.md) for publication status.

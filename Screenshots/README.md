@@ -1,5 +1,7 @@
 # 0.4.0 replacement screenshot gallery
 
+This completed 0.4.0 gallery is retained unchanged for 0.4.1 at the maintainer’s request. Some labels have since changed, including Pause activities and Automatic saved apparel/weapons. The [capture plan](CAPTURE-PLAN-0.4.1.md) is deferred for a future refresh.
+
 Eight new screenshots supplied by the maintainer are saved below at their original resolution and encoding. No cropping, resizing, recompression or visual editing was applied. The published Workshop order starts with Work and Non-Work setup, then shows the supporting controls and pawn status.
 
 **Release direction: replace all previous gameplay screenshots on GitHub and Workshop with this set. Do not append these to the older gallery.** Workshop replacement is complete: exactly these eight images are live in order. This release uses the same eight-image gallery on GitHub; previous active gallery files are retired from this branch and preserved in Git history and a local release backup. The branded About preview and application icons are separate assets.

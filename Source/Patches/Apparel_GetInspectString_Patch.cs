@@ -20,10 +20,12 @@ namespace AutomaticOutfitManager.Patches
 
             string managedLabel = null;
             string savedOwner = component.SavedOwnerFor(__instance);
+            if (string.IsNullOrEmpty(savedOwner))
+                savedOwner = string.Join(", ", AutomaticOutfitStorageScope.SavedFor(__instance).Select(pawn => pawn.LabelShortCap.ToString()).Distinct());
             if (!string.IsNullOrEmpty(savedOwner))
             {
                 managedLabel =
-                    $"Automatic Outfit Manager: Saved personal apparel — {savedOwner}";
+                    $"Automatic saved apparel — {savedOwner}";
             }
             else
             {
@@ -36,7 +38,7 @@ namespace AutomaticOutfitManager.Patches
 
                 if (matchingRules.Count > 0)
                 {
-                    managedLabel = "Automatic Outfit Manager: Selected apparel\n" +
+                    managedLabel = "Automatic outfit apparel\n" +
                         RuleTypeStyle.SourceTip(matchingRules).TrimEnd();
                     if (lockerAreas.Count > 0)
                         managedLabel += $"\nLocker Room: {string.Join(", ", lockerAreas)}";
@@ -44,11 +46,11 @@ namespace AutomaticOutfitManager.Patches
                 else if (component.IsManagedApparelDefinition(__instance.def))
                 {
                     managedLabel =
-                        "Automatic Outfit Manager: Retained apparel stock";
+                        "Automatic outfit apparel — retained stock";
                 }
                 else if (component.IsManagedApparel(__instance))
                 {
-                    managedLabel = "Automatic Outfit Manager: Managed apparel";
+                    managedLabel = "Automatic outfit apparel — borrowed";
                 }
             }
 
@@ -76,9 +78,11 @@ namespace AutomaticOutfitManager.Patches
 
             string managedLabel = null;
             Pawn savedOwner = component.SavedPawnForWeapon(__instance);
-            if (savedOwner != null)
+            string savedNames = savedOwner != null ? savedOwner.LabelShortCap.ToString() :
+                string.Join(", ", AutomaticOutfitStorageScope.SavedFor(__instance).Select(pawn => pawn.LabelShortCap.ToString()).Distinct());
+            if (!string.IsNullOrEmpty(savedNames))
             {
-                managedLabel = $"Automatic Outfit Manager: Saved primary weapon — {savedOwner.LabelShortCap}";
+                managedLabel = $"Automatic saved weapons — {savedNames}";
             }
             else
             {
@@ -91,7 +95,7 @@ namespace AutomaticOutfitManager.Patches
 
                 if (matchingRules.Count > 0)
                 {
-                    managedLabel = "Automatic Outfit Manager: Selected primary weapon\n" +
+                    managedLabel = "Automatic outfit weapons\n" +
                         RuleTypeStyle.SourceTip(matchingRules).TrimEnd();
                     if (lockerAreas.Count > 0)
                         managedLabel += $"\nLocker Room: {string.Join(", ", lockerAreas)}";
@@ -99,11 +103,11 @@ namespace AutomaticOutfitManager.Patches
                 else if (component.IsManagedWeaponDefinition(__instance.def))
                 {
                     managedLabel =
-                        "Automatic Outfit Manager: Retained weapon stock";
+                        "Automatic outfit weapons — retained stock";
                 }
                 else if (component.IsManagedWeapon(__instance))
                 {
-                    managedLabel = "Automatic Outfit Manager: Managed primary weapon";
+                    managedLabel = "Automatic outfit weapons — borrowed";
                 }
             }
 

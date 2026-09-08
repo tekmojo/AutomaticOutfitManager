@@ -11,7 +11,7 @@ namespace AutomaticOutfitManager.UI
     {
         internal static string WearLabel(PawnApparelState state, Job job) =>
             job?.targetA.Thing is Apparel apparel && state.OriginalApparel?.Contains(apparel) == true
-                ? "Restoring saved apparel" : "Changing personal apparel";
+                ? "Restoring automatic saved apparel" : "Changing personal apparel";
 
         internal static string Detail(Pawn pawn, PawnApparelState state, Job job)
         {
@@ -21,7 +21,7 @@ namespace AutomaticOutfitManager.UI
             if (job.def == JobDefOf.Wear && target is Apparel apparel)
             {
                 if (state.OriginalApparel?.Contains(apparel) == true)
-                    return $"Restoring saved apparel: {apparel.LabelCap}";
+                    return $"Restoring automatic saved apparel: {apparel.LabelCap}";
                 var displaced = SavedApparelReplacementPolicy
                     .ConflictingSavedApparel(pawn, state, apparel);
                 if (displaced.Count == 1)
@@ -31,9 +31,9 @@ namespace AutomaticOutfitManager.UI
                 return $"Current apparel: {apparel.LabelCap}";
             }
             if (job.def == JobDefOf.Equip && target == state.OriginalWeapon)
-                return $"Restoring saved weapon: {target.LabelCap}";
+                return $"Restoring automatic saved weapons: {target.LabelCap}";
             if (job.def == JobDefOf.RemoveApparel && state.ManagedApparel?.Contains(target) == true)
-                return $"Returning managed apparel: {target.LabelCap}";
+                return $"Returning automatic outfit apparel: {target.LabelCap}";
             if (job.def == JobDefOf.DropEquipment)
                 return $"Returning weapon: {target.LabelCap}";
             return null;

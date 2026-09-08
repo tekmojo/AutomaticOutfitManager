@@ -8,8 +8,8 @@ using Verse.AI;
 
 namespace AutomaticOutfitManager.Detection
 {
-    // A selected, usable Work rule requirement is work stock even when the
-    // pawn was already wearing it when its personal snapshot was captured.
+    // Personal ownership follows selection identity, not item standards or
+    // current area eligibility. Temporary Non-Work targets remain separate.
     public static class WorkGearSnapshotPolicy
     {
         public static List<ApparelRule> MatchingRules(Pawn pawn, ThingWithComps item,
@@ -26,16 +26,24 @@ namespace AutomaticOutfitManager.Detection
                 .GroupBy(rule => rule.Id).Select(group => group.First()).ToList();
         }
 
+        private static List<ApparelRule> SnapshotSources(ThingWithComps item,
+            IEnumerable<ApparelRule> rules) => item == null || item.Destroyed
+                ? new List<ApparelRule>()
+                : GearSelectionPolicy.SelectingRules(item.def, rules)
+                    .GroupBy(rule => rule.Id).Select(group => group.First()).ToList();
+
         public static List<ThingWithComps> Clean(SavedNonWorkOutfit saved,
-            IEnumerable<ApparelRule> rules)
+            IEnumerable<ApparelRule> rules, System.Predicate<ThingDef> sharedStock = null)
         {
             var removed = new List<ThingWithComps>();
             if (saved?.Pawn == null) return removed;
             foreach (var item in saved.Apparel.Cast<ThingWithComps>()
                 .Concat(new[] { saved.Weapon }).Where(item => item != null).Distinct().ToList())
             {
-                var matches = MatchingRules(saved.Pawn, item, rules);
-                if (matches.Count == 0) continue;
+                var matches = SnapshotSources(item, rules);
+                // The predicate uses shared type catalogs only. Item-level automatic
+                // storage membership includes personal items and is not an exclusion.
+                if (matches.Count == 0 && sharedStock?.Invoke(item.def) != true) continue;
                 if (item is Apparel apparel) saved.Apparel.RemoveAll(candidate => candidate == apparel);
                 if (saved.Weapon == item) saved.Weapon = null;
                 RecordSources(saved, item, matches);
@@ -48,13 +56,18 @@ namespace AutomaticOutfitManager.Detection
             IEnumerable<ApparelRule> rules)
         {
             if (saved == null || item == null) return;
+            // Non-Work selections are excluded from personal snapshots, but
+            // must not become sources for the Remove Work Outfits control.
+            var workRules = (rules ?? Enumerable.Empty<ApparelRule>())
+                .Where(rule => rule != null && !rule.IsNonWork).ToList();
+            if (workRules.Count == 0) return;
             var entry = saved.WorkGear.FirstOrDefault(record => record.Item == item);
             if (entry == null)
             {
                 entry = new WorkGearSource { Item = item };
                 saved.WorkGear.Add(entry);
             }
-            foreach (var rule in rules)
+            foreach (var rule in workRules)
                 if (!entry.RuleIds.Contains(rule.Id)) entry.RuleIds.Add(rule.Id);
         }
 
@@ -85,7 +98,7 @@ namespace AutomaticOutfitManager.Detection
 
         public static List<ThingWithComps> CleanPersonalState(PawnApparelState state,
             IEnumerable<ApparelRule> rules, SavedNonWorkOutfit history,
-            System.Predicate<ThingWithComps> heldByPawn)
+            System.Predicate<ThingWithComps> heldByPawn, System.Predicate<ThingDef> sharedStock = null)
         {
             // These are temporary transition targets, not personal snapshots.
             // In particular, a partial Non-Work return intentionally retains
@@ -103,10 +116,10 @@ namespace AutomaticOutfitManager.Detection
                 Weapon = state.WeaponInterventionActive ? state.OriginalWeapon :
                     state.WeaponRuleOverrideExplicit ? null : state.Pawn.equipment?.Primary
             };
-            var removed = Clean(snapshot, rules);
+            var removed = Clean(snapshot, rules, sharedStock);
             foreach (var item in removed)
             {
-                RecordSources(history, item, MatchingRules(state.Pawn, item, rules));
+                RecordSources(history, item, SnapshotSources(item, rules));
                 if (item is Apparel apparel)
                 {
                     if (!state.ApparelInterventionActive)

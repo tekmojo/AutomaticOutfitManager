@@ -22,6 +22,7 @@ namespace AutomaticOutfitManager.Detection
             internal readonly Dictionary<IntVec3, bool> Destinations = new Dictionary<IntVec3, bool>();
             internal bool EligibilityChecked, EligibleForNativeHaul;
             internal bool LockerRecovery;
+            internal string FailureReason;
             internal int CheckedCells, NativeRejectedCells, OwnerRejectedCells;
         }
 
@@ -73,6 +74,8 @@ namespace AutomaticOutfitManager.Detection
                 if (gear.IsForbidden(hauler) ||
                     !HaulAIUtility.PawnCanAutomaticallyHaulFast(hauler, gear, forced))
                 {
+                    CurrentProbe.FailureReason = gear.IsForbidden(hauler)
+                        ? "saved item is forbidden to helper" : "native fast hauling eligibility rejected";
                     ReportQuery(hauler, gear, null, false);
                     return false;
                 }
@@ -85,6 +88,9 @@ namespace AutomaticOutfitManager.Detection
                 if (!StoreUtility.TryFindBestBetterStoreCellFor(gear, hauler, hauler.Map,
                         minimum, hauler.Faction, out IntVec3 destination))
                 {
+                    CurrentProbe.FailureReason = CurrentProbe.CheckedCells == 0
+                        ? "no eligible accepting storage group reached cell validation"
+                        : "no accepting reachable storage cell passed native and owner-route checks";
                     ReportQuery(hauler, gear, null, false);
                     return false;
                 }
@@ -150,7 +156,7 @@ namespace AutomaticOutfitManager.Detection
             if (!AomLog.DetailedEnabled || !MatchesProbe(hauler, gear)) return;
             Probe probe = CurrentProbe;
             string outcome = rejected ? "AOM rejected recovery ownership, destination, job shape or prepared-work claim" :
-                result != null ? "native haul approved" : "native hauling returned no job";
+                result != null ? "native haul approved" : probe.FailureReason ?? "native hauling returned no job";
             string detail = $"{outcome}; helper={hauler.LabelShortCap}, " +
                 $"source={gear.PositionHeld}, sourcePriority={StoreUtility.CurrentStoragePriorityOf(gear, false)}, " +
                 $"nativeEligible={(probe.EligibilityChecked ? probe.EligibleForNativeHaul.ToString() : "not checked")}, " +
@@ -175,8 +181,16 @@ namespace AutomaticOutfitManager.Detection
                 : "no eligible native hauling query observed for this owner/item while Detailed logging was enabled";
         }
 
-        private static bool SingleItemHaul(Job job, Thing gear) => job?.def == JobDefOf.HaulToCell &&
-            !job.playerForced && job.targetA.Thing == gear && job.count == 1 && !job.haulOpportunisticDuplicates &&
+        private static bool SingleItemHaul(Pawn hauler, Job job, Thing gear) => job?.def == JobDefOf.HaulToCell &&
+            !job.playerForced && job.targetA.Thing == gear &&
+            // Native StartCarryThing subtracts the item taken from job.count.
+            // Zero means this exact current haul has picked up its one item,
+            // not that the owner can retrieve it yet. Reconstruct continuation
+            // from the native job/carry tracker so loaded hauls work too; a
+            // pending or unrelated zero-count job cannot borrow permission.
+            (job.count == 1 || (job.count == 0 && ReferenceEquals(hauler?.CurJob, job) &&
+                gear != null && hauler.carryTracker?.CarriedThing == gear)) &&
+            !job.haulOpportunisticDuplicates &&
             !job.targetB.HasThing && !job.targetC.IsValid &&
             (job.targetQueueA == null || job.targetQueueA.Count == 0) &&
             (job.targetQueueB == null || job.targetQueueB.Count == 0);
@@ -187,14 +201,14 @@ namespace AutomaticOutfitManager.Detection
             var component = AutomaticOutfitManagerGameComponent.Current;
             Pawn owner = component?.RestoringOwnerForSavedGear(gear);
             if (!Eligible(hauler, owner, gear) ||
-                !(SingleItemHaul(hauler.CurJob, gear) || SingleItemHaul(component.StateFor(hauler)?.PendingWorkJob, gear)) ||
+                !(SingleItemHaul(hauler, hauler.CurJob, gear) || SingleItemHaul(hauler, component.StateFor(hauler)?.PendingWorkJob, gear)) ||
                 (hauler.carryTracker?.CarriedThing != gear && !Blocked(owner, gear))) return null;
             return owner;
         }
 
         internal static bool AllowsHaul(Pawn hauler, Job job, Pawn owner, Thing gear)
         {
-            if (!Eligible(hauler, owner, gear) || !SingleItemHaul(job, gear) ||
+            if (!Eligible(hauler, owner, gear) || !SingleItemHaul(hauler, job, gear) ||
                 !job.targetB.Cell.IsValid || !job.targetB.Cell.InBounds(hauler.Map) ||
                 AutomaticOutfitManagerGameComponent.Current?.RestoringOwnerForSavedGear(gear) != owner)
                 return false;
@@ -202,8 +216,8 @@ namespace AutomaticOutfitManager.Detection
             // Once picked up, finish the safe delivery instead of dropping the
             // item as soon as its carrier steps outside the protected source.
             if (hauler.carryTracker?.CarriedThing != gear && !Blocked(owner, gear)) return false;
-            var destination = job.targetB.Cell.GetSlotGroup(hauler.Map) as IHaulDestination;
-            return destination?.Accepts(gear) == true &&
+            var destination = job.targetB.Cell.GetSlotGroup(hauler.Map)?.parent;
+            return destination?.HaulDestinationEnabled == true && destination.Accepts(gear) &&
                 GearRetrievalRoute.CanReachStorageCell(owner, gear, job.targetB.Cell);
         }
 

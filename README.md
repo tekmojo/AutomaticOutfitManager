@@ -4,7 +4,7 @@
 
 Automatic Outfit Manager lets you choose outfits and access permissions for RimWorld map areas. Use **Work Area Rules** for protective clothing, uniforms or primary weapons. Use **Non-Work Area Rules** to return work outfits before entering a dining room, lounge or bedroom.
 
-**Version 0.4.0** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [GitHub download](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.0) · [Changelog](CHANGELOG.md)
+**Version 0.4.1** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [GitHub download](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.1) · [Changelog](CHANGELOG.md)
 
 Requires **RimWorld 1.6** and **Harmony**. Vanilla and modded apparel and primary weapons are supported. Radiation equipment inspired the original mod, but Rimatomics is not required. You choose the areas and gear; AOM does not create rules from detected hazards.
 
@@ -16,11 +16,11 @@ Requires **RimWorld 1.6** and **Harmony**. Vanilla and modded apparel and primar
 4. Optionally select a **Locker Room** with storage for the gear.
 5. Choose apparel and primary weapons. **Every selected garment must be worn together; weapons are alternatives, so a pawn equips one.** Empty categories add no requirement.
 6. Set **Condition**, **Quality**, **Task Buffer** and access permissions.
-7. Provide reachable gear. For dedicated locker storage, enable the matching managed filters and assign capable haulers.
+7. Provide reachable gear. For dedicated locker storage, enable the matching automatic outfit filters and assign capable haulers.
 
 Eligible humanlike pawns save their personal outfit, collect the required gear and continue their task. The requirements apply while inside or necessarily passing through the area, including eating, recreation and sleeping. Pawns prefer an outside route when an unrelated area can be avoided.
 
-After leaving, they keep the Work outfit for any allowed follow-up tasks, then return borrowed items and restore saved personal gear. Sleeping outside the applicable area, a different required outfit, Recall or Pause work can end the buffer early.
+After leaving, they keep the Work outfit for any allowed follow-up tasks, then return borrowed items and restore saved personal gear. Sleeping outside the applicable area, a different required outfit, Recall or Pause activities can end the buffer early.
 
 ## Add a Non-Work Area
 
@@ -39,7 +39,7 @@ Gear shared by several Work rules stays on unless all its recorded sources are s
 
 A Non-Work selection cannot also require a gear type used by an enabled Work rule on the same map whose outfit is selected for removal. The selectors explain the conflict and reject new contradictory choices. Existing conflicts remain removable. A valid saved personal outfit can still be used when dormant fallback choices conflict.
 
-Items matching enabled Work Area requirements on the pawn's map, including those rules' condition and quality ranges, are excluded from personal snapshots. Paused Work rules retain this designation; disabled or other-map rules do not add new exclusions. Selecting Non-Work fallback gear makes it **selected gear**, not abandoned stock.
+Apparel and primary weapon types selected by any Work or Non-Work rule are excluded from personal snapshots, regardless of condition, quality, enabled state or map. Retained shared stock also stays excluded until its type is released with **Forget**. Existing snapshots are cleaned too; borrowed locker gear does not become personal gear. A pawn already wearing newly excluded shared items returns them through the normal safe locker path at an idle opportunity. Loose excluded items are released from personal ownership without a special retrieval trip. Storing an ordinary saved item in the same locker does not make it shared stock. Intentionally kept Work outfits and temporary Non-Work outfits remain separate from the personal snapshot. Selecting Non-Work fallback gear makes it **selected gear**, not abandoned stock.
 
 ## Task buffers
 
@@ -65,6 +65,8 @@ Only successful tasks count. Travel, brief waits, failed tasks and interrupted t
 
 Humanlike pawns change outfits. Animals, mechs and robots follow access permissions without changing outfits. Guests, slaves and prisoners use the same activity categories, subject to the jobs the game and their other mods permit.
 
+Pawns in mental breaks, incapacitated states or native emergency control are omitted from the activity lists while AOM yields to that behavior. Ordinary sleep remains subject to access and outfit requirements.
+
 **Workers** and **Occupants** show humanlike activity and outfit changes, with active tasks first, then changes/returns, buffered tasks and other activity. Animals and robots appear under **Haulers** or **Wanderers**, with their actual activity shown. Their display group does not change which access permission applies: an animal eating still uses Activities. Hover for concise status; click to select and jump to a pawn.
 
 ## Gear, lockers and saved outfits
@@ -77,6 +79,8 @@ Pawns normally restore the same physical personal items, including their previou
 
 With a **Locker Room**, pawns return borrowed gear there. Without one, they change back at a safe cell outside the applicable area. Gear borrowed from another rule follows its source locker; a Non-Work rule's locker supplies its selected outfit rather than replacing saved personal items with arbitrary stock.
 
+Locker warnings appear below **Locker Room**, and remain visible when the rule is collapsed. Amber flags partial overlap with enabled Work Areas; red means no standable changing space remains outside those areas. Overlapping Work and Non-Work cells remain highlighted while the mod tab is open. Hover the overlap warning, Locker Room button or rule badge to focus that locker; click the warning to center the map there. Non-Work overlap is advisory because compatible outfit and access settings can allow shared use. Keep personal-outfit storage outside Work Areas as well. A separate warning identifies missing storage or rejecting filters; it does not guarantee a free, reachable destination. These warnings leave your painted areas and rules unchanged.
+
 Saved items stay associated with their pawn while shared Work stock remains reusable. Temporarily unavailable items can delay a return. If another protected area blocks an exact saved item, a capable hauler can bring it to accepting, owner-accessible storage of equal or higher priority. The hauler still needs Hauling work, access and any required outfit. Without a suitable hauler or storage, the owner may continue waiting. AOM avoids repeatedly restarting an empty restoration queue; it does not promise that every inaccessible item can be recovered.
 
 ## Selectors, colors and storage
@@ -85,10 +89,12 @@ Selected gear appears first in the selectors. Entries and rule references use th
 
 - **[Rule Name]** identifies another selecting rule. **+number** means additional rules, listed in the tooltip.
 - **[Retained]** means remembered locker stock that no rule selects. It does not mean a copy is currently available.
-- **Remove / Clear** change the rule's selections while keeping those types managed for storage.
+- **Remove / Clear** change the rule's selections while keeping those types in automatic outfit storage.
 - **Forget** returns unused stock of that type to ordinary storage. It is unavailable while a rule selects the type or a current outfit change uses it. Individual saved or borrowed items remain protected.
 
-The paired storage filters are **Allow managed apparel / Allow non-managed apparel** and **Allow managed weapons / Allow non-managed weapons**. Managed includes selected types, retained stock and individually saved or borrowed gear. Both Work and Non-Work selections count. For a dedicated locker, enable the managed category and disable its non-managed counterpart. Normal item, quality and condition storage filters still apply.
+The paired storage filters are **Automatic outfit apparel / Non-automatic outfit apparel** and **Automatic outfit weapons / Non-automatic outfit weapons**. Automatic outfit storage includes selected types, retained stock, borrowed gear and exact saved personal items, including inactive saved Non-Work outfit preferences. Both Work and Non-Work selections count. For a dedicated locker, enable the automatic outfit category and disable its non-automatic counterpart. Normal item, quality and condition storage filters still apply. Enabling an automatic outfit filter also enables currently known saved and borrowed item types. Tags **Automatic saved apparel** and **Automatic saved weapons** identify the exact saved items; ordinary copies remain non-automatic unless their type is selected or retained. Storage membership does not create a permanent pawn reservation.
+
+**Storage has its own Condition and Quality limits, independent of every rule.** For a locker intended to accept saved outfits in any condition or quality, set the storage to **0–100%** and **any quality**, and allow the relevant item types and automatic outfit filters. A saved robe at 48% is rejected by storage set to 60–100%, even when Robe is checked. Saving an item does not bypass those storage settings, and rule sliders do not prevent restoring it from the ground.
 
 Rule badges share the area color. Hover a badge to highlight the area; click it to center the map on the area's middle. Area menus put editable custom areas before special game/mod areas, sorted by name. A mod can also create an ordinary editable area; that appears in the custom group.
 
@@ -100,15 +106,20 @@ Compatible overlapping Work rules combine requirements and keep separate buffers
 
 A Work Area cannot be entirely inside a Non-Work Area, including identical painted areas. If painting or loading creates that conflict, the Work rule is disabled and its pawns are recalled. Adjust the areas, then enable it again. A Non-Work room inside a larger Work Area and partial overlaps are allowed only where the outfit requirements can be satisfied together.
 
-**Pause work** stops ordinary work here and recalls pawns using the rule. Access and outfit requirements stay active. **Resume work** reopens work even if a previous recall is still finishing. **Recall** applies to one pawn; a pawn already wearing compliant personal gear can end the task without borrowing or changing clothes. **Enabled** turns the whole rule on or off while preserving its settings.
+**Pause activities** stops ordinary work, meals, recreation and learning, and recalls affected pawns. Allowed hauling, wandering, sleep, bed rest and animal nursing continue, with access and outfit requirements still in force. Rest in a Work Area still requires its selected protective outfit. Direct orders and essential care retain their normal exceptions. **Resume activities** reopens the area even if a previous recall is still finishing.
+
+Haulers may collect supplies of any item type from a paused Work Area for delivery outside it, provided every delivery target is outside the paused area and the pawn meets access and outfit requirements. This includes food, fuel, ingredients and building materials. It permits the transport step; it does not permit cooking, refueling, repairs or construction inside the paused area. Ordinary allowed storage hauling can continue. An unrelated locker trip does not justify gearing up for an avoidable Work Area.
+
+**Recall** applies to one pawn, including a child performing an observed activity without an outfit change. A pawn already wearing compliant personal gear can end the task without borrowing or changing clothes. **Enabled** turns the whole rule on or off while preserving its settings.
 
 ## Compatibility and boundaries
 
 - Harmony is the only dependency. Content mods provide their normal apparel and weapons.
+- Mental breaks, incapacitation and native emergency control suspend outfit intervention while preserving saved outfit ownership. Obsolete civilian retries are cleared; normal rule handling resumes after recovery. Ordinary hunger, tiredness and sleep are not blanket exemptions.
 - Direct player weapon choices take priority. Automatic sidearm re-equip jobs do not override required weapons or take another pawn's saved weapon. Simple Sidearms memories are preserved.
-- Already-managed protection is retained while removing it would expose the pawn or route to vacuum, dangerous temperature or toxic conditions. This does not detect a hazard and create an outfit rule.
+- Borrowed protection is retained while removing it would expose the pawn or route to vacuum, dangerous temperature or toxic conditions. This does not detect a hazard and create an outfit rule.
 - Gravship area references follow the copied destination-map areas. Ambiguous inactive copies are not guessed during load repair.
-- Hosted visitors bypass buffers when naturally departing and return assigned managed stock before leaving.
+- Hosted visitors bypass buffers when naturally departing and return assigned borrowed outfit stock before leaving.
 - A narrow cross-area breakdown-repair handoff supports a single component. It is not a general system for staging every bill ingredient.
 - No automatic hazard/job/work-type triggers, per-pawn assignment filters or manual conflict priority.
 - No ammunition, inventory-sidearm, offhand or drafted weapon-switching management. A narrow native heavy-turret rearm correction leaves RimWorld in charge of ammunition and jobs.
@@ -120,7 +131,7 @@ Existing 0.3.x Work rules remain Work rules. Non-Work rules are optional additio
 
 For a waiting pawn, hover their row to identify the missing item or blocked route. Check that the gear is allowed, reachable and accepted by storage, and that capable haulers have Hauling enabled. A brief wait during a successful outfit change is different from a pawn repeatedly restarting the same change.
 
-For locker storage problems, check both the managed filter and ordinary item filters. **Retained** types remain managed after clearing a rule; use **Forget** when they should return to ordinary storage.
+For locker storage problems, check the automatic outfit filter, the item type and the **storage’s own** condition and quality sliders. **Retained** types remain automatic outfit stock after clearing a rule; use **Forget** when they should return to ordinary storage.
 
 For a Non-Work conflict, change the listed apparel/weapon choice or **Remove Work Outfits**. For a child or guest access problem, check the permission for the actual activity; eating and recreation use **Activities**.
 
@@ -135,6 +146,8 @@ Report persistent stalls, repeated gear swaps or errors with the mod version, ma
 [Report an issue](https://github.com/tekmojo/AutomaticOutfitManager/issues) · [Workshop change notes](https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788)
 
 ## Screenshots
+
+The existing eight-image gallery is retained for 0.4.1. These captures show the 0.4.0 interface; some labels have since changed, including Pause activities and automatic saved item tags. The [future capture list](Screenshots/CAPTURE-PLAN-0.4.1.md) records a deferred refresh.
 
 Work Area outfit requirements and access controls:
 

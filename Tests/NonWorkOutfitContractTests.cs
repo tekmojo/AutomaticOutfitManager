@@ -13,6 +13,7 @@ using Verse;
 internal static class NonWorkOutfitContractTests
 {
     private static int passed;
+    private static bool previousInactiveCleanup;
     private static void Check(bool value, string name)
     {
         if (!value) throw new Exception(name);
@@ -25,6 +26,7 @@ internal static class NonWorkOutfitContractTests
         {
             if (args.Contains("--verify-failure-reporting"))
                 throw new InvalidOperationException("Intentional failure-reporting check");
+            previousInactiveCleanup = args.Contains("--previous-inactive-cleanup");
             RunChecks();
             return 0;
         }
@@ -379,6 +381,9 @@ internal static class NonWorkOutfitContractTests
         Check(NonWorkFallbackPolicy.ConflictingSource(workshop, armorDef, component.Rules) == null,
             "ordinary work-rule pickers are unaffected by removal conflicts");
         CheckSelectionConflicts();
+        CheckSelectedGearSnapshotExclusions();
+        CheckRetainedGearSnapshotExclusions();
+        CheckPendingSnapshotReturns();
         CheckWorkSnapshotCleanup();
         CheckRepairAndRetrieval();
         Console.WriteLine($"{passed} contract checks passed. Gameplay transitions require RimWorld testing.");
@@ -605,6 +610,202 @@ internal static class NonWorkOutfitContractTests
         Check(!GearRetrievalRoute.CanReach(pawn, other), "gear retrieval rejects items on another map");
     }
 
+    private static void CheckPendingSnapshotReturns()
+    {
+        var map = new Map();
+        var pawn = new Pawn { Map = map };
+        var sharedApparel = new Apparel { def = new ThingDef { apparel = new ApparelProperties() } };
+        var personal = new Apparel { def = new ThingDef { apparel = new ApparelProperties() } };
+        var sharedWeapon = new ThingWithComps { def = new ThingDef { IsWeapon = true } };
+        var loose = new Apparel { def = sharedApparel.def };
+        pawn.apparel.WornApparel.AddRange(new[] { sharedApparel, personal });
+        pawn.equipment.Primary = sharedWeapon;
+        var saved = SavedNonWorkOutfit.Capture(pawn);
+        saved.Apparel.Add(loose);
+        var source = new ApparelRule { Kind = AreaRuleKind.NonWork,
+            Area = new Area { Map = map }, ChangingArea = new Area { Map = map } };
+        source.RequiredApparel.Add(sharedApparel.def);
+        source.RequiredWeapons.Add(sharedWeapon.def);
+        var rules = new[] { source };
+        var removed = WorkGearSnapshotPolicy.Clean(saved, rules);
+        Predicate<ThingWithComps> held = item => item == sharedApparel || item == sharedWeapon;
+        SnapshotReturnMigration.Remember(saved, removed, held);
+        Check(saved.PendingSharedReturns.Count == 2 && !saved.PendingSharedReturns.Contains(loose),
+            "inactive migration remembers exact held exclusions, never loose shared stock");
+        SnapshotReturnMigration.Remember(saved, removed, held);
+        Check(saved.PendingSharedReturns.Count == 2, "repeated cleanup does not duplicate pending returns");
+        Check(saved.Apparel.SequenceEqual(new[] { personal }) && saved.Weapon == null,
+            "pending returns do not reenter the cleaned personal snapshot");
+        Check(SnapshotReturnMigration.Source(saved, rules) == source,
+            "Non-Work-only gear can return using its associated locker");
+        var state = previousInactiveCleanup ? null : SnapshotReturnMigration.CreateState(saved, source);
+        Check(state != null && state.Transition == ApparelTransition.Active &&
+              state.ManagedApparel.SequenceEqual(new[] { sharedApparel }) &&
+              state.ManagedWeapons.SequenceEqual(new[] { sharedWeapon }),
+            "inactive saved snapshot acquires a normal return session for exact held gear");
+        Check(state.OriginalApparel.SequenceEqual(new[] { personal }) && state.OriginalWeapon == null &&
+              state.ApparelInterventionActive && state.WeaponInterventionActive,
+            "migration restores the cleaned personal outfit rather than recapturing shared gear");
+        Check(state.ActiveRuleId == source.Id && state.RestorationSourceRuleIds.SequenceEqual(new[] { source.Id }),
+            "migration retains only its own source rule for the existing return route");
+        Check(state.PendingWorkJob == null && pawn.equipment.Primary == sharedWeapon &&
+              pawn.apparel.WornApparel.Contains(sharedApparel),
+            "creating return ownership neither copies a native job nor physically strips gear");
+        Scribe.LoadedValues.Clear();
+        Scribe.LoadedValues["pendingSharedReturns"] = new List<ThingWithComps>(saved.PendingSharedReturns);
+        Scribe.Loading = true;
+        var loaded = new SavedNonWorkOutfit { Pawn = pawn };
+        loaded.ExposeData();
+        Scribe.Loading = false;
+        Scribe.LoadedValues.Clear();
+        Check(loaded.PendingSharedReturns.SequenceEqual(saved.PendingSharedReturns) &&
+              !ReferenceEquals(loaded.PendingSharedReturns, saved.PendingSharedReturns),
+            "pending return references load independently of the cleaned snapshot");
+        Scribe.Loading = true;
+        var oldSave = new SavedNonWorkOutfit { Pawn = pawn, PendingSharedReturns = null };
+        oldSave.ExposeData();
+        Scribe.Loading = false;
+        Check(oldSave.PendingSharedReturns != null && oldSave.PendingSharedReturns.Count == 0,
+            "older saves without a pending list initialize safely");
+        SnapshotReturnMigration.Prune(loaded, item => item == sharedApparel);
+        Check(loaded.PendingSharedReturns.SequenceEqual(new[] { sharedApparel }),
+            "items already dropped or transferred are pruned instead of fetched again");
+        sharedApparel.Destroyed = true;
+        SnapshotReturnMigration.Prune(loaded, item => true);
+        Check(loaded.PendingSharedReturns.Count == 0 && SnapshotReturnMigration.CreateState(loaded, source) == null,
+            "destroyed or already returned items cannot create an empty return loop");
+        sharedApparel.Destroyed = false;
+        var replacementPrimary = new ThingWithComps { def = new ThingDef { IsWeapon = true } };
+        pawn.equipment.Primary = replacementPrimary;
+        Check(SnapshotReturnMigration.CreateState(saved, source).OriginalWeapon == replacementPrimary,
+            "a newer unrelated primary choice is preserved while the old exact weapon is returned");
+        Check(SnapshotReturnMigration.Source(saved, new ApparelRule[0]) == null &&
+              SnapshotReturnMigration.CreateState(saved, null).ActiveRuleId == null,
+            "deleted source rules use local return without claiming an unrelated work area");
+    }
+
+    private static void CheckRetainedGearSnapshotExclusions()
+    {
+        var pawn = new Pawn { Map = new Map() };
+        var sharedApparel = new Apparel { def = new ThingDef { apparel = new ApparelProperties() } };
+        var personalApparel = new Apparel { def = new ThingDef { apparel = new ApparelProperties() } };
+        var sharedWeapon = new ThingWithComps { def = new ThingDef { IsWeapon = true } };
+        var personalWeapon = new ThingWithComps { def = new ThingDef { IsWeapon = true } };
+        var retained = new HashSet<ThingDef> { sharedApparel.def, sharedWeapon.def };
+        var rules = new ApparelRule[0];
+        pawn.apparel.WornApparel.AddRange(new[] { sharedApparel, personalApparel });
+        pawn.equipment.Primary = sharedWeapon;
+        var saved = SavedNonWorkOutfit.Capture(pawn);
+        Check(WorkGearSnapshotPolicy.Clean(saved, rules, retained.Contains).Count == 2 &&
+              saved.Apparel.SequenceEqual(new[] { personalApparel }) && saved.Weapon == null,
+            "retained shared apparel and weapon stay excluded after their rule selections are cleared");
+        Check(saved.WorkGear.Count == 0,
+            "retained stock without Work source history does not invent a Work removal source");
+        var state = new PawnApparelState { Pawn = pawn, ActiveRuleId = "old-work", ApparelInterventionActive = true,
+            WeaponInterventionActive = true, OriginalApparel = new List<Apparel> { sharedApparel, personalApparel },
+            OriginalWeapon = sharedWeapon };
+        WorkGearSnapshotPolicy.CleanPersonalState(state, rules, saved, item => true, retained.Contains);
+        Check(state.OriginalApparel.SequenceEqual(new[] { personalApparel }) && state.OriginalWeapon == null &&
+              state.ManagedApparel.Contains(sharedApparel) && state.ManagedWeapons.Contains(sharedWeapon),
+            "held retained stock leaves personal ownership through the existing safe return ledger");
+        var ordinary = new SavedNonWorkOutfit { Pawn = pawn, Apparel = new List<Apparel> { personalApparel }, Weapon = personalWeapon };
+        Check(WorkGearSnapshotPolicy.Clean(ordinary, rules, retained.Contains).Count == 0 &&
+              ordinary.Apparel.Contains(personalApparel) && ordinary.Weapon == personalWeapon,
+            "ordinary saved items in automatic storage are not excluded by shared type catalogs");
+        Check(WorkGearSnapshotPolicy.Clean(saved, rules, retained.Contains).Count == 0,
+            "retained stock cleanup is idempotent");
+        retained.Clear(); // The picker Forget action releases these shared types.
+        Check(saved.Apparel.SequenceEqual(new[] { personalApparel }) && saved.Weapon == null,
+            "forgetting shared stock does not silently restore old snapshot membership");
+        var nextCapture = SavedNonWorkOutfit.Capture(pawn);
+        Check(WorkGearSnapshotPolicy.Clean(nextCapture, rules, retained.Contains).Count == 0 &&
+              nextCapture.Apparel.Contains(sharedApparel) && nextCapture.Weapon == sharedWeapon,
+            "released stock can become personal in a future fresh pre-work capture");
+    }
+
+    private static void CheckSelectedGearSnapshotExclusions()
+    {
+        foreach (AreaRuleKind kind in new[] { AreaRuleKind.Work, AreaRuleKind.NonWork })
+        foreach (string scope in new[] { "active", "paused", "disabled", "other-map", "unconfigured" })
+        {
+            var map = new Map();
+            var pawn = new Pawn { Map = map };
+            var selectedApparel = new Apparel { def = new ThingDef { apparel = new ApparelProperties() },
+                HitPoints = 1, HasQuality = true, Quality = QualityCategory.Awful };
+            var personalShirt = new Apparel { def = new ThingDef { apparel = new ApparelProperties() } };
+            var selectedWeapon = new ThingWithComps { def = new ThingDef { IsWeapon = true, IsRangedWeapon = true },
+                HitPoints = 1, HasQuality = true, Quality = QualityCategory.Awful };
+            pawn.apparel.WornApparel.AddRange(new[] { personalShirt, selectedApparel });
+            pawn.equipment.Primary = selectedWeapon;
+            var rule = new ApparelRule { Kind = kind, Area = new Area { Map = map },
+                AllowedApparelHitPoints = new FloatRange(.7f, 1f),
+                AllowedWeaponHitPoints = new FloatRange(.7f, 1f),
+                AllowedApparelQuality = new QualityRange { min = QualityCategory.Good, max = QualityCategory.Legendary },
+                AllowedWeaponQuality = new QualityRange { min = QualityCategory.Good, max = QualityCategory.Legendary } };
+            rule.RequiredApparel.Add(selectedApparel.def);
+            rule.RequiredWeapons.Add(selectedWeapon.def);
+            if (scope == "paused") rule.WorkAreaPaused = true;
+            if (scope == "disabled") rule.Enabled = false;
+            if (scope == "other-map") rule.Area.Map = new Map();
+            if (scope == "unconfigured") rule.Area = null;
+            var rules = new[] { rule };
+            var saved = SavedNonWorkOutfit.Capture(pawn);
+            var removed = WorkGearSnapshotPolicy.Clean(saved, rules);
+            Check(removed.Count == 2 && saved.Weapon == null &&
+                  saved.Apparel.SequenceEqual(new[] { personalShirt }),
+                kind + " " + scope + ": selected apparel and weapon cannot become personal despite failing standards");
+            Check(pawn.equipment.Primary == selectedWeapon && pawn.apparel.WornApparel.Contains(selectedApparel),
+                kind + " " + scope + ": snapshot exclusion never strips physical gear");
+            Check(!rule.Allows(selectedApparel) && !rule.AllowsWeapon(selectedWeapon),
+                kind + " " + scope + ": exclusion does not relax required outfit standards");
+            Check(kind == AreaRuleKind.Work
+                    ? saved.WorkGear.Count == 2 && saved.WorkGear.All(entry => entry.RuleIds.SequenceEqual(new[] { rule.Id }))
+                    : saved.WorkGear.Count == 0,
+                kind + " " + scope + ": only Work sources enter the Work removal ledger");
+            Check(WorkGearSnapshotPolicy.Clean(saved, rules).Count == 0,
+                kind + " " + scope + ": existing snapshot cleanup is stable");
+
+            var state = new PawnApparelState { Pawn = pawn, ActiveRuleId = "previous-work-session",
+                ApparelInterventionActive = true, OriginalApparel = new List<Apparel> { personalShirt, selectedApparel },
+                ReusedOriginalApparel = new List<Apparel> { selectedApparel },
+                WeaponInterventionActive = true, OriginalWeapon = selectedWeapon, WeaponRestorationRequested = true };
+            var wear = new Verse.AI.Job { def = JobDefOf.Wear, playerForced = true, targetA = selectedApparel };
+            var equip = new Verse.AI.Job { def = JobDefOf.Equip, targetA = selectedWeapon };
+            Check(WorkGearSnapshotPolicy.IsSnapshotRestoreJob(state, wear) &&
+                  WorkGearSnapshotPolicy.IsSnapshotRestoreJob(state, equip),
+                kind + " " + scope + ": old exact restore jobs are identified before cleanup");
+            removed = WorkGearSnapshotPolicy.CleanPersonalState(state, rules, saved, item => true);
+            Check(state.OriginalWeapon == null && state.OriginalApparel.SequenceEqual(new[] { personalShirt }) &&
+                  state.ManagedApparel.Contains(selectedApparel) && state.ManagedWeapons.Contains(selectedWeapon),
+                kind + " " + scope + ": existing held originals transfer to safe-return ownership");
+            Check(WorkGearSnapshotPolicy.ObsoleteSnapshotRestore(state, wear, removed) &&
+                  WorkGearSnapshotPolicy.ObsoleteSnapshotRestore(state, equip, removed),
+                kind + " " + scope + ": obsolete automatic Wear and Equip no longer restore shared gear");
+            state.OriginalApparel.Add(selectedApparel);
+            state.OriginalWeapon = selectedWeapon;
+            state.ManagedApparel.Clear();
+            state.ManagedWeapons.Clear();
+            WorkGearSnapshotPolicy.CleanPersonalState(state, rules, saved, item => false);
+            Check(!state.OriginalApparel.Contains(selectedApparel) && state.OriginalWeapon == null &&
+                  state.ManagedApparel.Count == 0 && state.ManagedWeapons.Count == 0,
+                kind + " " + scope + ": loose old snapshot items are released without a retrieval assignment");
+
+            state.OriginalApparel.Add(selectedApparel);
+            state.OriginalWeapon = selectedWeapon;
+            state.NonWorkRestorationRuleId = "partial-non-work-return";
+            Check(WorkGearSnapshotPolicy.CleanPersonalState(state, rules, saved, item => true).Count == 0 &&
+                  state.OriginalApparel.Contains(selectedApparel) && state.OriginalWeapon == selectedWeapon &&
+                  !saved.Apparel.Contains(selectedApparel) && saved.Weapon == null,
+                kind + " " + scope + ": transient retained outfit remains separate from cleaned personal history");
+
+            var personalWeapon = new ThingWithComps { def = new ThingDef { IsWeapon = true } };
+            var ordinary = new SavedNonWorkOutfit { Pawn = pawn, Apparel = new List<Apparel> { personalShirt }, Weapon = personalWeapon };
+            Check(WorkGearSnapshotPolicy.Clean(ordinary, rules).Count == 0 && ordinary.Weapon == personalWeapon &&
+                  ordinary.Apparel.Contains(personalShirt),
+                kind + " " + scope + ": ordinary exact saved apparel and weapon remain personal");
+        }
+    }
+
     private static void CheckWorkSnapshotCleanup()
     {
         var map = new Map();
@@ -633,42 +834,42 @@ internal static class NonWorkOutfitContractTests
             "repeated cleanup makes no changes and cannot grow work history");
         work.Enabled = false;
         Check(WorkGearSnapshotPolicy.MatchingRules(pawn, vest, rules).Count == 0,
-            "disabled work rules leave personal snapshots eligible");
+            "disabled Work rules do not start live Work ownership");
         work.Enabled = true;
         work.WorkAreaPaused = true;
         Check(WorkGearSnapshotPolicy.MatchingRules(pawn, vest, rules).Count == 1,
             "pausing work keeps its selected gear designated as work stock");
         work.Kind = AreaRuleKind.NonWork;
         Check(WorkGearSnapshotPolicy.MatchingRules(pawn, vest, rules).Count == 0,
-            "non-work fallback requirements never classify personal gear as work stock");
+            "Non-Work fallback rules do not start live Work ownership");
         work.Kind = AreaRuleKind.Work;
         work.Area.Map = new Map();
         Check(WorkGearSnapshotPolicy.MatchingRules(pawn, vest, rules).Count == 0,
-            "a rule on another map cannot claim the pawn's personal vest");
+            "a rule on another map does not start live Work ownership");
         work.Area = null;
         Check(WorkGearSnapshotPolicy.MatchingRules(pawn, vest, rules).Count == 0,
-            "an unconfigured Work rule without an area cannot claim personal gear");
+            "an unconfigured Work rule cannot start live Work ownership");
         work.Area = new Area { Map = map };
         work.AllowedApparelHitPoints = new FloatRange(.7f, 1f);
         Check(WorkGearSnapshotPolicy.MatchingRules(pawn, vest, rules).Count == 0,
-            "a 69 percent vest remains personal when Work requires at least 70 percent");
+            "a 69 percent vest cannot satisfy a 70 percent Work requirement");
         work.AllowedApparelHitPoints = new FloatRange(.69f, 1f);
         work.AllowedApparelQuality = new QualityRange { min = QualityCategory.Good, max = QualityCategory.Excellent };
         Check(WorkGearSnapshotPolicy.MatchingRules(pawn, vest, rules).Count == 0,
-            "legendary personal apparel remains personal when outside the Work quality range");
+            "legendary apparel cannot satisfy a Work rule excluding legendary quality");
         work.AllowedApparelQuality = QualityRange.All;
         Check(WorkGearSnapshotPolicy.MatchingRules(pawn, vest, rules).Count == 1,
             "the same exact vest becomes work stock when both standards match");
         gun.HitPoints = 49;
         work.AllowedWeaponHitPoints = new FloatRange(.5f, 1f);
         Check(WorkGearSnapshotPolicy.MatchingRules(pawn, gun, rules).Count == 0,
-            "work weapon condition limits also apply to snapshot cleanup");
+            "live Work eligibility still enforces weapon condition");
         gun.HitPoints = 100;
         gun.HasQuality = true;
         gun.Quality = QualityCategory.Poor;
         work.AllowedWeaponQuality = new QualityRange { min = QualityCategory.Normal, max = QualityCategory.Legendary };
         Check(WorkGearSnapshotPolicy.MatchingRules(pawn, gun, rules).Count == 0,
-            "work weapon quality limits also apply to snapshot cleanup");
+            "live Work eligibility still enforces weapon quality");
         gun.Quality = QualityCategory.Normal;
         work.RequiredWeapons.Clear();
         Check(WorkGearSnapshotPolicy.MatchingRules(pawn, gun, rules).Count == 0,
@@ -776,7 +977,7 @@ internal static class NonWorkOutfitContractTests
         work.RequiredApparel.Clear();
         shared.Enabled = false;
         Check(WorkGearSnapshotPolicy.MatchingRules(pawn, vest, rules).Count == 0,
-            "retained catalogue and historical source entries alone do not classify newly captured personal items");
+            "retained catalogue and historical sources alone do not start live Work ownership");
     }
 }
 

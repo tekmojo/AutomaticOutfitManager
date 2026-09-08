@@ -18,6 +18,8 @@ namespace AutomaticOutfitManager.State
         // Issuance history survives a partial return, independently of the
         // temporary restoration state. It never changes the personal snapshot.
         public List<WorkGearSource> WorkGear = new List<WorkGearSource>();
+        // Exact old personal items waiting for a safe, inactive-pawn return.
+        public List<ThingWithComps> PendingSharedReturns = new List<ThingWithComps>();
         // Read the retired prototype flag so manual selections cannot masquerade
         // as automatic pre-work snapshots when upgrading a test save.
         public bool RetiredManualSnapshot;
@@ -84,6 +86,8 @@ namespace AutomaticOutfitManager.State
             Scribe_Collections.Look(ref Apparel, "apparel", LookMode.Reference);
             Scribe_References.Look(ref Weapon, "weapon");
             Scribe_Collections.Look(ref WorkGear, "workGearSources", LookMode.Deep);
+            Scribe_Collections.Look(ref PendingSharedReturns, "pendingSharedReturns", LookMode.Reference);
+            PendingSharedReturns ??= new List<ThingWithComps>();
             WorkGear ??= new List<WorkGearSource>();
             Scribe_Values.Look(ref RetiredManualSnapshot, "explicitlySaved", false);
             Apparel ??= new List<Apparel>();

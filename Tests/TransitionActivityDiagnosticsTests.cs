@@ -106,6 +106,33 @@ class TransitionActivityDiagnosticsTests
             Setup(); AutomaticOutfitManagerGameComponent.Current.State=null; TransitionActivityDiagnostics.ResetForLoadedGame();
             TransitionActivityDiagnostics.Rejected(pawn,rejected,"unrelated"); Tick(400);
             Check(AomLog.Messages.Count==0,"unrelated pawns are not tracked by rejection hook");
+            var paused=new AutomaticOutfitManager.Rules.ApparelRule {Id="dining",Name="Dining",WorkAreaPaused=true};
+            TransitionActivityDiagnostics.PausedActivityDenied(pawn,rejected,paused); Tick(400); Tick(700);
+            Check(AomLog.Messages.Count==1 && Last.Contains("activity paused: Dining (dining)") && Last.Contains("state=none"),"pause denial opens evidence for untracked pawn");
+            Check(Last.Contains("DoBill #500") && Last.Contains("rejected proposals observed=1"),"untracked pause records sampled job and rejection count");
+            Check(pawn.CurJob.loadID==10 && pawn.jobs.jobQueue.Count==0,"untracked pause observation leaves native job and queue intact");
+            for(int i=0;i<200;i++) TransitionActivityDiagnostics.PausedActivityDenied(pawn,rejected,paused);
+            Tick(1300); Check(AomLog.Messages.Count==2 && Last.Contains("rejected proposals observed=201"),"pause retries coalesce with bounded log cadence");
+            Tick(3001); int expiredCount=AomLog.Messages.Count;
+            for(int t=3100;t<10000;t+=300) {Find.TickManager.TicksGame=t;TransitionActivityDiagnostics.PausedActivityDenied(pawn,rejected,paused);Tick(t);}
+            Check(AomLog.Messages.Count==expiredCount,"untracked pause retries cannot rearm expired diagnostic window");
+            paused.WorkAreaPaused=false;Tick(10100);paused.WorkAreaPaused=true;
+            TransitionActivityDiagnostics.PausedActivityDenied(pawn,rejected,paused);Tick(10100);Tick(10400);
+            Check(AomLog.Messages.Count==expiredCount+1,"later pause after resume opens a new bounded window");
+            foreach(string reset in new[]{"map","load","quiet","rollback"}) {
+                Setup();AutomaticOutfitManagerGameComponent.Current.State=null;TransitionActivityDiagnostics.ResetForLoadedGame();
+                TransitionActivityDiagnostics.PausedActivityDenied(pawn,rejected,paused);Tick(100);
+                if(reset=="map")pawn.Map=new Map();
+                if(reset=="load")TransitionActivityDiagnostics.ResetForLoadedGame();
+                if(reset=="quiet"){AomLog.DetailedEnabled=false;Tick(200);AomLog.DetailedEnabled=true;}
+                if(reset=="rollback")Tick(50);
+                Tick(400);Check(AomLog.Messages.Count==0,"untracked pause watch reset: "+reset);
+            }
+            Setup();AutomaticOutfitManagerGameComponent.Current.State=null;TransitionActivityDiagnostics.ResetForLoadedGame();
+            paused.WorkAreaPaused=false;TransitionActivityDiagnostics.PausedActivityDenied(pawn,rejected,paused);Tick(100);Tick(400);
+            Check(AomLog.Messages.Count==0,"ordinary access denial does not open pause diagnostics");
+            AomLog.DetailedEnabled=false;paused.WorkAreaPaused=true;TransitionActivityDiagnostics.PausedActivityDenied(pawn,rejected,paused);
+            AomLog.DetailedEnabled=true;Tick(500);Tick(800);Check(AomLog.Messages.Count==0,"quiet pause rejection creates no watch");
             var harmony=new Harmony("aom.transition-diagnostics.tests");
             harmony.CreateClassProcessor(typeof(OutfitStepAdmissionDiagnostics_Patch)).Patch();
             harmony.CreateClassProcessor(typeof(OutfitStepEndingDiagnostics_Patch)).Patch();
@@ -170,6 +197,7 @@ namespace AutomaticOutfitManager.State
     public enum ApparelTransition { Preparing,Active,ReturningToChangingArea,Restoring }
     public class PawnApparelState { public ApparelTransition Transition; public string ActiveRuleId; public List<Apparel> OriginalApparel=new List<Apparel>(), Managed=new List<Apparel>(); public bool IsPreparationApparel(Apparel item)=>Managed.Contains(item); }
 }
+namespace AutomaticOutfitManager.Rules { public class ApparelRule { public string Id,Name;public bool WorkAreaPaused; } }
 namespace AutomaticOutfitManager.Core
 {
     public class AutomaticOutfitManagerGameComponent { public static AutomaticOutfitManagerGameComponent Current=new AutomaticOutfitManagerGameComponent(); public PawnApparelState State; public PawnApparelState StateFor(Pawn pawn)=>State; }

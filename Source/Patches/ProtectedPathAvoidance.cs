@@ -165,7 +165,7 @@ namespace AutomaticOutfitManager.Patches
             if (pawn?.Map == null || job == null || area?.Map != pawn.Map)
                 return false;
 
-            if (!PausedAreaWorkFilter.IsHaulingJob(job))
+            if (!PausedAreaWorkFilter.IsHaulingJob(job) && !PausedAreaWorkFilter.IsMaterialDeliveryJob(job))
             {
                 LocalTargetInfo target = FirstDestination(job);
                 return target.IsValid &&
@@ -189,6 +189,8 @@ namespace AutomaticOutfitManager.Patches
 
         internal static IReadOnlyList<ApparelRule> RestrictedTransitRules(Pawn pawn, Job job, LocalTargetInfo? destination = null)
         {
+            if (NativeRuleControl.Suspends(pawn, job))
+                return EmptyRules;
             if (PawnJobTracker_StartJob_Patch.IsNativeEmergencySafetyJob(job))
                 return EmptyRules;
 
@@ -248,12 +250,14 @@ namespace AutomaticOutfitManager.Patches
                 // targets. Direct protected targets still need the native path
                 // so boundary enforcement can prepare the pawn. Disabled
                 // activities retain their existing avoidance behavior.
+                // Ingest chooses its dining cell after pickup. It needs the
+                // same boundary opportunity even when the outfit is missing;
+                // blocking that destination here produces failed meal routes.
                 if (!managedTransitionJob && PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(
                         pawn, job, rule) &&
                     (RuleEvaluator.JobTargetsArea(job, rule.Area) ||
                      ReadingDestination.IsCurrentDestination(pawn, job, destination, rule.Area) ||
-                     EatingDestination.IsCurrentMealDestination(pawn, job, destination, rule.Area) &&
-                     !RuleEvaluator.HasMissingRequiredGear(pawn, rule)))
+                     EatingDestination.IsCurrentMealDestination(pawn, job, destination, rule.Area)))
                 {
                     continue;
                 }
@@ -280,11 +284,11 @@ namespace AutomaticOutfitManager.Patches
             Pawn pawn, Job job, List<ApparelRule> rules)
         {
             PathRequest.IPathGridCustomizer customizer = GridFor(pawn.Map, rules);
-            if (!PausedAreaWorkFilter.IsHaulingJob(job))
+            if (!PausedAreaWorkFilter.IsHaulingJob(job) && !PausedAreaWorkFilter.IsMaterialDeliveryJob(job))
             {
                 LocalTargetInfo target = FirstDestination(job);
                 return !target.IsValid || SegmentFound(
-                    pawn, pawn.Position, target, customizer, rules);
+                    pawn, pawn.Position, target, customizer, rules, allowInitialEgress: true);
             }
 
             LocalTargetInfo pickup = job.targetA;
@@ -292,7 +296,7 @@ namespace AutomaticOutfitManager.Patches
                 ? job.targetB
                 : job.targetC;
             if (pickup.IsValid && !SegmentFound(
-                    pawn, pawn.Position, pickup, customizer, rules))
+                    pawn, pawn.Position, pickup, customizer, rules, allowInitialEgress: true))
             {
                 return false;
             }
@@ -300,7 +304,7 @@ namespace AutomaticOutfitManager.Patches
             IntVec3 pickupCell = pickup.IsValid ? pickup.Cell : IntVec3.Invalid;
             return !pickupCell.IsValid || !destination.IsValid ||
                    SegmentFound(
-                       pawn, pickupCell, destination, customizer, rules);
+                       pawn, pickupCell, destination, customizer, rules, allowInitialEgress: true);
         }
 
         internal static bool SegmentAvoidsRules(Pawn pawn, IntVec3 start,
@@ -321,7 +325,7 @@ namespace AutomaticOutfitManager.Patches
             Pawn pawn, IntVec3 start, LocalTargetInfo destination,
             PathRequest.IPathGridCustomizer customizer,
             List<ApparelRule> restrictedRules, Predicate<IntVec3> unsafeCell = null,
-            PathEndMode? exactEndMode = null)
+            PathEndMode? exactEndMode = null, bool allowInitialEgress = false)
         {
             if (!start.IsValid || !start.InBounds(pawn.Map) || !destination.IsValid)
                 return false;
@@ -335,15 +339,38 @@ namespace AutomaticOutfitManager.Patches
                 path = pawn.Map.pathFinder.FindPathNow(
                     start, destination, TraverseParms.For(pawn), null,
                     endMode, customizer);
-                return path?.Found == true &&
-                       !path.NodesReversed.Any(cell =>
-                           cell.IsValid && cell.InBounds(pawn.Map) &&
-                           (restrictedRules.Any(rule => rule.Area[cell]) || unsafeCell?.Invoke(cell) == true));
+                return path?.Found == true && PathAvoidsRules(
+                    path.NodesReversed, start, pawn.Map, restrictedRules, unsafeCell, allowInitialEgress);
             }
             finally
             {
                 path?.ReleaseToPool();
             }
+        }
+
+        // Only prospective activity/haul classification permits an initial
+        // occupied segment. Retrieval and hazard checks remain strict. After
+        // the first exit, re-entry is forbidden and the endpoint must be out.
+        internal static bool PathAvoidsRules(IReadOnlyList<IntVec3> nodesReversed,
+            IntVec3 start, Map map, List<ApparelRule> rules,
+            Predicate<IntVec3> unsafeCell, bool allowInitialEgress)
+        {
+            if (unsafeCell != null && nodesReversed.Any(cell =>
+                    cell.IsValid && cell.InBounds(map) && unsafeCell(cell))) return false;
+            foreach (ApparelRule rule in rules)
+            {
+                bool outside = !(allowInitialEgress && start.IsValid &&
+                    start.InBounds(map) && rule.Area[start]);
+                for (int i = nodesReversed.Count - 1; i >= 0; i--)
+                {
+                    IntVec3 cell = nodesReversed[i];
+                    if (!cell.IsValid || !cell.InBounds(map)) continue;
+                    if (!rule.Area[cell]) outside = true;
+                    else if (outside) return false;
+                }
+                if (!outside) return false;
+            }
+            return true;
         }
 
         private static bool SegmentCrossesArea(

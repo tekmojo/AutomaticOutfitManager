@@ -26,6 +26,7 @@ namespace AutomaticOutfitManager.UI
             public IntVec3 PawnPosition;
             public IntVec3 ItemPosition;
             public bool Available;
+            public string BlockedReason;
         }
 
         private static readonly Dictionary<Pawn, CachedRetrievalRoute> RetrievalRoutes =
@@ -66,10 +67,21 @@ namespace AutomaticOutfitManager.UI
                 cached.PawnPosition == pawn.Position && cached.ItemPosition == item.Position)
                 return cached.Available;
             bool available = GearRetrievalRoute.CanReach(pawn, item);
+            string blocked = null;
+            if (!available)
+            {
+                var targetRules = GearRetrievalRoute.RestrictedRules(pawn, item)
+                    .Where(rule => GearRetrievalRoute.OwnsTarget(item, rule.Area)).ToList();
+                blocked = targetRules.Count == 0 ? "area restrictions block the retrieval route" :
+                    "stored inside restricted area: " + string.Join(", ", targetRules.Select(RuleTypeStyle.RuleName));
+                blocked += ". Move this item to reachable storage outside the restricted area. " +
+                    "Allow its item type and automatic outfit " + (item.def.IsWeapon ? "weapons" : "apparel") + " there.";
+            }
             RetrievalRoutes[pawn] = new CachedRetrievalRoute
             {
                 CreatedAt = now, Item = item, Map = pawn.Map,
-                PawnPosition = pawn.Position, ItemPosition = item.Position, Available = available
+                PawnPosition = pawn.Position, ItemPosition = item.Position, Available = available,
+                BlockedReason = blocked
             };
             return available;
         }
@@ -401,12 +413,14 @@ namespace AutomaticOutfitManager.UI
                 case ApparelTransition.ReturningToChangingArea:
                     return "Returning to locker room";
                 case ApparelTransition.Restoring:
+                    if (RestorationNeeds.IsNeed(currentJob))
+                        return $"{JobActivity(pawn, currentJob)} — saved outfit recovery pending";
                     if (currentJob?.def == JobDefOf.DropEquipment)
                         return "Returning temporary work weapon";
                     if (currentJob?.def == JobDefOf.Equip)
-                        return $"Restoring saved weapon: {JobActivity(pawn, currentJob)}";
+                        return $"Restoring automatic saved weapons: {JobActivity(pawn, currentJob)}";
                     if (currentJob?.def == JobDefOf.RemoveApparel)
-                        return "Returning managed apparel";
+                        return "Returning automatic outfit apparel";
                     if (IsIdleJob(pawn, currentJob))
                         return "Waiting for saved outfit item";
                     return currentJob?.def == JobDefOf.Wear
@@ -490,7 +504,7 @@ namespace AutomaticOutfitManager.UI
                 Pawn savedOwner = component?.RestoringOwnerForSavedGear(worn);
                 if (savedOwner != null && savedOwner != pawn)
                 {
-                    return $"Releasing saved apparel: {worn.LabelCap} for " +
+                    return $"Releasing automatic saved apparel: {worn.LabelCap} for " +
                            $"{savedOwner.LabelShortCap}.";
                 }
             }
@@ -505,14 +519,14 @@ namespace AutomaticOutfitManager.UI
                 state.OriginalWeapon != null &&
                 pawn.equipment?.Primary != state.OriginalWeapon)
             {
-                return $"Waiting for saved weapon: {state.OriginalWeapon.LabelCap} — " +
+                return $"Waiting for automatic saved weapons: {state.OriginalWeapon.LabelCap} — " +
                        UnavailableWeaponReason(pawn, state.OriginalWeapon);
             }
 
             if (missingItem == null)
                 return "Finishing the outfit change.";
 
-            return $"Waiting for saved apparel: {missingItem.LabelCap} — {UnavailableReason(pawn, missingItem)}";
+            return $"Waiting for automatic saved apparel: {missingItem.LabelCap} — {UnavailableReason(pawn, missingItem)}";
         }
 
         private static string JobActivity(Pawn pawn, Job job)
@@ -612,7 +626,7 @@ namespace AutomaticOutfitManager.UI
             if (!pawn.CanReach(apparel, PathEndMode.ClosestTouch, Danger.Deadly))
                 return "unreachable";
             if (!RetrievalRouteAvailable(pawn, apparel))
-                return "area restrictions block retrieval";
+                return RetrievalRoutes[pawn].BlockedReason;
             return "ready to restore";
         }
 
@@ -630,7 +644,7 @@ namespace AutomaticOutfitManager.UI
                 return "Preparing required primary weapon";
             if (apparel)
                 return "Preparing required apparel";
-            return "Preparing managed outfit";
+            return "Preparing automatic outfit";
         }
 
         private static string UnavailableWeaponReason(
@@ -665,7 +679,7 @@ namespace AutomaticOutfitManager.UI
                     : cantReason;
             }
             if (!RetrievalRouteAvailable(pawn, weapon))
-                return "area restrictions block retrieval";
+                return RetrievalRoutes[pawn].BlockedReason;
             return "ready to restore";
         }
 

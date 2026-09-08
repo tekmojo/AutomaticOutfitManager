@@ -269,8 +269,8 @@ namespace AutomaticOutfitManager.Patches
         {
             Pawn pawn = PawnField(__instance);
             if (!Applies(pawn, __1)) return true;
-            __result = __0;
-            PreparationJobHandoff.MarkFinalizer(pawn, __1, __0);
+            __result = PausedAreaWorkFilter.FinalizerForPreparedHaul(pawn, __1, __0);
+            PreparationJobHandoff.MarkFinalizer(pawn, __1, __result);
             return false;
         }
 
@@ -279,8 +279,8 @@ namespace AutomaticOutfitManager.Patches
         {
             Pawn pawn = PawnField(__instance);
             if (!Applies(pawn, __1)) return;
-            __result = __0;
-            PreparationJobHandoff.MarkFinalizer(pawn, __1, __0);
+            __result = PausedAreaWorkFilter.FinalizerForPreparedHaul(pawn, __1, __0);
+            PreparationJobHandoff.MarkFinalizer(pawn, __1, __result);
         }
     }
 

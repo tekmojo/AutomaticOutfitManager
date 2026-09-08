@@ -72,7 +72,12 @@ namespace AutomaticOutfitManager.State
         public IntVec3 ChangingAreaReturnCell = IntVec3.Invalid;
         public int NaturalLockerDwellUntilTick = -1;
         public int ActiveIdleTicks;
+        // A short native thinker gap after an actual successful permitted haul.
+        // Transient: loading a save must not grant a fresh grace period.
+        internal int PermittedHaulGraceUntilTick = -1;
+        internal string PermittedHaulGraceRuleId;
         public bool DownedTransitionSuspended;
+        public bool NativeControlSuspended;
         public bool DraftedTransitionSuspended;
         public bool DraftedLockerReturnRequired;
         public Job PendingWorkJob;
@@ -106,6 +111,7 @@ namespace AutomaticOutfitManager.State
 
         public void ExposeData()
         {
+            Scribe_Values.Look(ref NativeControlSuspended, "nativeControlSuspended", false);
             Scribe_References.Look(ref Pawn, "pawn");
             Scribe_Collections.Look(ref RestorationSourceRuleIds, "restorationSourceRuleIds", LookMode.Value);
             RestorationSourceRuleIds ??= new List<string>();

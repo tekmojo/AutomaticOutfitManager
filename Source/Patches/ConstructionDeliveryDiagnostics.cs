@@ -33,7 +33,9 @@ namespace AutomaticOutfitManager.Patches
             AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
                 $"construction delivery {stage}; job {job.def.defName} #{job.loadID}, " +
                 $"source={Describe(job.targetA.Thing)}, requested={job.count}, " +
-                $"destination={Describe(destination)}, " +
+                $"destination={Describe(destination)}, originalTarget={Describe(job.targetC.Thing)}, " +
+                $"sourceQueue=[{string.Join(", ", job.targetQueueA?.Select(target => target.ToString()) ?? Enumerable.Empty<string>())}], " +
+                $"recipientQueue=[{string.Join(", ", job.targetQueueB?.Select(target => target.ToString()) ?? Enumerable.Empty<string>())}], " +
                 $"carried={Describe(pawn.carryTracker?.CarriedThing)}, " +
                 $"frame contents=[{received}], forced={job.playerForced}.");
         }

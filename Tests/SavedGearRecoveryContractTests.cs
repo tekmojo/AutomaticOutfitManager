@@ -18,7 +18,7 @@ internal static class RecoveryTests
     static void Check(bool result, string message) { if (!result) throw new Exception(message); checks++; }
     static void Main()
     {
-        try { Run(); LockerRecoveryTests.Run(Check); Console.WriteLine($"PASS {checks} saved gear recovery contracts (production policy and real Harmony patches)."); }
+        try { Run(); LockerRecoveryTests.Run(Check); SavedRecoveryPickupTests.Run(Check); ConstructionClaimRegressionTests.Run(Check); Console.WriteLine($"PASS {checks} saved gear recovery contracts (production policy and real Harmony patches)."); }
         catch (Exception error) { Console.Error.WriteLine("FAIL " + error); Environment.ExitCode = 1; }
     }
 
@@ -83,6 +83,30 @@ internal static class RecoveryTests
         helper.Faction = new Faction();
         Check(!SavedGearRecovery.AllowsHaul(helper, recovery, owner, vest), "uncontrolled guest cannot claim recovery");
         helper.Faction = Faction.OfPlayer;
+        map.Storage.Enabled = false;
+        Check(!SavedGearRecovery.AllowsHaul(helper, recovery, owner, vest), "disabled storage revokes recovery admission");
+        map.Storage.Enabled = true;
+        map.Storage.Enabled = false;
+        Check(!SavedGearRecovery.AllowsHaul(helper, recovery, owner, vest), "disabled storage revokes recovery admission");
+        map.Storage.Enabled = true;
+        map.Storage.Enabled = false;
+        Check(!SavedGearRecovery.AllowsHaul(helper, recovery, owner, vest), "disabled storage revokes recovery admission");
+        map.Storage.Enabled = true;
+        map.Storage.Enabled = false;
+        Check(!SavedGearRecovery.AllowsHaul(helper, recovery, owner, vest), "disabled storage revokes recovery admission");
+        map.Storage.Enabled = true;
+        map.Storage.Enabled = false;
+        Check(!SavedGearRecovery.AllowsHaul(helper, recovery, owner, vest), "disabled storage revokes recovery admission");
+        map.Storage.Enabled = true;
+        map.Storage.Enabled = false;
+        Check(!SavedGearRecovery.AllowsHaul(helper, recovery, owner, vest), "disabled storage revokes recovery admission");
+        map.Storage.Enabled = true;
+        map.Storage.Enabled = false;
+        Check(!SavedGearRecovery.AllowsHaul(helper, recovery, owner, vest), "disabled storage revokes recovery admission");
+        map.Storage.Enabled = true;
+        map.Storage.Enabled = false;
+        Check(!SavedGearRecovery.AllowsHaul(helper, recovery, owner, vest), "disabled storage revokes recovery admission");
+        map.Storage.Enabled = true;
         map.Storage.Allows = false;
         Check(!SavedGearRecovery.AllowsHaul(helper, recovery, owner, vest), "storage filter refusal wins on admission");
         Check(native.JobOnThing(helper, vest, false) == null, "native storage refusal yields no recovery job");
@@ -105,6 +129,7 @@ internal static class RecoveryTests
         vest.Spawned = false;
         vest.Holder = helper;
         helper.carryTracker.CarriedThing = vest;
+        helper.CurJob.count -= 1; // Native pickup leaves zero still to collect.
         helper.Position = new IntVec3(25);
         Check(SavedGearRecovery.AllowsHaul(helper, helper.CurJob, owner, vest), "carried exact item finishes delivery across neutral space");
         Check(!StoreUtility.IsGoodStoreCell(new IntVec3(10), map, vest, helper, helper.Faction), "runtime destination replan cannot re-strand carried gear");
@@ -210,11 +235,11 @@ namespace Verse
     public static class Reach { public static bool CanReach(this Pawn p,Thing t,PathEndMode mode,Danger danger)=>!t.Unreachable; public static bool IsForbidden(this Thing t,Pawn p)=>t.Forbidden; }
     public class MapPawns { public List<Pawn> AllPawnsSpawned = new List<Pawn>(); }
     public class Area { public Map Map; HashSet<int> cells; public Area(Map map, params int[] values) { Map = map; cells = new HashSet<int>(values); } public IEnumerable<IntVec3> ActiveCells=>cells.Select(v=>new IntVec3(v)); public bool this[IntVec3 cell] => cells.Contains(cell.Value); }
-    public class ThingDef { public bool IsWeapon; public int stackLimit = 1; }
+    public class ThingDef { public object apparel; public bool IsWeapon; public int stackLimit = 1; }
     public class Thing { public Map Map; public bool Forbidden, Unreachable, Destroyed, Spawned = true; public Pawn Holder; public int stackCount = 1; public ThingDef def = new ThingDef(); public IntVec3 Position; public IntVec3 PositionHeld => Holder?.Position ?? Position; public Map MapHeld => Holder?.Map ?? Map; public string LabelCap => "gear"; public string ThingID => "exact"; }
     public class ThingWithComps : Thing { }
-    public class Pawn { public Map Map; public IntVec3 Position; public Faction Faction = Faction.OfPlayer; public bool Spawned=true, Drafted, Downed, InMentalState; public Job CurJob; public CarryTracker carryTracker = new CarryTracker(); public string LabelShortCap => "pawn"; }
-    public class CarryTracker { public Thing CarriedThing; }
+    public partial class Pawn { public Map Map; public IntVec3 Position; public Faction Faction = Faction.OfPlayer; public bool Spawned=true, Drafted, Downed, InMentalState; public Job CurJob; public CarryTracker carryTracker = new CarryTracker(); public string LabelShortCap => "pawn"; }
+    public partial class CarryTracker { public Thing CarriedThing; }
     public struct LocalTargetInfo { public Thing Thing; public IntVec3 Cell; public bool HasThing => Thing != null; public bool IsValid => HasThing || Cell.Value > 0; public static implicit operator LocalTargetInfo(Thing t) => new LocalTargetInfo { Thing = t, Cell = t.Position }; public static implicit operator LocalTargetInfo(IntVec3 c) => new LocalTargetInfo { Cell = c }; }
     public static class GenAdj { public static IEnumerable<IntVec3> CellsOccupiedBy(Thing t) => new[] { t.Position }; }
 }
@@ -240,11 +265,12 @@ namespace RimWorld
 {
     public class Faction { public static Faction OfPlayer = new Faction(); }
     public class Apparel : ThingWithComps { }
-    public static class JobDefOf { public static JobDef Wear = new JobDef(), Equip = new JobDef(), DoBill = new JobDef(), HaulToCell = new JobDef(), HaulToContainer = new JobDef(); }
+    public static class JobDefOf { public static JobDef Wait = new JobDef(), Wear = new JobDef(), Equip = new JobDef(), DoBill = new JobDef(), HaulToCell = new JobDef(), HaulToContainer = new JobDef(); }
     public enum StoragePriority { Unstored, Low, Normal, Critical }
     public interface ISlotGroup { }
     public interface IHaulDestination { bool HaulDestinationEnabled {get;} bool Accepts(Thing t); }
-    public class Destination : IHaulDestination, ISlotGroup { public bool HaulDestinationEnabled=>true; public bool Allows = true; public bool Accepts(Thing t) => Allows; }
+    public class SlotGroup : ISlotGroup { public Destination parent; }
+    public class Destination : IHaulDestination { public bool Enabled=true; public bool HaulDestinationEnabled=>Enabled; public bool Allows = true; public bool Accepts(Thing t) => Allows; }
     public static class StoreUtility
     {
         public static IntVec3[] Cells; public static bool NativeGoodCell = true;
@@ -254,7 +280,7 @@ namespace RimWorld
         public static bool AlreadyStored, ThrowSearch;
         public static StoragePriority DestinationPriority=StoragePriority.Critical;
         public static IHaulDestination CurrentHaulDestinationOf(Thing t)=>AlreadyStored?t.Map.Storage:null;
-        public static ISlotGroup GetSlotGroup(this IntVec3 cell, Map map) => map.Storage;
+        public static SlotGroup GetSlotGroup(this IntVec3 cell, Map map) => new SlotGroup { parent=map.Storage };
         public static bool TryFindBestBetterStoreCellForIn(Thing t,Pawn pawn,Map map,StoragePriority min,Faction faction,ISlotGroup group,out IntVec3 cell)=>TryFindBestBetterStoreCellFor(t,pawn,map,min,faction,out cell);
         public static bool TryFindBestBetterStoreCellFor(Thing t,Pawn pawn,Map map,StoragePriority min,Faction faction,out IntVec3 cell,bool needAccurateResult=true) {
             if(ThrowSearch) throw new InvalidOperationException("storage search failure");
@@ -305,7 +331,7 @@ namespace AutomaticOutfitManager.State
 namespace AutomaticOutfitManager.Rules { public class ApparelRule { public bool Enabled=true,UsesExactWeapons; public string Id; public Area Area,ChangingArea; public List<ThingDef> RequiredApparel=new List<ThingDef>(),RequiredWeapons=new List<ThingDef>(); } }
 namespace AutomaticOutfitManager.Core
 {
-    public class AutomaticOutfitManagerGameComponent
+    public partial class AutomaticOutfitManagerGameComponent
     {
         public static AutomaticOutfitManagerGameComponent Current;
         public Dictionary<Pawn, PawnApparelState> States = new Dictionary<Pawn, PawnApparelState>(); public List<ApparelRule> Rules = new List<ApparelRule>(); public Pawn Woken;
@@ -351,7 +377,7 @@ namespace AutomaticOutfitManager.Patches
 
 namespace AutomaticOutfitManager.Detection { public static class TransitionActivityDiagnostics { public static void Rejected(Pawn p,Job j,string r) { } } }
 namespace AutomaticOutfitManager.Patches {
-    public static class PawnJobTracker_StartJob_Patch {
+    public static partial class PawnJobTracker_StartJob_Patch {
         public static bool IsNativeEmergencySafetyJob(Job j)=>false;
         public static bool IsAssignedTransitionApparelJob(PawnApparelState s,Job j)=>j.def==JobDefOf.Wear && s.OriginalApparel.Contains(j.targetA.Thing);
         public static bool IsAssignedTransitionWeaponJob(PawnApparelState s,Job j)=>j.def==JobDefOf.Equip && s.OriginalWeapon==j.targetA.Thing;

@@ -63,6 +63,10 @@ namespace AutomaticOutfitManager.Patches
             { Clear(pawn); buffer = null; }
             if (buffer == null)
             {
+                // Individual recall clears retention before native callbacks.
+                // Validate existing records above, but don't enroll a fresh
+                // allowance while the pawn is still walking out of the area.
+                if (AccessExitJobs.IsOwned(pawn, job)) return;
                 rule = RuleEvaluator.ActiveRulesForMap(pawn.Map).FirstOrDefault(candidate =>
                     candidate.IsNonWork && candidate.ReturnTaskBuffer > 0 && candidate.Area[pawn.Position] &&
                     !RuleEvaluator.HasMissingRequiredGear(pawn, candidate));
@@ -79,7 +83,7 @@ namespace AutomaticOutfitManager.Patches
                 candidate.Id != rule.Id && RuleEvaluator.HasMissingRequiredGear(pawn, candidate));
             // A real managed Work/fallback session owns its own buffer. Never
             // retain this allowance as an overlapping clothing requirement.
-            bool countable = PawnJobTracker_StartJob_Patch.IsBufferableJob(job);
+            bool countable = PawnJobTracker_StartJob_Patch.CanCountBufferedTask(pawn, job);
             if (PausedAreaWorkFilter.IsEssentialPersonalJob(job) && !ownTask) compatible = false;
             if (!buffer.Start(job.loadID, rule.ReturnTaskBuffer, ownTask, compatible, countable)) Clear(pawn);
         }
@@ -99,7 +103,8 @@ namespace AutomaticOutfitManager.Patches
                 rule.Area?.Map == pawn.Map && buffer.OutfitUnchanged();
             if (!valid) { Clear(pawn); return; }
             bool pending = buffer.PendingJobId == job.loadID;
-            if (buffer.Complete(job.loadID, condition == JobCondition.Succeeded, rule.ReturnTaskBuffer))
+            if (buffer.Complete(job.loadID, condition == JobCondition.Succeeded &&
+                    PawnJobTracker_StartJob_Patch.CanCountBufferedTask(pawn, job), rule.ReturnTaskBuffer))
             {
                 if (AomLog.DetailedEnabled)
                     AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: non-work task buffer {buffer.Completed}/{rule.ReturnTaskBuffer} completed by {job.def.defName}; retained outfit unchanged.");

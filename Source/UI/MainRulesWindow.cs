@@ -17,6 +17,7 @@ namespace AutomaticOutfitManager.UI
         private const float RuleStandardChangeQuietSeconds = 1f;
         private const float RuleTypeHeaderHeight = 30f;
         private Vector2 scrollPosition;
+        private readonly LockerConfigurationWarnings lockerWarnings = new LockerConfigurationWarnings();
         private readonly List<float> layoutRuleHeights = new List<float>();
         private readonly Dictionary<string, CachedRuleReadiness> readinessCache =
             new Dictionary<string, CachedRuleReadiness>();
@@ -73,6 +74,7 @@ namespace AutomaticOutfitManager.UI
                 return;
             }
 
+            lockerWarnings.Refresh(Find.CurrentMap, component);
             Text.Font = GameFont.Medium;
             Widgets.Label(new Rect(inRect.x, inRect.y, inRect.width, 36f), "Automatic Outfit Manager");
             Text.Font = GameFont.Small;
@@ -116,6 +118,7 @@ namespace AutomaticOutfitManager.UI
                 contentHeight += ruleHeight + 10f;
             }
 
+            lockerWarnings.ShowMapOverlaps();
             float viewHeight = Mathf.Max(outRect.height, contentHeight);
             Rect viewRect = new Rect(0f, 0f, outRect.width - 18f, viewHeight);
 
@@ -142,6 +145,7 @@ namespace AutomaticOutfitManager.UI
         {
             FlushPendingRuleStandardChanges(
                 AutomaticOutfitManagerGameComponent.Current, true);
+            lockerWarnings.Clear();
             base.PostClose();
         }
 
@@ -198,7 +202,7 @@ namespace AutomaticOutfitManager.UI
                 string ruleType = rule.IsNonWork ? "Non-Work Area" : "Work Area";
                 Find.WindowStack.Add(new Dialog_MessageBox(
                     $"Delete {ruleType} rule '{ruleName}'?\n\n" +
-                    "Pawns using this rule will return managed items and restore their saved outfits. " +
+                    "Pawns using this rule will return borrowed outfit items and restore their saved outfits. " +
                     "Its map areas will remain.\n\nThis cannot be undone.",
                     buttonAText: "Delete",
                     buttonAAction: () =>
@@ -229,7 +233,7 @@ namespace AutomaticOutfitManager.UI
                 CachedRuleReadiness compactReadiness = RuleReadiness(rule, component);
                 y += 34f;
                 string area = rule.Area?.Label ?? "No area selected";
-                Rect compactRecallRect = new Rect(rect.xMax - 120f, y - 1f, 110f, 24f);
+                Rect compactRecallRect = new Rect(rect.xMax - 150f, y - 1f, 140f, 24f);
                 float textStart = x + 100f;
                 float textEnd = compactRecallRect.x - 10f;
                 float textWidth = Mathf.Max(0f, textEnd - textStart);
@@ -261,15 +265,15 @@ namespace AutomaticOutfitManager.UI
                 bool compactPreviousEnabled = GUI.enabled;
                 GUI.enabled = rule.Area != null;
                 if (Widgets.ButtonText(compactRecallRect,
-                        rule.WorkAreaPaused ? "Resume work" : "Pause work"))
+                        PauseButtonLabel(rule)))
                 {
                     PauseOrResumeWork(rule, component);
                 }
                 GUI.enabled = compactPreviousEnabled;
                 TooltipHandler.TipRegion(compactRecallRect,
-                    rule.WorkAreaPaused
-                        ? "Resume ordinary work in this area."
-                        : "Pause work here and recall pawns using this rule. Access and outfit requirements stay active.");
+                    PauseButtonTip(rule));
+                y += 24f;
+                lockerWarnings.Draw(rule, x, ref y, rect.width - 20f);
                 return;
             }
 
@@ -415,11 +419,13 @@ namespace AutomaticOutfitManager.UI
             if (Widgets.ButtonText(lockerButtonRect, changingAreaLabel))
                 ShowChangingAreaMenu(rule);
             MarkConfiguredAreaForDraw(rule.ChangingArea, lockerButtonRect);
+            lockerWarnings.Highlight(rule, lockerButtonRect);
             TooltipHandler.TipRegion(lockerButtonRect,
                 "Locker Room: " + (rule.ChangingArea == null ? "None selected" : RuleTypeStyle.AreaName(rule.ChangingArea)) +
                 "\n\n" + lockerHelp + "\n\nHover to highlight the locker; click to choose another.");
 
             y += 34f;
+            lockerWarnings.Draw(rule, x + 100f, ref y, Mathf.Max(0f, rect.width - 120f));
             Rect bufferLabelRect = new Rect(x, y + 4f, 100f, 24f);
             Widgets.Label(bufferLabelRect, "Task Buffer:");
             Rect bufferMinusRect = new Rect(x + 100f, y, 32f, 28f);
@@ -441,8 +447,8 @@ namespace AutomaticOutfitManager.UI
                       "If a new task needs a different outfit, the buffer ends early: leave safely, collect the required work outfit, then continue the task if possible. " +
                       "Immediate adds no extra tasks. Ending the buffer does not strip personal clothing; borrowed fallback gear still follows its normal return.\n\n"
                     : "Keep the work outfit for this many compatible tasks after leaving, then return it and restore the saved outfit. " +
-                      "Immediate starts the return once no managed area still needs the outfit. New activity for this rule resets its count; overlapping rules keep separate counts.\n\n") +
-                "Only successful tasks count; travel, brief waits and interrupted tasks do not. The buffer does not assign extra work. A different required outfit, sleep outside the area, Recall or Pause work can end it early. Unrelated Work Areas are avoided when a route around them exists.");
+                      "Immediate starts the return once no outfit area still needs the outfit. New activity for this rule resets its count; overlapping rules keep separate counts.\n\n") +
+                "Only successful tasks count; travel, brief waits and interrupted tasks do not. The buffer does not assign extra work. A different required outfit, sleep outside the area, Recall or pausing this rule can end it early. Unrelated Work Areas are avoided when a route around them exists.");
 
             CachedRuleReadiness readiness = RuleReadiness(rule, component);
 
@@ -511,7 +517,7 @@ namespace AutomaticOutfitManager.UI
                     rule.Id, "all apparel requirements cleared");
             }
             TooltipHandler.TipRegion(clearGearRect,
-                "Remove all apparel requirements from this rule. Existing stock types remain classified for managed locker storage; open Choose apparel and use Forget to release an unused stock type.");
+                "Remove all apparel requirements from this rule. Existing stock types remain classified for automatic outfit storage; open Choose apparel and use Forget to release an unused stock type.");
 
             y += 34f;
             bool previousApparelWordWrap = Text.WordWrap;
@@ -541,7 +547,7 @@ namespace AutomaticOutfitManager.UI
             }
             TooltipHandler.TipRegion(
                 new Rect(x, y, gearLabelWidth + 370f, 30f),
-                "Accept selected apparel within this condition range. Items outside it do not meet the rule. Saved personal apparel ignores this range.");
+                "Selected apparel must meet this condition range. Automatic saved apparel ignores it. Storage uses its own limits.");
 
             y += 34f;
             Rect qualityLabelRect = new Rect(x, y + 4f, gearLabelWidth, 24f);
@@ -558,7 +564,7 @@ namespace AutomaticOutfitManager.UI
             }
             TooltipHandler.TipRegion(
                 new Rect(x, y, gearLabelWidth + 370f, 30f),
-                "Accept selected apparel within this quality range. Items without quality are allowed. Saved personal apparel ignores this range.");
+                "Selected apparel must meet this quality range. Items without quality are allowed. Automatic saved apparel ignores it. Storage uses its own limits.");
 
             y += 34f;
             Rect weaponLabelRect = new Rect(x, y + 4f, gearLabelWidth, 24f);
@@ -581,7 +587,7 @@ namespace AutomaticOutfitManager.UI
                     rule.Id, "all weapon requirements cleared");
             }
             TooltipHandler.TipRegion(clearWeaponRect,
-                "Remove every primary-weapon requirement from this rule. Existing stock types remain classified for managed locker storage; open Choose weapons and use Forget to release an unused stock type.");
+                "Remove every primary-weapon requirement from this rule. Existing stock types remain classified for automatic outfit storage; open Choose weapons and use Forget to release an unused stock type.");
 
             y += 34f;
             bool previousWeaponWordWrap = Text.WordWrap;
@@ -612,7 +618,7 @@ namespace AutomaticOutfitManager.UI
             }
             TooltipHandler.TipRegion(
                 new Rect(x, y, gearLabelWidth + 370f, 30f),
-                "Accept selected weapons within this condition range. Items outside it do not meet the rule. Saved personal weapons ignore this range.");
+                "Selected weapons must meet this condition range. Automatic saved weapons ignore it. Storage uses its own limits.");
 
             y += 34f;
             Rect weaponQualityLabelRect = new Rect(x, y + 4f, gearLabelWidth, 24f);
@@ -630,7 +636,7 @@ namespace AutomaticOutfitManager.UI
             }
             TooltipHandler.TipRegion(
                 new Rect(x, y, gearLabelWidth + 370f, 30f),
-                "Accept selected weapons within this quality range. Items without quality are allowed. Saved personal weapons ignore this range.");
+                "Selected weapons must meet this quality range. Items without quality are allowed. Automatic saved weapons ignore it. Storage uses its own limits.");
 
             y += 34f;
             CachedRuleActivity activity = RuleActivity(rule);
@@ -638,27 +644,25 @@ namespace AutomaticOutfitManager.UI
             Widgets.Label(new Rect(x, y, 100f, 22f), "Readiness:");
             Color previousColor = GUI.color;
             GUI.color = readiness.Color;
-            Widgets.Label(new Rect(x + 100f, y, width - 220f, 22f), readiness.Text);
+            Widgets.Label(new Rect(x + 100f, y, width - 250f, 22f), readiness.Text);
             GUI.color = previousColor;
-            TooltipHandler.TipRegion(new Rect(x, y, width, 22f),
+            Rect recallRect = new Rect(rect.xMax - 150f, y - 1f, 140f, 24f);
+            TooltipHandler.TipRegion(new Rect(x, y, Mathf.Max(0f, recallRect.x - x), 22f),
                 "Readiness: " + readiness.TooltipText + "\n\nShows whether the rule is configured and gear is available. Individual pawns may still be unable to reach or use an item." +
                 (rule.IsNonWork && rule.DefaultToSavedPersonalOutfit
                     ? " Saved personal outfits are checked for each pawn; stock counts describe fallback choices."
                     : ""));
-            Rect recallRect = new Rect(rect.xMax - 120f, y - 1f, 110f, 24f);
             bool previousEnabled = GUI.enabled;
             GUI.enabled = rule.Area != null;
-            if (Widgets.ButtonText(recallRect, rule.WorkAreaPaused ? "Resume work" : "Pause work"))
+            if (Widgets.ButtonText(recallRect, PauseButtonLabel(rule)))
                 PauseOrResumeWork(rule, component);
             GUI.enabled = previousEnabled;
             TooltipHandler.TipRegion(recallRect,
-                rule.WorkAreaPaused
-                    ? "Resume work here. Pawns meet this rule's outfit requirements before returning, even if earlier recalls are still finishing."
-                    : "Pause work here and recall pawns using this rule. They return borrowed outfits and restore personal gear. Access and outfit requirements stay active; direct player orders keep their normal behavior.");
+                PauseButtonTip(rule));
 
             y += 28f;
             string participantsTip = (rule.IsNonWork ? "Occupants lists" : "Workers lists") +
-                " humanlike pawns working, eating, resting or changing outfits for this area. Buffered pawns may remain listed after leaving. Active tasks appear first, followed by outfit changes, buffered tasks and other activity. Check Haulers and Wanderers for those groups. Hover for details; click to select a pawn.";
+                " humanlike activity for this area: active tasks first, then outfit changes and buffered tasks. Buffered pawns may remain after leaving. Pawns in mental breaks, incapacitated states or native emergency control are omitted. Haulers and Wanderers are listed separately. Hover for details; click to select.";
             Widgets.Label(new Rect(x, y, 100f, 22f), rule.IsNonWork ? "Occupants:" : "Workers:");
             TooltipHandler.TipRegion(new Rect(x, y, 100f, 22f), participantsTip);
             if (workerCount == 0)
@@ -734,6 +738,9 @@ namespace AutomaticOutfitManager.UI
 
                     Rect fallbackRecallRect = new Rect(
                         rect.xMax - 78f, workerY, 68f, 22f);
+                    bool observedRecall = entry.ObservedOnly &&
+                        entry.ObservedTransitionStatus == null && entry.StagedRepairTip == null &&
+                        component.CanRecallObservedActivity(worker, rule);
                     if (entry.MissingRequiredGear)
                     {
                         Color untrackedColor = GUI.color;
@@ -744,15 +751,20 @@ namespace AutomaticOutfitManager.UI
                         Text.Anchor = untrackedPreviousAnchor;
                         GUI.color = untrackedColor;
                     }
-                    else if (!entry.ObservedOnly && Widgets.ButtonText(fallbackRecallRect, "Recall"))
+                    else if ((!entry.ObservedOnly || observedRecall) && Widgets.ButtonText(fallbackRecallRect, "Recall"))
                     {
-                        State.PawnApparelState tracked =
+                        if (observedRecall)
+                            component.RecallObservedActivity(worker, rule);
+                        else
+                        {
+                            State.PawnApparelState tracked =
                             component.TrackCompliantWorkSession(
                                 worker,
                                 worker.CurJob,
                                 RuleEvaluator.MatchingRules(worker, worker.CurJob));
+                            ReturnWorker(tracked);
+                        }
                         activityCache.Remove(rule.Id);
-                        ReturnWorker(tracked);
                     }
 
                     string status = participantStatus != null
@@ -765,7 +777,9 @@ namespace AutomaticOutfitManager.UI
                         : $"End {worker.LabelShortCap}'s current task and return to the locker if assigned. Their personal outfit stays on, and they can choose new work.";
                     TooltipHandler.TipRegion(workerRect,
                         $"{status}\n\nClick to select and jump to {worker.LabelShortCap}.");
-                    if (!entry.ObservedOnly) TooltipHandler.TipRegion(fallbackRecallRect, status);
+                    if (observedRecall) TooltipHandler.TipRegion(fallbackRecallRect,
+                        $"End {worker.LabelShortCap}'s current activity and leave this area if inside. End this rule's task buffer; their current outfit stays on. This rule stays active, so they may return for a new activity.");
+                    else if (!entry.ObservedOnly) TooltipHandler.TipRegion(fallbackRecallRect, status);
                 }
             }
 
@@ -848,7 +862,7 @@ namespace AutomaticOutfitManager.UI
             return state?.Pawn?.CurJob;
         }
 
-        private static void DrawRuleTypeHeader(ApparelRule rule, Rect rect)
+        private void DrawRuleTypeHeader(ApparelRule rule, Rect rect)
         {
             Color accent = RuleTypeStyle.ForRule(rule);
             string typeLabel = rule.IsNonWork ? "Non-Work Area" : "Work Area";
@@ -860,6 +874,7 @@ namespace AutomaticOutfitManager.UI
             string visibleName = ruleName.Truncate(Mathf.Max(0f,
                 badgeWidth - 24f - Text.CalcSize(" - " + typeLabel).x));
             MarkConfiguredAreaForDraw(rule.Area, badgeRect);
+            lockerWarnings.Highlight(rule, badgeRect);
             if (Widgets.ButtonInvisible(badgeRect))
                 CenterConfiguredArea(rule.Area);
             Widgets.DrawBoxSolid(badgeRect,
@@ -939,7 +954,7 @@ namespace AutomaticOutfitManager.UI
             Find.WindowStack.Add(new Dialog_MessageBox(
                 $"Saved non-work outfit for {pawn.LabelShortCap}.\n\n" +
                 $"Apparel: {apparel}\nPrimary weapon: {weapon}\n\n" +
-                "Saved automatically before Work gear was issued. Items matching enabled Work Area requirements are excluded. " +
+                "Saved automatically before Work gear was issued. Rule-selected and retained shared apparel and weapons are excluded, regardless of condition or quality. " +
                 "Non-Work rules prefer this outfit when Default to Saved Personal Outfit is checked."));
         }
 
@@ -947,8 +962,9 @@ namespace AutomaticOutfitManager.UI
             ApparelRule rule,
             AutomaticOutfitManagerGameComponent component)
         {
+            float warningHeight = lockerWarnings.For(rule).Count * LockerConfigurationWarnings.RowHeight;
             if (rule?.UiCollapsed == true)
-                return 70f + RuleTypeHeaderHeight;
+                return 70f + RuleTypeHeaderHeight + warningHeight;
 
             CachedRuleActivity activity = RuleActivity(rule);
             int workerCount = activity.Participants.Count;
@@ -957,7 +973,7 @@ namespace AutomaticOutfitManager.UI
             float activityHeight = 8f + Mathf.Max(1, haulerCount) * 22f +
                                    Mathf.Max(1, wandererCount) * 22f;
             return Mathf.Max(590f, 568f + Mathf.Max(1, workerCount) * 22f +
-                activityHeight) + (rule.IsNonWork ? 68f : 0f) + RuleTypeHeaderHeight;
+                activityHeight) + (rule.IsNonWork ? 68f : 0f) + RuleTypeHeaderHeight + warningHeight;
         }
 
         private void QueueRuleStandardChange(
@@ -1028,7 +1044,7 @@ namespace AutomaticOutfitManager.UI
                 foreach (Pawn pawn in pawns)
                 {
                     var job = pawn?.CurJob;
-                    if (pawn == null)
+                    if (Patches.NativeRuleControl.Suspends(pawn, job))
                         continue;
 
                     int animalRow = PawnActivityPresentation.AnimalRow(pawn, job);
@@ -1280,6 +1296,8 @@ namespace AutomaticOutfitManager.UI
         {
             rule.WorkAreaPaused = !rule.WorkAreaPaused;
             RuleEvaluator.ResetRuntimeCache();
+            if (!rule.WorkAreaPaused)
+                UnavailableWorkRegistry.ClearPauseBlocks(rule);
             if (rule.Area?.Map == null)
                 return;
 
@@ -1297,11 +1315,16 @@ namespace AutomaticOutfitManager.UI
 
             foreach (State.PawnApparelState state in areaWorkers)
             {
-                // Pause affects ordinary work only. A haul explicitly allowed
-                // by this rule must keep its outfit transition and current job;
-                // recalling it here makes the same haul restart indefinitely.
+                // Do not relabel an explicit recall as pause-generated: Resume
+                // must never cancel a return that the player already requested.
+                if (state.RecallRequested && (state.PauseRecallRuleIds?.Count ?? 0) == 0)
+                    continue;
+                // Use the runtime continuation policies before setting Recall:
+                // a permitted haul or rest must keep its exact job and PPE
+                // preparation, including a route-associated Non-Work session.
                 if (!Patches.PausedAreaWorkFilter.HasPermittedHaulingContext(
-                        state, rule))
+                        state, rule) &&
+                    !Patches.RestActivityPolicy.Preserves(state, rule, state.Pawn.jobs?.curJob))
                 {
                     component.RequestRulePauseRecall(state, rule);
                 }
@@ -1319,6 +1342,14 @@ namespace AutomaticOutfitManager.UI
         {
             ToggleWorkPause(rule, component);
         }
+
+        private static string PauseButtonLabel(ApparelRule rule) =>
+            rule.WorkAreaPaused ? "Resume activities" : "Pause activities";
+
+        private static string PauseButtonTip(ApparelRule rule) => rule.WorkAreaPaused
+            ? "Resume activities here. Pawns meet this rule's outfit requirements before returning."
+            : "Stop activities here, including meals and recreation, and recall pawns using this rule. " +
+              "Allowed hauling, wandering, sleep, bed rest and animal nursing continue. Outfit requirements and access permissions still apply; direct orders keep their normal behavior.";
 
         private static void MarkConfiguredAreaForDraw(
             Area configuredArea, Rect buttonRect)
@@ -1478,7 +1509,7 @@ namespace AutomaticOutfitManager.UI
             }
             else if (rule.WorkAreaPaused)
             {
-                text = "Work paused";
+                text = "Activities paused";
                 color = Color.yellow;
             }
             else if (rule.Area == null)

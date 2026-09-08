@@ -1,4 +1,5 @@
 using AutomaticOutfitManager.Core;
+using AutomaticOutfitManager.Detection;
 using HarmonyLib;
 using Verse;
 
@@ -18,6 +19,7 @@ namespace AutomaticOutfitManager.Patches
         {
             AutomaticOutfitManagerGameComponent.Current?
                 .FinalizeInterruptedMapDeparture(__instance);
+            NativeDepartureHandoff.Clear(__instance);
         }
     }
 }

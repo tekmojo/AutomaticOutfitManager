@@ -65,9 +65,9 @@ class RestorationContractTests
         var robeJob=jobs[4];
         Check(RestorationActivity.Detail(p,state,robeJob)=="Replacement: Plainleather robe\nReplaces: Camelhide robe (48%)","replacement hover names both actual and displaced garment");
         Check(RestorationActivity.WearLabel(state,robeJob)=="Changing personal apparel","new garment is not called an already saved garment");
-        Check(RestorationActivity.Detail(p,state,jobs[3])=="Restoring saved apparel: Cadian helmet","helmet hover shows active target instead of first missing robe");
-        Check(RestorationActivity.Detail(p,state,jobs[2])=="Restoring saved weapon: Saved weapon","weapon hover shows active weapon even with missing apparel");
-        Check(RestorationActivity.Detail(p,state,jobs[0])=="Returning managed apparel: Work armor","removal detail uses actual target");
+        Check(RestorationActivity.Detail(p,state,jobs[3])=="Restoring automatic saved apparel: Cadian helmet","helmet hover shows active target instead of first missing robe");
+        Check(RestorationActivity.Detail(p,state,jobs[2])=="Restoring automatic saved weapons: Saved weapon","weapon hover shows active weapon even with missing apparel");
+        Check(RestorationActivity.Detail(p,state,jobs[0])=="Returning automatic outfit apparel: Work armor","removal detail uses actual target");
         Check(RestorationActivity.Detail(p,state,jobs[1])=="Returning weapon: Work weapon","drop detail uses actual target");
         Check(RestorationActivity.Detail(p,state,JobMaker.MakeJob(JobDefOf.Wait,weapon))==null,"idle job uses unavailable-item fallback");
         robeJob.targetA.Thing.Destroyed=true;

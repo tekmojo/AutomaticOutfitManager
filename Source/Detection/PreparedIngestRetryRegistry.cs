@@ -66,10 +66,85 @@ namespace AutomaticOutfitManager.Detection
         private static readonly Dictionary<int, DeferredHaul> DeferredHauls =
             new Dictionary<int, DeferredHaul>();
 
+        // Exact synchronous StartJob scopes, not a same-tick grace period.
+        // A different job in the same tick cannot inherit an abandoned retry.
+        internal sealed class Admission : System.IDisposable
+        {
+            internal int PawnId, LoadId;
+            internal Job Job;
+            internal object Owner;
+            internal Admission Previous;
+            public void Dispose()
+            {
+                if (!Admissions.TryGetValue(PawnId, out Admission current) ||
+                    !ReferenceEquals(current, this)) return;
+                if (Previous == null) Admissions.Remove(PawnId);
+                else Admissions[PawnId] = Previous;
+            }
+        }
+
+        private static readonly Dictionary<int, Admission> Admissions =
+            new Dictionary<int, Admission>();
+
+        internal static Admission BeginAdmission(Pawn pawn, Job job)
+        {
+            if (pawn == null || job == null ||
+                !Entries.TryGetValue(pawn.thingIDNumber, out Entry entry)) return null;
+            Admissions.TryGetValue(pawn.thingIDNumber, out Admission previous);
+            var scope = new Admission { PawnId = pawn.thingIDNumber, Job = job,
+                LoadId = job.loadID, Owner = entry, Previous = previous };
+            Admissions[pawn.thingIDNumber] = scope;
+            return scope;
+        }
+
+        private static void BindRetryAdmission(Pawn pawn, Entry entry, Job retry)
+        {
+            if (!Admissions.TryGetValue(pawn.thingIDNumber, out Admission scope)) return;
+            scope.Owner = entry;
+            scope.Job = retry;
+            scope.LoadId = retry.loadID;
+        }
+
+        private static bool HasRetryAdmission(Pawn pawn, Entry entry)
+        {
+            Admissions.TryGetValue(pawn.thingIDNumber, out Admission scope);
+            for (; scope != null; scope = scope.Previous)
+                if (ReferenceEquals(scope.Owner, entry) && scope.Job?.loadID == scope.LoadId &&
+                    ProtectsRetry(pawn, scope.Job)) return true;
+            return false;
+        }
+
+        private static bool HasLiveRetryOwner(Pawn pawn, Entry entry, Job currentJob)
+        {
+            if (ProtectsRetry(pawn, currentJob) || HasRetryAdmission(pawn, entry)) return true;
+            var queue = pawn.jobs?.jobQueue;
+            if (queue == null) return false;
+            for (int i = 0; i < queue.Count; i++)
+                if (ProtectsRetry(pawn, queue[i].job) &&
+                    PawnJobTracker_StartJob_Patch.PendingWorkJobIsViable(pawn, queue[i].job, out _)) return true;
+            return false;
+        }
+
+        internal static void RejectAdmission(Pawn pawn, Job rejectedJob)
+        {
+            if (pawn == null || rejectedJob == null ||
+                !Entries.TryGetValue(pawn.thingIDNumber, out Entry entry)) return;
+            // A stale outer alias must not revoke another alias already eating.
+            if (pawn.jobs?.curJob != rejectedJob && ProtectsRetry(pawn, pawn.jobs?.curJob)) return;
+            foreach (AdmissionAlias alias in entry.Aliases)
+                if (ReferenceEquals(alias.Job, rejectedJob) && alias.LoadId == rejectedJob.loadID &&
+                    alias.Def == rejectedJob.def && ReferenceEquals(alias.Food, rejectedJob.targetA.Thing))
+                {
+                    Clear(pawn);
+                    return;
+                }
+        }
+
         public static void ResetForLoadedGame()
         {
             Entries.Clear();
             DeferredHauls.Clear();
+            Admissions.Clear();
         }
 
         internal static void Clear(Pawn pawn)
@@ -162,6 +237,17 @@ namespace AutomaticOutfitManager.Detection
             {
                 Entries.Remove(pawn.thingIDNumber);
                 DeferredHauls.Remove(pawn.thingIDNumber);
+                return false;
+            }
+
+            // A rejected meal can leave a queued bill and no current job while
+            // native starts that bill's optional haul. Retire the orphan before
+            // consulting even an exact previously deferred child identity.
+            if (IsAutonomousHaul(proposedJob) &&
+                Entries.TryGetValue(pawn.thingIDNumber, out Entry pending) &&
+                pending.RetryIssued && !HasLiveRetryOwner(pawn, pending, currentJob))
+            {
+                Clear(pawn);
                 return false;
             }
 
@@ -281,6 +367,7 @@ namespace AutomaticOutfitManager.Detection
             else if (entry.RetryIssued &&
                      !entry.RetryAdmissionAttempted &&
                      entry.RetryAdmissionTick == CurrentTick &&
+                     HasRetryAdmission(pawn, entry) &&
                      entry.Job != null &&
                      PawnJobTracker_StartJob_Patch.PendingWorkJobIsViable(
                          pawn, entry.Job, out _))
@@ -314,10 +401,9 @@ namespace AutomaticOutfitManager.Detection
             }
             else if (entry.RetryIssued)
             {
-                // The bounded retry has already been handed off. Block every
-                // duplicate haul without restarting or reusing the Job. Keep
-                // the lightweight guard until a real Ingest owns the tracker,
-                // reports an end condition, makes food progress, or expires.
+                // A current/queued meal or exact admission still owns this
+                // continuation. Block duplicate hauling without restarting it.
+                // An orphan was cleared above, even within the same game tick.
                 skipOriginal = true;
                 description =
                     $"kept the one-shot prepared Ingest protected; blocked " +
@@ -545,6 +631,7 @@ namespace AutomaticOutfitManager.Detection
                 entry.Job = admissionTemplate;
                 entry.JobLoadId = proposedJob.loadID;
                 RememberAlias(entry, proposedJob);
+                BindRetryAdmission(pawn, entry, proposedJob);
                 entry.StartedTick = CurrentTick;
                 entry.EndedTick = -1;
                 entry.RetryIssued = true;
@@ -572,6 +659,7 @@ namespace AutomaticOutfitManager.Detection
 
                 entry.JobLoadId = retryJob.loadID;
                 RememberAlias(entry, retryJob);
+                BindRetryAdmission(pawn, entry, retryJob);
                 entry.StartedTick = CurrentTick;
                 entry.EndedTick = -1;
                 entry.RetryIssued = true;
@@ -708,6 +796,25 @@ namespace AutomaticOutfitManager.Detection
                 "Ingest", System.StringComparison.OrdinalIgnoreCase) ?? -1) >= 0;
     }
 
+    [HarmonyPatch(typeof(Pawn_JobTracker), nameof(Pawn_JobTracker.StartJob))]
+    internal static class PawnJobTracker_PreparedIngestAdmission_Patch
+    {
+        private static readonly AccessTools.FieldRef<Pawn_JobTracker, Pawn> PawnField =
+            AccessTools.FieldRefAccess<Pawn_JobTracker, Pawn>("pawn");
+
+        [HarmonyPriority(Priority.First)]
+        internal static void Prefix(Pawn_JobTracker __instance, Job newJob,
+            out PreparedIngestRetryRegistry.Admission __state) =>
+            __state = PreparedIngestRetryRegistry.BeginAdmission(PawnField(__instance), newJob);
+
+        internal static System.Exception Finalizer(
+            PreparedIngestRetryRegistry.Admission __state, System.Exception __exception)
+        {
+            __state?.Dispose();
+            return __exception;
+        }
+    }
+
     /// <summary>
     /// Runs after the other StartJob prefixes so the guard sees the final job,
     /// including a compatibility or AOM rewrite to opportunistic hauling.
@@ -765,7 +872,7 @@ namespace AutomaticOutfitManager.Detection
                 tag = null;
             }
             if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
-                    pawn, $"prepared-ingest-displacement:{deferredJob.loadID}", 600))
+                    pawn, $"prepared-ingest-displacement:{description}", 600))
             {
                 AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +

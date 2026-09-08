@@ -29,10 +29,13 @@ namespace AutomaticOutfitManager.Detection
             public List<IntVec3> Cells;
             public int UntilTick;
             public long RecordSequence;
+            public long Revision;
+            public int RetryAfterTick;
         }
 
         private static readonly List<Entry> Entries = new List<Entry>();
         private static long nextRecordSequence;
+        internal static long Revision { get; private set; }
 
         internal static void Clear(Pawn pawn) => Entries.RemoveAll(entry => entry.Pawn == pawn);
 
@@ -42,6 +45,7 @@ namespace AutomaticOutfitManager.Detection
             // retain their discovered rule IDs in PawnApparelState instead.
             Entries.Clear();
             nextRecordSequence = 0;
+            Revision = 0;
         }
 
         public static void Record(Pawn pawn, Job job, ApparelRule rule)
@@ -103,6 +107,8 @@ namespace AutomaticOutfitManager.Detection
             {
                 entry.InterruptedJob = interruptedJob;
                 entry.UntilTick = untilTick;
+                entry.Revision = ++Revision;
+                entry.RetryAfterTick = 0;
                 return;
             }
 
@@ -116,7 +122,8 @@ namespace AutomaticOutfitManager.Detection
                 Things = things,
                 Cells = cells,
                 UntilTick = untilTick,
-                RecordSequence = ++nextRecordSequence
+                RecordSequence = ++nextRecordSequence,
+                Revision = ++Revision
             });
         }
 
@@ -160,6 +167,8 @@ namespace AutomaticOutfitManager.Detection
                 .OrderBy(entry => entry.RecordSequence)
                 .FirstOrDefault();
             if (pending == null)
+                return false;
+            if (pending.RetryAfterTick > CurrentTick)
                 return false;
 
             Job pendingJob = pending.InterruptedJob;
@@ -232,6 +241,21 @@ namespace AutomaticOutfitManager.Detection
             Entries.RemoveAll(entry =>
                 entry.Pawn == pawn && entry.JobDef == job.def &&
                 TargetsOverlap(entry, things, cells));
+        }
+
+        internal static void Retire(Pawn pawn, Job snapshot, long revision)
+        {
+            // A synchronous boundary callback may already have recorded a new
+            // destination for this root. Do not erase that newer observation.
+            Entries.RemoveAll(entry => entry.Pawn == pawn && entry.Revision <= revision &&
+                SameInterruptedJob(entry.InterruptedJob, snapshot));
+        }
+
+        internal static void Defer(Pawn pawn, Job snapshot)
+        {
+            foreach (Entry entry in Entries.Where(entry => entry.Pawn == pawn &&
+                         SameInterruptedJob(entry.InterruptedJob, snapshot)))
+                entry.RetryAfterTick = CurrentTick + 60;
         }
 
         private static void ExtractTargets(

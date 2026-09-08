@@ -127,6 +127,34 @@ internal static class StorageFilterContractTests
             Check(Allows(managedOnly, workGun), "classification exists before simulated storage exception");
             StorageSettings_EnforceManagedOutfit_Patch.Finalizer(new InvalidOperationException());
             Check(!Storage(ordinaryOnly, workGun, false), "storage checks recover cleanly after an exception");
+            component.ManagedApparel.Clear(); component.TrackedWeapons.Clear();
+            var remembered = new SavedNonWorkOutfit {Pawn=new Pawn(), Apparel=new List<Apparel>{personalShirt}, Weapon=personalGun};
+            component.SavedNonWorkOutfits.Add(remembered);
+            Check(Allows(managedOnly,personalShirt) && Allows(managedOnly,personalGun), "inactive automatic saved items included in automatic outfit category");
+            Check(!Allows(ordinaryOnly,personalShirt) && !Allows(ordinaryOnly,personalGun), "inactive saved items excluded from non-automatic category");
+            Check(!ManagedApparelClassifier.Matches(personalShirt) && !ManagedWeaponClassifier.Matches(personalGun), "storage scope does not grant live ownership or forbid-policy membership");
+            Check(Allows(ordinaryOnly,new Apparel {def=personalShirtDef}) && Allows(ordinaryOnly,new ThingWithComps {def=personalGunDef}), "ordinary copies remain non-automatic");
+            Check(new SpecialThingFilterWorker_ManagedOutfit().Matches(personalShirt) && !new SpecialThingFilterWorker_ManagedOutfit().Matches(personalGun), "automatic apparel worker does not match weapons");
+            Check(new SpecialThingFilterWorker_ManagedWeapon().Matches(personalGun) && !new SpecialThingFilterWorker_ManagedWeapon().Matches(personalShirt), "automatic weapons worker does not match apparel");
+            foreach(bool weaponCategory in new[]{false,true})
+            {
+                var flag=ManagedGearStorageFilterDefs.For(weaponCategory,true);
+                var newFilter=Filter(false,true,false,true); newFilter.SetAllow(flag,true);
+                ThingFilter_SetAllow_Patch.Postfix(newFilter,flag,true);
+                Check(newFilter.EnabledDefs.Contains(weaponCategory?personalGunDef:personalShirtDef), "enabling automatic filter includes currently saved item types");
+                Check(!newFilter.EnabledDefs.Contains(weaponCategory?personalShirtDef:personalGunDef), "enabling one automatic category does not alter another");
+                Check(!Allows(newFilter,weaponCategory?(Thing)personalGun:personalShirt,false), "saved scope does not override native item condition or quality rejection");
+            }
+            remembered.RetiredManualSnapshot=true;
+            Check(!AutomaticOutfitStorageScope.Matches(personalShirt), "retired prototype snapshot excluded");
+            remembered.RetiredManualSnapshot=false; remembered.Pawn=null;
+            Check(!AutomaticOutfitStorageScope.Matches(personalGun), "orphan snapshot excluded");
+            remembered.Pawn=new Pawn(); personalShirt.Destroyed=true;
+            Check(!AutomaticOutfitStorageScope.Matches(personalShirt), "destroyed saved garment excluded");
+            personalShirt.Destroyed=false; remembered.Apparel.Clear(); remembered.Weapon=null;
+            Check(Allows(ordinaryOnly,personalShirt) && Allows(ordinaryOnly,personalGun), "forgetting saved preference returns exact item to non-automatic category");
+            component.PawnStates.Add(new PawnApparelState {OriginalApparel=new List<Apparel>{personalShirt},OriginalWeapon=personalGun});
+            Check(AutomaticOutfitStorageScope.KnownDefinitions(false).Contains(personalShirtDef) && AutomaticOutfitStorageScope.KnownDefinitions(true).Contains(personalGunDef), "active restoration snapshots included in filter enablement");
             Console.WriteLine(passed + " storage checks passed.");
             return 0;
         }
@@ -142,7 +170,8 @@ namespace HarmonyLib
 namespace Verse
 {
     public class ThingDef { public object apparel; public bool IsWeapon; }
-    public class Thing { public ThingDef def; }
+    public class Thing { public ThingDef def; public bool Destroyed; }
+    public class Pawn {}
     public class ThingWithComps : Thing {}
     public class SpecialThingFilterDef { public string defName; }
     public abstract class SpecialThingFilterWorker { public abstract bool Matches(Thing thing); public abstract bool CanEverMatch(ThingDef def); }
@@ -168,7 +197,8 @@ namespace RimWorld
 }
 namespace AutomaticOutfitManager.Core
 {
-    public class PawnApparelState { public List<Apparel> OriginalApparel; public List<Apparel> ManagedApparel; }
+    public class PawnApparelState { public List<Apparel> OriginalApparel; public List<Apparel> ManagedApparel; public ThingWithComps OriginalWeapon; public List<ThingWithComps> ManagedWeapons; }
+    public class SavedNonWorkOutfit {public Pawn Pawn; public bool RetiredManualSnapshot; public List<Apparel> Apparel; public ThingWithComps Weapon;}
     public class AutomaticOutfitManagerGameComponent
     {
         public static AutomaticOutfitManagerGameComponent Current;
@@ -177,6 +207,7 @@ namespace AutomaticOutfitManager.Core
         public HashSet<Apparel> ManagedApparel = new HashSet<Apparel>();
         public HashSet<ThingWithComps> TrackedWeapons = new HashSet<ThingWithComps>();
         public List<PawnApparelState> PawnStates = new List<PawnApparelState>();
+        public List<SavedNonWorkOutfit> SavedNonWorkOutfits = new List<SavedNonWorkOutfit>();
         public bool IsManagedApparelDefinition(ThingDef def) => ApparelDefs.Contains(def);
         public bool IsManagedWeaponDefinition(ThingDef def) => WeaponDefs.Contains(def);
         public bool IsManagedApparel(Apparel item) => ManagedApparel.Contains(item);

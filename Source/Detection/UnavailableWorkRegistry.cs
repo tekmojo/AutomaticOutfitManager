@@ -13,6 +13,7 @@ namespace AutomaticOutfitManager.Detection
         {
             public string RuleId;
             public int UntilTick;
+            public bool PauseOnly;
             public JobDef JobDef;
             public List<Thing> Things;
             public List<IntVec3> Cells;
@@ -52,6 +53,18 @@ namespace AutomaticOutfitManager.Detection
         public static void Block(
             Pawn pawn, ApparelRule rule, Job rejectedJob, int ticks = 1200)
         {
+            BlockJob(pawn, rule, rejectedJob, ticks, false);
+        }
+
+        // Call only after an activity-access denial, never after a gear search.
+        public static void BlockDeniedActivity(Pawn pawn, ApparelRule rule, Job rejectedJob)
+        {
+            BlockJob(pawn, rule, rejectedJob, 1200, rule?.WorkAreaPaused == true);
+        }
+
+        private static void BlockJob(
+            Pawn pawn, ApparelRule rule, Job rejectedJob, int ticks, bool pauseOnly)
+        {
             if (pawn?.Map == null || rule == null || rejectedJob?.def == null)
                 return;
 
@@ -68,7 +81,7 @@ namespace AutomaticOutfitManager.Detection
             }
 
             Entry entry = pawnEntries.FirstOrDefault(item =>
-                item.RuleId == rule.Id && item.JobDef == rejectedJob.def &&
+                item.RuleId == rule.Id && item.PauseOnly == pauseOnly && item.JobDef == rejectedJob.def &&
                 TargetsOverlap(item, pawn.Map, things, cells));
             if (entry == null)
             {
@@ -76,6 +89,7 @@ namespace AutomaticOutfitManager.Detection
                 {
                     RuleId = rule.Id,
                     UntilTick = now + ticks,
+                    PauseOnly = pauseOnly,
                     JobDef = rejectedJob.def,
                     Things = things,
                     Cells = cells
@@ -99,6 +113,23 @@ namespace AutomaticOutfitManager.Detection
                 Entries.Remove(pawn.thingIDNumber);
         }
 
+        public static void ClearPauseBlocks(ApparelRule rule)
+        {
+            if (rule == null || rule.WorkAreaPaused) return;
+            // Includes pawns without an outfit session. Other reasons and rules
+            // survive Resume, so stock shortages cannot become retry storms.
+            foreach (int pawnId in Entries.Keys.ToList())
+            {
+                List<Entry> entries = Entries[pawnId];
+                entries.RemoveAll(entry => entry.PauseOnly && entry.RuleId == rule.Id);
+                if (entries.Count == 0) Entries.Remove(pawnId);
+            }
+        }
+
+        private static bool Expired(Entry entry, int now) =>
+            entry.UntilTick <= now || (entry.PauseOnly &&
+                AutomaticOutfitManagerGameComponent.Current?.RuleById(entry.RuleId)?.WorkAreaPaused != true);
+
         public static bool ShouldReject(Pawn pawn, Job job)
         {
             if (pawn?.Map == null || job == null ||
@@ -106,7 +137,7 @@ namespace AutomaticOutfitManager.Detection
                 return false;
 
             int now = Find.TickManager?.TicksGame ?? 0;
-            pawnEntries.RemoveAll(entry => entry.UntilTick <= now);
+            pawnEntries.RemoveAll(entry => Expired(entry, now));
             if (pawnEntries.Count == 0)
             {
                 Entries.Remove(pawn.thingIDNumber);
@@ -135,7 +166,7 @@ namespace AutomaticOutfitManager.Detection
             }
 
             int now = Find.TickManager?.TicksGame ?? 0;
-            pawnEntries.RemoveAll(entry => entry.UntilTick <= now);
+            pawnEntries.RemoveAll(entry => Expired(entry, now));
             if (pawnEntries.Count == 0)
             {
                 Entries.Remove(pawn.thingIDNumber);
@@ -155,7 +186,7 @@ namespace AutomaticOutfitManager.Detection
             }
 
             int now = Find.TickManager?.TicksGame ?? 0;
-            pawnEntries.RemoveAll(entry => entry.UntilTick <= now);
+            pawnEntries.RemoveAll(entry => Expired(entry, now));
             if (pawnEntries.Count == 0)
             {
                 Entries.Remove(pawn.thingIDNumber);

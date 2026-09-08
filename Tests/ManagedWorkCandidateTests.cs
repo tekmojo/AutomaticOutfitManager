@@ -15,6 +15,60 @@ class ManagedWorkCandidateTests
     static Thing Item(Map map, int cell, string name) => new Thing { MapHeld = map, PositionHeld = new IntVec3(cell), LabelCap = name };
     static Job Work(Thing site, Thing material) => new Job { def = new JobDef { defName = "ConstructDeliverResourcesToBlueprint" },
         targetA = new LocalTargetInfo(site), targetQueueB = new List<LocalTargetInfo> { new LocalTargetInfo(material) } };
+    static void TargetlessTests(bool queueFirst)
+    {
+        var map = new Map(); var owner = new Pawn { Map = map, LabelShortCap = "Mizo" };
+        var contender = new Pawn { Map = map, LabelShortCap = "Lumi" };
+        var wait = new Job { def = new JobDef { defName = "Wait_MaintainPosture" } };
+        ManagedWorkClaimRegistry.ResetForLoadedGame();
+        Check(default(LocalTargetInfo).IsValid && default(LocalTargetInfo).Cell == new IntVec3(0),
+            "native default LocalTargetInfo is valid at the origin");
+        Check(!wait.targetA.IsValid && !wait.targetB.IsValid && !wait.targetC.IsValid,
+            "native Job fields initialize to Invalid, not default(LocalTargetInfo)");
+        ManagedWorkClaimRegistry.TryClaim(owner, wait);
+        if (!queueFirst)
+            Check(!ManagedWorkClaimRegistry.HasActiveClaim(owner), "targetless preparation creates no origin claim");
+
+        // Native/compatibility flow: Wear completes, next saved Wear remains
+        // queued, then an optional connective Wait enters StartJob. Execute the
+        // actual production claim fallback before admitting the native child.
+        var tracker = new QueueTracker();
+        var savedWear = new Job { def = new JobDef { defName = "Wear" }, targetA = new LocalTargetInfo(Item(map, 25, "Saved coat")) };
+        tracker.Queue.Enqueue(savedWear);
+        Job next = wait;
+        ClaimAdmissionFixture.Start(tracker, contender, ref next);
+        Check(tracker.Queue.Count == 1 && tracker.Queue.Peek() == savedWear,
+            "connective wait preserves queued saved Wear after native outfit completion");
+        Check(next == wait, "targetless native wait is admitted without a replacement");
+        Job resumed = tracker.Queue.Dequeue();
+        ClaimAdmissionFixture.Start(tracker, contender, ref resumed);
+        Check(resumed == savedWear, "native queue resumes the exact saved garment");
+        Check(!ManagedWorkClaimRegistry.IsClaimedByOther(contender, wait), "cleared restoration can wait without false contention");
+
+        Job origin = new Job { def = new JobDef { defName = "Clean" }, targetA = new LocalTargetInfo(new IntVec3(0)) };
+        Check(ManagedWorkClaimRegistry.TryClaim(owner, origin), "explicit origin job is claimable");
+        Check(ManagedWorkClaimRegistry.IsClaimedByOther(contender, origin), "real origin claims remain exclusive");
+        Check(!ManagedWorkClaimRegistry.IsClaimedByOther(contender, wait), "targetless wait does not contend with a real origin job");
+        ManagedWorkClaimRegistry.Release(owner, wait);
+        Check(ManagedWorkClaimRegistry.HasActiveClaim(owner), "targetless release cannot release a real origin reservation");
+        ManagedWorkClaimRegistry.Release(owner, origin);
+        Check(!ManagedWorkClaimRegistry.HasActiveClaim(owner), "explicit origin release removes that claim");
+        var originHaul = new Job { def = JobDefOf.HaulToCell, targetA = new LocalTargetInfo(Item(map, 33, "Steel")), targetB = origin.targetA };
+        ManagedWorkClaimRegistry.TryClaim(owner, originHaul);
+        Check(ManagedWorkClaimRegistry.IsClaimedByOther(contender, origin), "hauling to the origin retains its destination reservation");
+        foreach (string field in new[] { "B", "C", "QueueA", "QueueB" })
+        {
+            ManagedWorkClaimRegistry.ResetForLoadedGame();
+            var queuedCell = new Job { def = origin.def };
+            if (field == "B") queuedCell.targetB = origin.targetA;
+            if (field == "C") queuedCell.targetC = origin.targetA;
+            if (field == "QueueA") queuedCell.targetQueueA = new List<LocalTargetInfo> { LocalTargetInfo.Invalid, origin.targetA };
+            if (field == "QueueB") queuedCell.targetQueueB = new List<LocalTargetInfo> { LocalTargetInfo.Invalid, origin.targetA };
+            ManagedWorkClaimRegistry.TryClaim(owner, queuedCell);
+            Check(ManagedWorkClaimRegistry.IsClaimedByOther(contender, origin), field + " retains an explicit cell after invalid targets");
+        }
+        ManagedWorkClaimRegistry.ResetForLoadedGame();
+    }
     static void Tests()
     {
         var map = new Map(); var owner = new Pawn { Map = map, LabelShortCap = "Bowman" };
@@ -81,9 +135,9 @@ class ManagedWorkCandidateTests
         Check(!ManagedWorkClaimRegistry.TryClaim(contender, otherHaul), "failed all-target claim does not steal destination");
         Check(ManagedWorkClaimRegistry.HasActiveClaim(owner) && !ManagedWorkClaimRegistry.HasActiveClaim(contender), "failed contender leaves no partial claim");
     }
-    public static int Main()
+    public static int Main(string[] args)
     {
-        try { Tests(); Console.WriteLine("PASS " + passed + " prepared-work candidate checks"); return 0; }
+        try { TargetlessTests(args.Contains("--queue-first")); Tests(); Console.WriteLine("PASS " + passed + " prepared-work candidate checks"); return 0; }
         catch (Exception e) { Console.Error.WriteLine(e); return 1; }
     }
 }
@@ -92,8 +146,9 @@ namespace Verse
     public class Map { }
     public struct IntVec3
     {
-        int value; public IntVec3(int v) { value = v; } public bool IsValid => value > 0;
-        public bool InBounds(Map m) => m != null && IsValid;
+        int value; public IntVec3(int v) { value = v; } public bool IsValid => value != -1000;
+        public static IntVec3 Invalid => new IntVec3(-1000);
+        public bool InBounds(Map m) => m != null && value >= 0 && value < 1000;
         public static bool operator ==(IntVec3 a, IntVec3 b) => a.value == b.value;
         public static bool operator !=(IntVec3 a, IntVec3 b) => !(a == b);
         public override bool Equals(object o) => o is IntVec3 c && c == this;
@@ -105,6 +160,7 @@ namespace Verse
     {
         public Thing Thing; public IntVec3 Cell;
         public bool HasThing => Thing != null; public bool IsValid => HasThing || Cell.IsValid;
+        public static LocalTargetInfo Invalid => new LocalTargetInfo(IntVec3.Invalid);
         public LocalTargetInfo(Thing t) { Thing = t; Cell = t.PositionHeld; }
         public LocalTargetInfo(IntVec3 c) { Thing = null; Cell = c; }
     }
@@ -114,7 +170,14 @@ namespace Verse
 namespace Verse.AI
 {
     public class JobDef { public string defName; }
-    public class Job { public JobDef def; public bool playerForced; public LocalTargetInfo targetA, targetB, targetC; public List<LocalTargetInfo> targetQueueA, targetQueueB; }
+    public class Job { public JobDef def; public bool playerForced; public LocalTargetInfo targetA = LocalTargetInfo.Invalid, targetB = LocalTargetInfo.Invalid, targetC = LocalTargetInfo.Invalid; public List<LocalTargetInfo> targetQueueA, targetQueueB; }
+    public class ThinkNode { }
+    public enum JobTag { Misc }
+}
+class QueueTracker
+{
+    public Queue<Job> Queue = new Queue<Job>();
+    public void ClearQueuedJobs(bool unused) => Queue.Clear();
 }
 namespace RimWorld { public static class JobDefOf { public static JobDef HaulToCell = new JobDef { defName = "HaulToCell" }; } }
 namespace AutomaticOutfitManager.State
@@ -147,4 +210,10 @@ namespace AutomaticOutfitManager.Patches
         public static bool IsAssignedTransitionWeaponJob(PawnApparelState s, Job j) => s.Weapon == j;
     }
 }
-namespace AutomaticOutfitManager.Detection { public static class TransitionActivityDiagnostics { public static void Rejected(Pawn p, Job j, string reason) { } } }
+namespace AutomaticOutfitManager.Detection
+{
+    public static class TransitionActivityDiagnostics { public static void Rejected(Pawn p, Job j, string reason) { } }
+    // The prepared-meal suite executes the real registry and this same extracted
+    // admission boundary; this fixture isolates claim ownership and queue safety.
+    internal static class PreparedIngestRetryRegistry { internal static void RejectAdmission(Pawn p, Job j) { } }
+}

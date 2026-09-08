@@ -1,4 +1,4 @@
-param([string]$LockerSource = '', [string]$CoreSource = '')
+param([string]$LockerSource = '', [string]$CoreSource = '', [string]$RecoverySource = '', [switch]$PreviousConstructionDecision, [string]$StartJobSource = '', [string]$ConstructionSource = '')
 $ErrorActionPreference = 'Stop'
 $rcRoot = Split-Path $PSScriptRoot -Parent
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
@@ -43,14 +43,36 @@ foreach(var pulse in new[]{0}) {
     $coreFile = Join-Path $testDir 'CoreRecovery.cs'
     Set-Content -LiteralPath $coreFile -Value ($prefix + "`n" + $body + '}}}')
     if (!$LockerSource) { $LockerSource = Join-Path $rcRoot 'Source/Storage/WorkGiver_LockerRestock.cs' }
-    $sources = @('Tests/SavedGearRecoveryContractTests.cs', 'Tests/LockerRecoveryTests.cs', 'Source/Detection/SavedGearRecovery.cs', 'Source/Detection/GearRetrievalRoute.cs', 'Source/Detection/RestorationPlanProgress.cs', 'Source/Detection/ManagedWorkClaimRegistry.cs', 'Source/Detection/ManagedWorkCandidateFilter.cs', 'Source/Storage/LockerHaulDestination.cs', 'Source/Patches/SavedGearRecovery_Patches.cs', 'Source/Patches/ReservationUtility_SavedApparel_Patch.cs') | ForEach-Object { Join-Path $rcRoot $_ }
-    $sources += @($scannerPatches, $LockerSource, $coreFile)
+    if (!$RecoverySource) { $RecoverySource = Join-Path $rcRoot 'Source/Detection/SavedGearRecovery.cs' }
+    if (!$StartJobSource) { $StartJobSource = Join-Path $rcRoot 'Source/Patches/PawnJobTracker_StartJob_Patch.cs' }
+    $source = Get-Content -LiteralPath $StartJobSource -Raw
+    $start = $source.IndexOf('private static bool HaulDestinationRejectsGear(')
+    $brace = $source.IndexOf('{',$start); $end = $brace + 1; $depth = 1
+    while ($depth -gt 0) { if ($source[$end] -eq '{') { $depth++ }; if ($source[$end] -eq '}') { $depth-- }; $end++ }
+    $storageFile = Join-Path $testDir 'StoragePolicy.cs'
+    Set-Content -LiteralPath $storageFile -Value ('using RimWorld;using Verse;using Verse.AI;namespace AutomaticOutfitManager.Patches { public static partial class PawnJobTracker_StartJob_Patch { public static bool StorageRejects(Pawn p,Job j)=>HaulDestinationRejectsGear(p,j);' + $source.Substring($start,$end-$start) + '}}')
+    $sources = @('Tests/SavedGearRecoveryContractTests.cs', 'Tests/LockerRecoveryTests.cs', 'Tests/ConstructionClaimRegressionTests.cs', 'Source/Detection/GearRetrievalRoute.cs', 'Source/Detection/RestorationPlanProgress.cs', 'Source/Detection/ManagedWorkClaimRegistry.cs', 'Source/Detection/ManagedWorkCandidateFilter.cs', 'Source/Storage/LockerHaulDestination.cs', 'Source/Patches/SavedGearRecovery_Patches.cs', 'Source/Patches/ReservationUtility_SavedApparel_Patch.cs') | ForEach-Object { Join-Path $rcRoot $_ }
+    $watchdog = 'using System;using RimWorld;using Verse;using Verse.AI;using System.Collections.Generic;using AutomaticOutfitManager.Detection;namespace AutomaticOutfitManager.Core{public partial class AutomaticOutfitManagerGameComponent{'
+    foreach ($signature in @('private bool TryReleaseSavedGearNeededForRestoration(', 'private Pawn RestoringOwnerForJobTargetUnchecked(', 'private Pawn RestoringOwnerForJobTarget(', 'private Pawn RestoringOwnerInQueue(')) {
+        $start = $core.IndexOf($signature)
+        if ($start -lt 0) { throw "Missing production ownership method $signature" }
+        $brace = $core.IndexOf('{', $start); $end = $brace + 1; $depth = 1
+        while ($depth -gt 0) { if ($core[$end] -eq '{') { $depth++ }; if ($core[$end] -eq '}') { $depth-- }; $end++ }
+        $watchdog += $core.Substring($start, $end - $start)
+    }
+    $watchdogFile = Join-Path $testDir 'OwnershipWatchdog.cs'
+    Set-Content -LiteralPath $watchdogFile -Value ($watchdog + '}}')
+    $sources += @($scannerPatches, $LockerSource, $coreFile, $RecoverySource, $storageFile, $watchdogFile, (Join-Path $rcRoot 'Tests/SavedRecoveryPickupTests.cs'))
+    if (!$PreviousConstructionDecision) {
+        if (!$ConstructionSource) { $ConstructionSource = Join-Path $rcRoot 'Source/Patches/ConstructionDeliveryClaims_Patch.cs' }
+        $sources += $ConstructionSource
+    }
     & $compiler /nologo /target:exe /langversion:latest /warn:0 "/out:$testOutput" "/reference:$harmonyCopy" $sources
     if ($LASTEXITCODE -ne 0) { throw 'Saved gear recovery test compilation failed.' }
     & $testOutput
     if ($LASTEXITCODE -ne 0) { throw 'Saved gear recovery checks failed.' }
 } finally {
-    foreach ($name in @('tests.exe', '0Harmony.dll', 'ScannerPatches.cs', 'CoreRecovery.cs')) {
+    foreach ($name in @('tests.exe', '0Harmony.dll', 'ScannerPatches.cs', 'CoreRecovery.cs', 'StoragePolicy.cs', 'OwnershipWatchdog.cs')) {
         $file = Join-Path $testDir $name
         if (Test-Path -LiteralPath $file) { Remove-Item -LiteralPath $file }
     }

@@ -332,7 +332,7 @@ namespace AutomaticOutfitManager.Patches
                         yield return new Command_Action
                         {
                             defaultLabel = $"Jump to {weaponOwner.LabelShortCap}",
-                            defaultDesc = $"Select and center the camera on {weaponOwner.LabelShortCap}, the owner of this exact saved primary weapon.",
+                            defaultDesc = $"Select and center the camera on {weaponOwner.LabelShortCap}, the owner of this automatic saved weapon.",
                             icon = TexButton.ShowImportantLocations,
                             action = () => CameraJumper.TryJumpAndSelect(weaponOwner)
                         };
@@ -371,7 +371,7 @@ namespace AutomaticOutfitManager.Patches
                 yield return new Command_Action
                 {
                     defaultLabel = $"Jump to {owner.LabelShortCap}",
-                    defaultDesc = $"Select and center the camera on {owner.LabelShortCap}, the owner of this exact saved apparel item.",
+                    defaultDesc = $"Select and center the camera on {owner.LabelShortCap}, the owner of this automatic saved apparel item.",
                     icon = TexButton.ShowImportantLocations,
                     action = () => CameraJumper.TryJumpAndSelect(owner)
                 };
@@ -396,7 +396,7 @@ namespace AutomaticOutfitManager.Patches
             ThingWithComps item, string ownerName, System.Action release)
         {
             bool weapon = item?.def?.IsWeapon == true;
-            string itemKind = weapon ? "saved primary weapon" : "saved apparel";
+            string itemKind = weapon ? "automatic saved weapon" : "automatic saved apparel";
             string consequence = weapon
                 ? $"{ownerName} will no longer restore this exact primary weapon. No replacement saved weapon is chosen, so the pawn may finish restoration unarmed. Normal equipment and storage rules still apply."
                 : $"{ownerName} will no longer restore this exact garment. It is no longer reserved as their saved item; normal outfit and storage rules still apply.";

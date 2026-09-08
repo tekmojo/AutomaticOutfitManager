@@ -91,19 +91,13 @@ namespace AutomaticOutfitManager.Patches
 
             if (sfDef.defName == "AutomaticOutfitManager_AllowManaged")
             {
-                foreach (ThingDef def in DefDatabase<ThingDef>.AllDefsListForReading)
-                {
-                    if (ManagedApparelClassifier.Matches(def))
-                        __instance.SetAllow(def, true);
-                }
+                foreach (ThingDef def in AutomaticOutfitStorageScope.KnownDefinitions(false))
+                    __instance.SetAllow(def, true);
             }
             else if (sfDef.defName == "AutomaticOutfitManager_AllowManagedWeapons")
             {
-                foreach (ThingDef def in DefDatabase<ThingDef>.AllDefsListForReading)
-                {
-                    if (ManagedWeaponClassifier.Matches(def))
-                        __instance.SetAllow(def, true);
-                }
+                foreach (ThingDef def in AutomaticOutfitStorageScope.KnownDefinitions(true))
+                    __instance.SetAllow(def, true);
             }
         }
     }
@@ -120,11 +114,11 @@ namespace AutomaticOutfitManager.Patches
             bool automatic;
             if (t.def.apparel != null)
             {
-                automatic = ManagedApparelClassifier.Matches(t);
+                automatic = AutomaticOutfitStorageScope.Matches(t);
             }
             else if (t.def.IsWeapon)
             {
-                automatic = ManagedWeaponClassifier.Matches(t);
+                automatic = AutomaticOutfitStorageScope.Matches(t);
             }
             else
             {
@@ -171,9 +165,9 @@ namespace AutomaticOutfitManager.Patches
             if (!alreadyClassified)
             {
                 if (t.def.apparel != null)
-                    automatic = ManagedApparelClassifier.Matches(t);
+                    automatic = AutomaticOutfitStorageScope.Matches(t);
                 else if (t.def.IsWeapon)
-                    automatic = ManagedWeaponClassifier.Matches(t);
+                    automatic = AutomaticOutfitStorageScope.Matches(t);
                 else
                     return;
             }

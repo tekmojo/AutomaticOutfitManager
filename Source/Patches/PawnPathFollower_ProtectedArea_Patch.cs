@@ -46,6 +46,11 @@ namespace AutomaticOutfitManager.Patches
             }
 
             Job currentJob = pawn.jobs.curJob;
+            if (NativeRuleControl.Suspends(pawn, currentJob))
+            {
+                ProtectedBoundaryRetryRegistry.Clear(pawn);
+                return true;
+            }
             if (PawnJobTracker_StartJob_Patch
                 .IsNativeEmergencySafetyJob(currentJob))
             {
@@ -103,6 +108,11 @@ namespace AutomaticOutfitManager.Patches
             foreach (ApparelRule candidate in rules)
             {
                 if (!candidate.Area[nextCell])
+                    continue;
+
+                // Only the exact owned exit may traverse its occupied area.
+                // Once outside, this no longer admits re-entry or shortcuts.
+                if (PausedAreaWorkFilter.IsOwnedAccessEgress(pawn, currentJob, candidate))
                     continue;
 
                 if (managedTransitionJob &&
@@ -221,6 +231,7 @@ namespace AutomaticOutfitManager.Patches
 
             if (blockedByActivity)
             {
+                TransitionActivityDiagnostics.PausedActivityDenied(pawn, currentJob, rule);
                 // The same late-bound activity denial applies to every
                 // humanlike group, including slaves and prisoners. Use a
                 // bounded safe wait if no exit exists, never a recursive retry.

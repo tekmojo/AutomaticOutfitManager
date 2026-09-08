@@ -106,15 +106,19 @@ namespace AutomaticOutfitManager.Core
                     saved.WorkGear.Add(new WorkGearSource { Item = item });
         }
 
+        private bool IsSharedOutfitStockDefinition(ThingDef def) =>
+            IsManagedApparelDefinition(def) || IsManagedWeaponDefinition(def);
+
         private void RememberNonWorkOutfitBeforeWork(Pawn pawn)
         {
             // A partial return can leave issued work gear on the pawn after
             // its restoration state ends. Never recapture that as personal.
-            if (NonWorkOutfitFor(pawn)?.WorkGear.Any(entry => HeldByPawn(entry.Item, pawn)) == true)
+            if (NonWorkOutfitFor(pawn)?.WorkGear.Any(entry => HeldByPawn(entry.Item, pawn)) == true ||
+                NonWorkOutfitFor(pawn)?.PendingSharedReturns.Count > 0)
                 return;
             SavedNonWorkOutfits.RemoveAll(item => item?.Pawn == pawn);
             SavedNonWorkOutfit saved = SavedNonWorkOutfit.Capture(pawn);
-            WorkGearSnapshotPolicy.Clean(saved, Rules);
+            WorkGearSnapshotPolicy.Clean(saved, Rules, IsSharedOutfitStockDefinition);
             SavedNonWorkOutfits.Add(saved);
             nonWorkOutfitIndex[pawn] = saved;
         }
@@ -144,10 +148,12 @@ namespace AutomaticOutfitManager.Core
                     foreach (var queued in pawn.jobs.jobQueue)
                         if (WorkGearSnapshotPolicy.IsSnapshotRestoreJob(state, queued.job)) restoreJobIds.Add(queued.job.loadID);
             }
-            var removed = WorkGearSnapshotPolicy.Clean(saved, Rules);
+            var removed = WorkGearSnapshotPolicy.Clean(saved, Rules, IsSharedOutfitStockDefinition);
             bool personalChanged = removed.Count > 0;
+            if (state == null)
+                SnapshotReturnMigration.Remember(saved, removed, item => HeldByPawn(item, pawn));
             removed.AddRange(WorkGearSnapshotPolicy.CleanPersonalState(state, Rules, saved,
-                item => HeldByPawn(item, pawn)));
+                item => HeldByPawn(item, pawn), IsSharedOutfitStockDefinition));
             if (removed.Count == 0) return;
             if (!hadApparelSnapshot && state?.ApparelInterventionActive == true)
                 RegisterManagedApparel(state.OriginalApparel, pawn);
@@ -200,8 +206,8 @@ namespace AutomaticOutfitManager.Core
             }
             if (AomLog.DetailedEnabled)
                 AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
-                    $"released {removed.Distinct().Count()} matching Work Area item(s) from personal snapshots; " +
-                    "held work gear will use the normal safe locker return.");
+                    $"released {removed.Distinct().Count()} shared outfit item(s) from personal snapshots; " +
+                    "held automatic outfit gear will use the normal safe locker return.");
         }
 
         private void CleanAllWorkGearSnapshots()
@@ -209,6 +215,56 @@ namespace AutomaticOutfitManager.Core
             foreach (Pawn pawn in SavedNonWorkOutfits.Select(saved => saved?.Pawn)
                 .Concat(PawnStates.Select(state => state?.Pawn)).Where(pawn => pawn?.Map != null).Distinct().ToList())
                 CleanWorkGearSnapshots(pawn, StateFor(pawn));
+        }
+
+        private void ProcessPendingSnapshotReturns()
+        {
+            foreach (var saved in SavedNonWorkOutfits.Where(item => item?.Pawn != null &&
+                         item.PendingSharedReturns.Count > 0).ToList())
+            {
+                Pawn pawn = saved.Pawn;
+                SnapshotReturnMigration.Prune(saved, item => HeldByPawn(item, pawn));
+                if (saved.PendingSharedReturns.Count == 0) continue;
+                PawnApparelState existing = StateFor(pawn);
+                if (existing != null)
+                {
+                    // A normal session may have taken over before the idle
+                    // migration. Its assigned/retained outfit now owns return.
+                    saved.PendingSharedReturns.RemoveAll(item =>
+                        (item is RimWorld.Apparel apparel && existing.ManagedApparel.Contains(apparel)) ||
+                        existing.ManagedWeapons.Contains(item) ||
+                        ((!string.IsNullOrEmpty(existing.NonWorkRestorationRuleId) || existing.NonWorkFallbackActive) &&
+                         (existing.OriginalApparel.Contains(item as RimWorld.Apparel) || existing.OriginalWeapon == item)));
+                    continue;
+                }
+                Job job = pawn.CurJob;
+                if (!PawnAccessClassifier.IsApparelEligibleHuman(pawn) || pawn.Spawned != true ||
+                    pawn.Dead || pawn.Downed || pawn.Drafted || pawn.InMentalState || pawn.jobs == null ||
+                    job?.playerForced == true || job?.workGiverDef != null || job?.jobGiver is JobGiver_Work ||
+                    pawn.jobs.jobQueue?.Count > 0 || Patches.ChildcareContinuation.Admit(pawn, job) ||
+                    pawn.carryTracker?.CarriedThing != null || !IsIdleRecoveryJob(pawn, job) ||
+                    PawnAccessClassifier.IsNativeCustodyEscapeActive(pawn) ||
+                    Patches.PawnJobTracker_StartJob_Patch.IsNativeEmergencySafetyJob(job) ||
+                    Patches.PawnJobTracker_StartJob_Patch.IsMapDepartureJob(job) ||
+                    Patches.PausedAreaWorkFilter.IsEssentialPersonalJob(job) ||
+                    Patches.NonWorkBufferTracker.For(pawn) != null || Patches.NonWorkMealHandoff.For(pawn) != null)
+                    continue;
+                ApparelRule source = SnapshotReturnMigration.Source(saved, Rules);
+                // With no remaining source, use the ordinary local safe return
+                // only outside protected areas; never invent an unrelated rule.
+                if (source == null && RuleEvaluator.EnabledRulesForMap(pawn.Map).Any(rule => rule.Area[pawn.Position]))
+                    continue;
+                PawnApparelState state = SnapshotReturnMigration.CreateState(saved, source);
+                if (state == null) continue;
+                state.StartedTick = Find.TickManager?.TicksGame ?? 0;
+                PawnStates.Add(state);
+                RegisterManagedApparel(state.OriginalApparel, pawn);
+                RegisterManagedApparel(state.ManagedApparel);
+                foreach (var weapon in state.ManagedWeapons) RegisterManagedWeapon(weapon);
+                InvalidateWeaponStateIndex();
+                saved.PendingSharedReturns.Clear();
+                RequestRecall(state, "existing-save shared outfit return");
+            }
         }
 
         private void FinishSnapshotCleanupInterrupts()
@@ -336,6 +392,7 @@ namespace AutomaticOutfitManager.Core
             Patches.ChildcareContinuation.ResetForLoadedGame();
             Patches.AccessExitJobs.ResetForLoadedGame();
             PreparedIngestRetryRegistry.ResetForLoadedGame();
+            NativeDepartureHandoff.ResetForLoadedGame();
             Patches.ProtectedPathAvoidance.ResetForLoadedGame();
         }
 
@@ -366,6 +423,7 @@ namespace AutomaticOutfitManager.Core
                 workSnapshotCleanupPending = false;
                 CleanAllWorkGearSnapshots();
             }
+            ProcessPendingSnapshotReturns();
             FinishSnapshotCleanupInterrupts();
             Patches.NonWorkMealHandoff.Tick(this);
             ProcessPendingRecallInterrupts(currentTick);
@@ -374,12 +432,58 @@ namespace AutomaticOutfitManager.Core
             RecoverIdleApparelWorkers(currentTick);
         }
 
-        public void RequestRecall(PawnApparelState state)
+        internal bool CanRecallObservedActivity(Pawn pawn, ApparelRule rule)
+        {
+            if (!Patches.PausedAreaWorkFilter.CanRecallObservedActivity(pawn, pawn?.CurJob, rule))
+                return false;
+            var state = StateFor(pawn);
+            // A visited area's row must not take ownership of another rule's
+            // preparation, restoration, or material collection.
+            return state == null || (state.Transition == ApparelTransition.Active &&
+                (state.ActiveRuleId == rule.Id || state.NonWorkRestorationRuleId == rule.Id ||
+                 state.CurrentRuleIds?.Contains(rule.Id) == true ||
+                 state.NestedRuleBuffers?.Any(progress => progress?.RuleId == rule.Id) == true));
+        }
+
+        internal bool RecallObservedActivity(Pawn pawn, ApparelRule rule)
+        {
+            if (!CanRecallObservedActivity(pawn, rule)) return false;
+            var state = StateFor(pawn);
+            if (state != null)
+            {
+                RequestRecall(state);
+                return true;
+            }
+
+            Job current = pawn.CurJob;
+            bool inside = rule.Area[pawn.Position];
+            Job exit = null;
+            // Resolve the route before interrupting. No fabricated work state
+            // or snapshot is needed for an observed learning/recreation task.
+            if (inside && !Patches.PausedAreaWorkFilter.TryMakeAccessExitJob(
+                    pawn, current, out exit, rule))
+            {
+                Messages.Message("Cannot recall: no safe exit from this area is available.",
+                    pawn, MessageTypeDefOf.RejectInput, false);
+                return false;
+            }
+            var retained = Patches.NonWorkBufferTracker.For(pawn);
+            if (retained?.RuleId == rule.Id) Patches.NonWorkBufferTracker.Clear(pawn);
+            return TryJobTransition(pawn, Find.TickManager?.TicksGame ?? 0, "activity recall", () =>
+            {
+                if (exit != null) pawn.jobs.StartJob(exit, JobCondition.InterruptForced);
+                else pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, true);
+            });
+        }
+
+        public void RequestRecall(PawnApparelState state,
+            [System.Runtime.CompilerServices.CallerMemberName] string requester = null)
         {
             if (state?.Pawn == null)
                 return;
 
             state.PauseRecallRuleIds?.Clear();
+            LogRecallRequest(state, requester);
             RequestRecallCore(state);
         }
 
@@ -401,7 +505,18 @@ namespace AutomaticOutfitManager.Core
             state.PauseRecallRuleIds ??= new List<string>();
             if (!state.PauseRecallRuleIds.Contains(pausedRule.Id))
                 state.PauseRecallRuleIds.Add(pausedRule.Id);
+            LogRecallRequest(state, "pause of " + pausedRule.Name);
             RequestRecallCore(state);
+        }
+
+        private static void LogRecallRequest(PawnApparelState state, string requester)
+        {
+            if (state.RecallRequested || !AomLog.DetailedEnabled) return;
+            Job current = state.Pawn.jobs?.curJob;
+            AomLog.Detailed($"[AutomaticOutfitManager] {state.Pawn.LabelShortCap}: recall requested by {requester}; " +
+                $"transition={state.Transition}, rule={state.ActiveRuleId}, " +
+                $"current={current?.def?.defName} #{current?.loadID}, " +
+                $"pending={state.PendingWorkJob?.def?.defName} #{state.PendingWorkJob?.loadID}.");
         }
 
         private static void RequestRecallCore(
@@ -556,6 +671,72 @@ namespace AutomaticOutfitManager.Core
                 ? "map exit bypassed Phase 3; dropped 1 managed work item and released the abandoned saved-outfit claims"
                 : $"map exit bypassed Phase 3; dropped {released} managed work items and released the abandoned saved-outfit claims";
             EndIntervention(pawn, reason);
+        }
+
+        internal bool UpdateNativeRuleSuspension(Pawn pawn, Job job)
+        {
+            if (pawn == null) return false;
+            PawnApparelState state = StateFor(pawn);
+            if (!Patches.NativeRuleControl.MentalOrEmergency(pawn, job))
+            {
+                if (state?.NativeControlSuspended == true &&
+                    !Patches.NativeRuleControl.Suspends(pawn, job))
+                {
+                    state.NativeControlSuspended = false;
+                    state.ActiveIdleTicks = 0;
+                    state.LastRestorationAttemptTick = -1;
+                    state.LastChangingAreaReturnAttemptTick = -1;
+                    state.NaturalLockerDwellUntilTick = -1;
+                    // An interrupted gear transition has lost its native
+                    // continuation. Re-enter through the normal safe locker
+                    // boundary, never restore at the mental break's last cell.
+                    if (state.Transition != ApparelTransition.Active)
+                    {
+                        state.Transition = ApparelTransition.Active;
+                        state.RecallRequested = true;
+                        state.AutomaticIdleReturnRequested = false;
+                        state.ChangingAreaReturnCell = IntVec3.Invalid;
+                    }
+                    restorationProgress.Remove(pawn);
+                    activeWorkProgress.Remove(pawn);
+                    if (AomLog.DetailedEnabled)
+                        AomLog.Detailed($"{pawn.LabelShortCap}: native control ended; rechecking current activity and outfit safely.");
+                }
+                return false;
+            }
+
+            // These are civilian continuations, not saved outfit ownership.
+            // Discard them even without an active outfit session (including a
+            // retry left by an older build). Never end the native current job.
+            ProtectedBoundaryRetryRegistry.Clear(pawn);
+            PreparedIngestRetryRegistry.Clear(pawn);
+            NonWorkOutfitBuffers.RemoveAll(item => item?.Pawn == pawn);
+            NonWorkMealTrips.RemoveAll(item => item?.Pawn == pawn);
+            occupiedGearRecoveryTicks.Remove(pawn);
+            if (state == null) return true;
+
+            pawn.jobs?.jobQueue?.RemoveAll(pawn, queued =>
+                IsAssignedApparelTransitionJob(state, queued) ||
+                IsAssignedWeaponTransitionJob(state, queued) ||
+                Patches.PawnJobTracker_StartJob_Patch.IsAssignedChangingAreaReturnJob(state, queued));
+            ClearPendingWork(state);
+            state.ClearPendingBufferCandidates();
+            ManagedWorkClaimRegistry.ReleaseAll(pawn);
+            state.ActiveIdleTicks = 0;
+            state.RecallInterruptPending = false;
+            if (state.AutomaticIdleReturnRequested)
+            {
+                state.AutomaticIdleReturnRequested = false;
+                state.RecallRequested = false;
+            }
+            restorationProgress.Remove(pawn);
+            restorationRecoveryBackoff.Remove(pawn);
+            activeWorkProgress.Remove(pawn);
+            jobTransitionFailureTicks.Remove(pawn);
+            if (!state.NativeControlSuspended && AomLog.DetailedEnabled)
+                AomLog.Detailed($"{pawn.LabelShortCap}: native mental or emergency control; suspending area rules and retaining outfit ownership.");
+            state.NativeControlSuspended = true;
+            return true;
         }
 
         public void SuspendTransitionWhileDowned(PawnApparelState state)
@@ -741,6 +922,9 @@ namespace AutomaticOutfitManager.Core
             foreach (PawnApparelState state in PawnStates.ToList())
             {
                 Pawn pawn = state?.Pawn;
+                if (UpdateNativeRuleSuspension(pawn, pawn?.CurJob) ||
+                    Patches.NativeRuleControl.Suspends(pawn, pawn?.CurJob))
+                    continue;
                 if (state?.RecallInterruptPending != true || pawn?.Spawned != true ||
                     pawn.Drafted || pawn.jobs == null)
                 {
@@ -783,7 +967,11 @@ namespace AutomaticOutfitManager.Core
                     pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, true)))
                 {
                     state.RecallInterruptPending = false;
-                    if (clearTrackedOnlySession)
+                    // Ending the job may synchronously start the locker return.
+                    // Do not retire its owning state while it is still traveling.
+                    if (clearTrackedOnlySession && StateFor(pawn) == state &&
+                        state.Transition != ApparelTransition.ReturningToChangingArea &&
+                        state.Transition != ApparelTransition.Restoring)
                         EndIntervention(pawn);
                 }
             }
@@ -852,6 +1040,10 @@ namespace AutomaticOutfitManager.Core
                 {
                     TransitionActivityDiagnostics.Sample(pawn, currentTick);
                     Patches.NonWorkBufferTracker.Refresh(pawn);
+                    if (Patches.NativeRuleControl.Suspends(pawn, pawn?.CurJob))
+                        ProtectedBoundaryRetryRegistry.Clear(pawn);
+                    if (UpdateNativeRuleSuspension(pawn, pawn?.CurJob))
+                        continue;
                     if (pawn?.Downed == true)
                     {
                         PawnApparelState downedState = StateFor(pawn);
@@ -925,6 +1117,11 @@ namespace AutomaticOutfitManager.Core
                     }
 
                     Job job = pawn?.jobs?.curJob;
+                    if (StateFor(pawn) == null && NativeDepartureHandoff.Allows(pawn, job))
+                    {
+                        occupiedGearRecoveryTicks.Remove(pawn);
+                        continue;
+                    }
                     PawnApparelState runtimeState = null;
                     if (pawn?.Faction == Faction.OfPlayer && !pawn.Drafted)
                     {
@@ -952,8 +1149,10 @@ namespace AutomaticOutfitManager.Core
                     // Recheck a permission changed while an activity was
                     // already running, before occupancy starts new preparation.
                     // Every humanlike group uses the same recall/egress path.
-                    if (Patches.PausedAreaWorkFilter.DeniedActivityRule(pawn, job) != null)
+                    ApparelRule deniedActivityRule = Patches.PausedAreaWorkFilter.DeniedActivityRule(pawn, job);
+                    if (deniedActivityRule != null)
                     {
+                        TransitionActivityDiagnostics.PausedActivityDenied(pawn, job, deniedActivityRule);
                         var deniedState = runtimeState ?? StateFor(pawn);
                         if (deniedState != null)
                             RequestRecall(deniedState);
@@ -965,7 +1164,8 @@ namespace AutomaticOutfitManager.Core
                                 pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, false, true));
                         continue;
                     }
-                    if (mapActiveRules.Count > 0 &&
+                    if ((mapActiveRules.Count > 0 ||
+                         (mapPausedRules.Count > 0 && Patches.PausedAreaWorkFilter.IsEssentialPersonalJob(job))) &&
                         TryEnforceRuntimeProtectedGear(pawn, job, currentTick))
                         continue;
                     if (job == null)
@@ -997,11 +1197,8 @@ namespace AutomaticOutfitManager.Core
                             bool permittedPausedActivity =
                                 Patches.PausedAreaWorkFilter.JobMayEnterPausedRule(
                                     pawn, job, rule);
-                            bool preparingPermittedHaul =
-                                Patches.PausedAreaWorkFilter.HasPermittedHaulingContext(
-                                    state, rule);
-                            if (state?.ActiveRuleId == rule.Id && !state.RecallRequested &&
-                                !permittedPausedActivity && !preparingPermittedHaul)
+                            if (Patches.PausedAreaWorkFilter.ShouldRecallForPausedRule(
+                                    state, rule, permittedPausedActivity))
                             {
                                 RequestRulePauseRecall(state, rule);
                                 handled = true;
@@ -1425,6 +1622,8 @@ namespace AutomaticOutfitManager.Core
             foreach (PawnApparelState state in PawnStates.ToList())
             {
                 Pawn pawn = state?.Pawn;
+                if (UpdateNativeRuleSuspension(pawn, pawn?.CurJob))
+                    continue;
                 if (Patches.ChildcareContinuation.Admit(pawn, pawn?.CurJob)) continue;
                 if (TryCompleteSatisfiedRestoration(pawn, state))
                     continue;
@@ -1647,6 +1846,16 @@ namespace AutomaticOutfitManager.Core
                     state.Transition == ApparelTransition.Restoring)
                 {
                     Job restorationJob = pawn.jobs?.curJob;
+                    // Rest/eating admitted after an empty blocked plan is real
+                    // native progress. A long sleep must not trip the outfit
+                    // stall watchdog. Entry/access/PPE guards still run above;
+                    // item recovery wakes the retry after this need finishes.
+                    if (Patches.RestorationNeeds.IsNeed(restorationJob))
+                    {
+                        state.ActiveIdleTicks = 0;
+                        restorationProgress.Remove(pawn);
+                        continue;
+                    }
                     RestorationWaitDiagnostics.Report(pawn, state);
                     if (!IsIdleRecoveryJob(pawn, restorationJob))
                     {
@@ -2498,6 +2707,7 @@ namespace AutomaticOutfitManager.Core
                 Patches.ChildcareContinuation.ResetForLoadedGame();
                 Patches.AccessExitJobs.ResetForLoadedGame();
                 PreparedIngestRetryRegistry.ResetForLoadedGame();
+                NativeDepartureHandoff.ResetForLoadedGame();
                 UnavailableWorkRegistry.ResetForLoadedGame();
                 RuleEvaluator.ResetRuntimeCache();
                 PawnAccessClassifier.ResetRuntimeCache();
@@ -3297,6 +3507,12 @@ namespace AutomaticOutfitManager.Core
         private bool TryEnforceRuntimeProtectedGear(
             Pawn pawn, Job currentJob, int currentTick)
         {
+            if (Patches.NativeRuleControl.Suspends(pawn, currentJob))
+            {
+                ProtectedBoundaryRetryRegistry.Clear(pawn);
+                if (pawn != null) occupiedGearRecoveryTicks.Remove(pawn);
+                return false;
+            }
             if (pawn?.Downed == true)
             {
                 occupiedGearRecoveryTicks.Remove(pawn);
@@ -3323,7 +3539,7 @@ namespace AutomaticOutfitManager.Core
             // native continuation. Active sessions may use the same handoff for
             // a newly encountered nested rule, while recall/restoration keeps
             // ownership of its existing transition.
-            if ((state == null || state.Transition == ApparelTransition.Active) &&
+            if (BoundaryJobAdmission.CanResume(state) &&
                 Detection.ProtectedBoundaryRetryRegistry
                     .TryGetPendingInterruption(
                         pawn, out Job boundaryJob,
@@ -3341,9 +3557,9 @@ namespace AutomaticOutfitManager.Core
                                 pawn, boundaryJob, boundaryRules);
                     });
                 if (attemptedBoundaryHandoff &&
-                    boundaryResumeResult != Patches
+                    boundaryResumeResult == Patches
                         .PawnJobTracker_StartJob_Patch
-                        .BoundaryResumeResult.RetryLater)
+                        .BoundaryResumeResult.Invalid)
                 {
                     Detection.ProtectedBoundaryRetryRegistry.Clear(
                         pawn, boundaryJob);
@@ -3368,6 +3584,10 @@ namespace AutomaticOutfitManager.Core
             {
                 protectedRules =
                     RuleEvaluator.MatchingRuntimeRules(pawn, currentJob);
+                if (Patches.PausedAreaWorkFilter.IsEssentialPersonalJob(currentJob))
+                    protectedRules.AddRange(RuleEvaluator.PausedRulesForMap(pawn.Map).Where(rule =>
+                        Patches.RestActivityPolicy.Allowed(pawn, currentJob, rule) &&
+                        (rule.Area[pawn.Position] || RuleEvaluator.JobPreparationTargetsArea(currentJob, rule.Area))));
             }
             if (protectedRules.Count == 0)
             {
@@ -3377,7 +3597,9 @@ namespace AutomaticOutfitManager.Core
             }
 
             List<ApparelRule> missingGearRules = protectedRules
-                .Where(rule => RuleEvaluator.HasMissingRequiredGear(pawn, rule))
+                .Where(rule => state?.Transition == ApparelTransition.Restoring && Patches.RestorationNeeds.IsNeed(currentJob)
+                    ? Patches.RestorationNeeds.MissingProtection(pawn, state, rule)
+                    : RuleEvaluator.HasMissingRequiredGear(pawn, rule))
                 .ToList();
 
             // A failed gear search can deliberately send a pawn from the
@@ -3946,7 +4168,7 @@ namespace AutomaticOutfitManager.Core
             switch (transition)
             {
                 case ApparelTransition.Preparing:
-                    return "preparing managed outfit";
+                    return "preparing automatic outfit";
                 case ApparelTransition.Active:
                     return "using outfit";
                 case ApparelTransition.ReturningToChangingArea:
@@ -4689,6 +4911,8 @@ namespace AutomaticOutfitManager.Core
                 entry.Item.Destroyed || !HeldByPawn(entry.Item, pawn));
             ApparelRule completedNonWorkRule = string.IsNullOrEmpty(releaseReason)
                 ? RuleById(state.NonWorkRestorationRuleId) : null;
+            if (state.MapDepartureRequested)
+                NativeDepartureHandoff.Restored(pawn);
             PawnStates.Remove(state);
             TransitionActivityDiagnostics.Cleared(pawn, releaseReason);
             AomLog.ClearPawn(pawn);

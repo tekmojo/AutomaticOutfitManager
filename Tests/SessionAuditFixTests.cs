@@ -32,7 +32,7 @@ class SessionAuditFixTests
             Check(ProtectedPathAvoidance.RestrictedTransitRules(pawn, ingest).Count==2, "queries without an eating destination retain transit avoidance");
             Check(ProtectedPathAvoidance.RestrictedTransitRules(pawn, ingest, new LocalTargetInfo(9)).Count==2, "outside destination does not exempt dining as a shortcut");
             dining.Allowed=false; Check(restricted().Count==2,"denied eating activity cannot gain a destination exemption");
-            dining.Allowed=true; dining.Missing=true; Check(restricted().Count==2,"unprepared dining outfit does not gain a carried-meal exemption"); dining.Missing=false;
+            dining.Allowed=true; dining.Missing=true; Check(restricted().SequenceEqual(new[]{work}),"unprepared carried meal reaches the destination boundary for outfit preparation without unrelated-area transit"); dining.Missing=false;
             pawn.carryTracker.CarriedThing=new Thing(); Check(restricted().Count==2,"carrying a different thing does not exempt the food job destination");
             pawn.carryTracker.CarriedThing=null; Check(restricted().Count==2,"food pickup phase does not claim an unrelated dining destination");
             pawn.carryTracker.CarriedThing=food; pawn.CurJob=new Job(); Check(restricted().Count==2,"a different job's path query cannot claim current-meal status"); pawn.CurJob=ingest;
@@ -123,7 +123,7 @@ namespace Verse {
     public class Area { public Map Map; public HashSet<int> Cells=new HashSet<int>(); public bool this[IntVec3 c]=>Cells.Contains(c.Value); }
     public class RaceProperties { public bool Animal,Humanlike; }
     public class CarryTracker { public Thing CarriedThing; }
-    public class Pawn { public Map Map;public Faction Faction;public IntVec3 Position;public Job CurJob;public bool Drafted,Downed;public RaceProperties RaceProps=new RaceProperties();public CarryTracker carryTracker=new CarryTracker(); }
+    public class Pawn { public Map Map;public Faction Faction;public IntVec3 Position;public Job CurJob;public bool Drafted,Downed,Dead,InMentalState,CustodyEscape;public RaceProperties RaceProps=new RaceProperties();public CarryTracker carryTracker=new CarryTracker(); }
 }
 namespace Verse.AI {
     public class ThinkNode {}
@@ -148,11 +148,11 @@ namespace AutomaticOutfitManager.Rules { public class ApparelRule { public strin
 namespace AutomaticOutfitManager.Core { public class AutomaticOutfitManagerGameComponent { public static AutomaticOutfitManagerGameComponent Current=new AutomaticOutfitManagerGameComponent();public AutomaticOutfitManager.State.PawnApparelState State;public AutomaticOutfitManager.State.PawnApparelState StateFor(Pawn p)=>State; } }
 namespace AutomaticOutfitManager.Detection {
     public static class RuleEvaluator {public static IReadOnlyList<ApparelRule> Rules;public static IReadOnlyList<ApparelRule> EnabledRulesForMap(Map m)=>Rules;public static bool JobTargetsArea(Job j,Area a)=>j.targetA.IsValid && a[j.targetA.Cell];public static bool HasMissingRequiredGear(Pawn p,ApparelRule r)=>r.Missing;}
-    public static class PawnAccessClassifier { public static bool IsHostedGuest(Pawn p)=>false;public static bool IsColonyPrisoner(Pawn p)=>false; }
+    public static class PawnAccessClassifier { public static bool IsNativeCustodyEscapeActive(Pawn p)=>p?.CustodyEscape==true; public static bool IsHostedGuest(Pawn p)=>false;public static bool IsColonyPrisoner(Pawn p)=>false; }
 }
 namespace AutomaticOutfitManager.Patches {
     public static class PausedAreaWorkFilter { public static bool ActivityAllowedAtRuleBoundary(Pawn p,Job j,ApparelRule r)=>r.Allowed; }
-    public static class PawnJobTracker_StartJob_Patch { public static bool IsNativeEmergencySafetyJob(Job j)=>false; }
+    public static class PawnJobTracker_StartJob_Patch { public static bool IsNativeMentalActivity(Pawn p,Job j)=>p?.InMentalState==true; public static bool IsNativeEmergencySafetyJob(Job j)=>false; }
     public static class PawnPathFollower_ProtectedArea_Patch {
         public static bool TransitionJob;public static ApparelRule Owned;
         public static bool IsManagedTransitionJob(Pawn p,Job j,AutomaticOutfitManager.State.PawnApparelState s)=>TransitionJob;

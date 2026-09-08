@@ -1,23 +1,27 @@
-# 0.4.0 focused readiness plan
+# 0.4.1 validation record — post-0.4.0
 
-The [release checklist](../RELEASE-CHECKLIST.md) is the current status. The [historical audit log](NEXT-UPDATE-HISTORY-2026-09-06.md) preserves older tests and superseded findings.
+Updated 2026-09-08. Workshop publication and downloaded-package verification are complete; the existing screenshots are retained. Unexercised gameplay cases below remain unverified follow-up coverage, not passed tests. Current closeout status is in the [release checklist](../RELEASE-CHECKLIST.md). The previous current-status document is preserved as [0.4.0 readiness](READINESS-0.4.0.md); its broader chronology remains in [historical readiness](NEXT-UPDATE-HISTORY-2026-09-06.md).
 
-The latest small- and large-map normal-flow sessions are healthy for their observed scope on DLL `98BC3B34BCEFF8443174D7472BB27908FCE090B5249411FDA98733FA0096A4E0`. The 0.4.0 copy/inspection candidate is a new build; its [copy audit](RELEASE-COPY-AUDIT-0.4.0.md) records validation. Retain prior gameplay evidence unless a later change affects it.
+## Build and evidence boundary
 
-Local deployment verified on 2026-09-06T19:08:41.8328008-06:00: current RC/live/installed DLL `F00A4B06756118DBE8C6EA50681980F6A52248024F2AD1AA811761C65B08AF24`, with matching About and Def descriptions. The maintainer subsequently reported **blocked saved-item recovery, cooking after a Non-Work outfit change and Delete confirmation passed**. No new log/video was attached to that confirmation; keep it distinct from the earlier independently reviewed recordings. All **1,954 checks in 21 suites** passed again and the matching package is staged; see [package validation](RELEASE-PACKAGE-0.4.0.md).
+The recent small/large-map tests used gameplay DLL SHA-256 **09BB39D2D970EB399D46D247050A74F8CFE2AE455A19630C59FD8EEC7ED94905**. The 0.4.1 preparation changes version metadata and player text, with no gameplay-decision edits. The rebuilt candidate and static results are recorded in [copy preflight](RELEASE-COPY-AUDIT-0.4.1.md). A built candidate is not a deployed or gameplay-tested candidate.
 
-## Focused regression matrix
+## Recent findings
 
-Rows 1, 2 and 4 have maintainer-reported scenario passes. This matrix preserves the detailed observations and variants for future regression checks, without claiming a fresh trace for every variant. The complete staged-package load/UI check is still pending; the measured performance baseline is optional and no CPU/TPS improvement is claimed.
+| Test/evidence | Result and limit |
+| --- | --- |
+| Small-map `8BPi8HIXiC`, local `native-control-small-retest/audit.md` | Reba's mental eating continued with AOM suspended and the pawn omitted from area rows. After a debug-ended break, normal outfit preparation and the exact rest job resumed. This does not test natural recovery timing or save/load during suspension. |
+| Large-map `lANsRuWWWA`, local `large-map-robe-storage/audit.md` | The Camelhide robe was good quality at 48% condition; locker storage was set to 60–100%. Robe being checked did not bypass that limit. The maintainer corrected the storage setting and confirmed the warning disappeared. Resolved configuration issue; rule standards were not responsible. |
+| Same large-map test | Oto completed restoration without an observed AOM error. A saved weapon was hauled for Schmurda; the excerpt did not prove Schmurda later equipped it. |
+| Small-map `RYeN58Usmj`, local `RYeN58Usmj/audit.md` | Normal preparation, restoration, buffers and protected material hauling progressed. Two cooler frames received steel and components. The final view showed all seven pawns in bed; logged rest admissions retained the required outfit. No new fix was indicated by this test. |
+| Same small-map test: Bowman | The same saved flak vest restored after it was at an accessible location. This confirms normal restoration, not recovery from the earlier protected cell. The earlier recovery query had no accepting storage group. |
+| Same small-map test: battery delivery | Steel reached the battery frame even though the native haul ended Incompletable after a stack merge. Components arrived later. No demonstrated material loss or loop; an Incompletable job must still receive no successful-task buffer credit. |
+| Maintainer's preceding PPE haul confirmation | Another required outfit item was hauled out of the Work Area with PPE. Useful confirmation of the permitted hauling path, not proof of every receiver, overlap or paused-state variant. |
 
-| Order | Focus | Pass observation |
-|---|---|---|
-| 1 | Small map: exact saved item blocked in a protected area | Eligible hauler moves that exact item to valid owner-reachable storage; both pawns progress and owner restores. No destination-claim mismatch or repeated empty return. An unavailable destination waits without churn. |
-| 2 | Large map: new cooking task conflicts with retained Non-Work outfit | Outfit change begins before the first ingredient pickup, resumes the intended bill and reaches actual bill completion. Only successful eligible jobs credit the associated buffer. |
-| 3 | Copy candidate: both saves and a new rule | Readable labels and relevant hovers at actual UI scale; Work/Non-Work source labels and saved/retained distinctions; colors on references with neutral grey conflicts; no duplicate area/rule preamble or clipping. |
-| 4 | Delete dialog | Cancel, Enter and Escape preserve; explicit Delete removes exactly the chosen Work/Non-Work rule from expanded/collapsed views. |
-| 5 | Consistent performance sample | Record map scale, logging level, simulation speed and measured tick/frame behavior. Compare aligned tick windows; no general performance claim from diagnostic counts. |
+The local audit paths above are under `C:/GitHub/AutomaticOutfitManager/work/testing/2026-09-07/`. User attachments and those audit files are local evidence, not runtime package inputs.
 
-For tests 1–2, retain the short recording and Detailed log from before the trigger through completion. If a run does not reach the trigger, mark it unexercised rather than passed or failed. Include save/load during an affected transition if it has not yet been demonstrated on the same gameplay implementation.
+## What remains
 
-Eight supplied screenshots are now cataloged in [the replacement gallery](../Screenshots/README.md). They support inspection of the visible UI, but do not close the full interactive/save-load check in test 3. Replace all previous public gameplay screenshots when publishing the update. The next release step is verification of the staged package and publication surfaces; another broad exploratory audit is not required by these completed scenario reports.
+The maintainer proceeded with release. Retain the four focused checks in the release checklist as unverified follow-up coverage: exact protected saved-item recovery, mental-state save/load, inactive shared-snapshot cleanup, and the rebuilt candidate's UI/load smoke. Preserve older successful normal-flow evidence. Do not label a different map, moved item, debug-ended break or successful build as proof of an unexercised boundary case.
+
+Small and large maps do not need another unrestricted audit merely because copy changed. Any repeated outfit plan without progress, missing exact ownership, failed safe return, or renewed same-tick loop should instead become a focused reproduction with Detailed logging.

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using AutomaticOutfitManager.Core;
+using AutomaticOutfitManager.Rules;
 using AutomaticOutfitManager.State;
 using RimWorld;
 using Verse;
@@ -9,7 +10,7 @@ using Verse.AI;
 
 namespace AutomaticOutfitManager.Detection
 {
-    // Read-only evidence for brief Standing periods after outfit transitions.
+    // Read-only evidence for Standing after outfit transitions or activity pauses.
     // No path scans, reservations, job changes, or persistent save references.
     internal static class TransitionActivityDiagnostics
     {
@@ -18,6 +19,7 @@ namespace AutomaticOutfitManager.Detection
         {
             internal Map Map;
             internal PawnApparelState State;
+            internal ApparelRule PausedRule;
             internal ApparelTransition Phase;
             internal int Until, LastTick, WaitSince = -1, JobSince, JobId = int.MinValue;
             internal IntVec3 Position;
@@ -97,12 +99,26 @@ namespace AutomaticOutfitManager.Detection
             watch.Rejection = reason + ": " + Describe(job);
         }
 
+        internal static void PausedActivityDenied(Pawn pawn, Job job, ApparelRule rule)
+        {
+            if (rule?.WorkAreaPaused != true || !Enabled(pawn)) return;
+            Watch watch = Get(pawn, true);
+            if (watch.PausedRule == null)
+            {
+                watch.PausedRule = rule;
+                Touch(watch, "activity paused: " + rule.Name + " (" + rule.Id + ")");
+            }
+            // A retry adds evidence without extending the diagnostic window.
+            Rejected(pawn, job, "paused area activity denied");
+        }
+
         internal static void Sample(Pawn pawn, int tick)
         {
             if (!Enabled(pawn)) return;
             PawnApparelState state = AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn);
             Watch watch = Get(pawn, state != null);
             if (watch == null) return;
+            if (watch.PausedRule?.WorkAreaPaused == false) watch.PausedRule = null;
             if (!ReferenceEquals(watch.State, state) || (state != null && watch.Phase != state.Transition))
             {
                 watch.State = state;
@@ -115,7 +131,9 @@ namespace AutomaticOutfitManager.Detection
                 watch.LastEnd = watch.Rejection = "none";
                 watch.RejectionTick = -1;
                 watch.RejectionCount = 0;
-                if (state == null) watches.Remove(pawn);
+                // Keep only a weak, expired marker while the triggering rule is
+                // paused. Repeated rejected proposals must not rearm it forever.
+                if (state == null && watch.PausedRule == null) watches.Remove(pawn);
                 return;
             }
 

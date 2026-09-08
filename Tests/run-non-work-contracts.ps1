@@ -1,4 +1,4 @@
-param([switch]$VerifyFailureReporting)
+param([switch]$VerifyFailureReporting, [string]$SnapshotPolicySource = "")
 
 $ErrorActionPreference = 'Stop'
 $rcRoot = Split-Path $PSScriptRoot -Parent
@@ -6,6 +6,7 @@ $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer
 $vsDir = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
 $compiler = Join-Path $vsDir 'MSBuild\Current\Bin\Roslyn\csc.exe'
 $testOutput = Join-Path $env:TEMP ('aom-non-work-tests-' + [Guid]::NewGuid().ToString('N') + '.exe')
+if (-not $SnapshotPolicySource) { $SnapshotPolicySource = Join-Path $rcRoot 'Source\Detection\WorkGearSnapshotPolicy.cs' }
 $sources = @(
     (Join-Path $PSScriptRoot 'NonWorkOutfitContractTests.cs'),
     (Join-Path $rcRoot 'Source\Rules\ApparelRule.cs'),
@@ -14,7 +15,8 @@ $sources = @(
     (Join-Path $rcRoot 'Source\Detection\RuleEvaluator.cs'),
     (Join-Path $rcRoot 'Source\Detection\NonWorkFallbackPolicy.cs'),
     (Join-Path $rcRoot 'Source\Detection\GearSelectionPolicy.cs'),
-    (Join-Path $rcRoot 'Source\Detection\WorkGearSnapshotPolicy.cs'),
+    (Join-Path $rcRoot 'Source\Detection\SnapshotReturnMigration.cs'),
+    $SnapshotPolicySource,
     (Join-Path $rcRoot 'Source\Detection\RepairMaterialStage.cs'),
     (Join-Path $rcRoot 'Source\Detection\GearRetrievalRoute.cs')
 )
@@ -23,6 +25,11 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Contract test compilation failed.' }
     & $testOutput
     if ($LASTEXITCODE -ne 0) { throw 'Contract checks failed.' }
+    $migrationOutput = & $testOutput --previous-inactive-cleanup 2>&1
+    if ($LASTEXITCODE -ne 1 -or ($migrationOutput -join "`n") -notmatch 'inactive saved snapshot acquires a normal return session') {
+        throw 'Missing-session negative control did not fail the expected migration assertion.'
+    }
+    Write-Host 'PASS previous inactive cleanup fails the return-session regression.'
     if ($VerifyFailureReporting) {
         $failureOutput = & $testOutput --verify-failure-reporting 2>&1
         $failureExitCode = $LASTEXITCODE

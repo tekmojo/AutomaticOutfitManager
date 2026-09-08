@@ -1,6 +1,6 @@
-# Steam Workshop copy — 0.4.0
+# Steam Workshop copy — 0.4.1
 
-Published on the existing Workshop item on 2026-09-06. Description, change notes and all eight replacement screenshots were verified publicly after the maintainer saved them. The downloaded package matches the audited stage. See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.0.md); the matching GitHub release uses the same package. Current publication status is in the [release checklist](RELEASE-CHECKLIST.md).
+Published on the existing Workshop item on 2026-09-08. The public description and full change note match the prepared text, and the downloaded package matches the audited stage. The current eight-image gallery is retained. See [0.4.1 Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.1.md) and the [release checklist](RELEASE-CHECKLIST.md).
 
 - Existing item: `3792731788` — Automatic Outfit Manager. Preserve its identity and visibility.
 - Supported version: RimWorld 1.6. Required item: Harmony.
@@ -18,76 +18,96 @@ Work and Non-Work Area rules for automatic outfits, saved personal gear, lockers
 
 [b]Outfits for work. Personal clothes for downtime.[/b]
 
-Set outfits and access permissions for your RimWorld map areas. Work Area Rules prepare pawns for a freezer, workshop or reactor room. Non-Work Area Rules return Work outfits before entering a dining room, lounge or bedroom.
+Choose outfits and access permissions for RimWorld map areas. Work Area Rules prepare pawns for a freezer, workshop or reactor room. Non-Work Area Rules return Work outfits before entering a dining room, lounge or bedroom.
 
 [quote][b]RimWorld 1.6[/b] | [b]Harmony required[/b] | Vanilla and modded apparel and primary weapons[/quote]
 
-[quote][b]Latest update — 0.4.0[/b]
-Non-Work Area Rules add saved personal outfits, optional fallback outfits and a choice of which Work outfits to remove. The interface now uses map-area colors, clearer activity lists and shorter tooltips. This update also improves buffers, outfit restoration and task continuity.
+[quote][b]Latest update — 0.4.1[/b]
+Improves outfit transitions, Pause activities, supply hauling and safe rest. Adds locker overlap warnings and highlights, clearer automatic outfit/saved item labels, and stronger separation between shared outfits and personal snapshots. AOM yields during mental breaks and resumes after recovery.
 [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788]Read the full change notes[/url][/quote]
 
 [h1]Choose outfits by area[/h1]
 [list]
-[*]Require every selected garment and, if weapons are selected, one acceptable primary weapon before entry. Requirements stay in place through work, meals, recreation, sleep and necessary transit.
-[*]Return Work outfits and prefer each pawn's saved personal clothes. Choose fallback gear for pawns without a saved outfit, or turn the preference off to require a selected outfit for everyone.
-[*]All Work Outfits is the default. Select individual Work rules to keep other issued gear. Shared items remain until all their sources are selected for removal.
+[*]Require every selected garment and one of the selected primary weapons before entry. Requirements remain in force during work, meals, recreation, sleep and necessary transit. Empty categories add no requirement.
+[*]Return Work outfits and prefer saved personal clothing. Select fallback gear for pawns without a saved outfit, or turn the preference off to require a selected outfit for everyone.
+[*]All Work Outfits is the default. Choose individual source rules to keep other issued gear; shared items stay until all their sources are selected for removal.
 [*]Set condition and quality ranges for selected apparel and weapons. Saved personal restoration ignores these ranges.
-[*]Keep an outfit for up to 20 compatible follow-up tasks. Only successful tasks count. New work needing a different outfit can end the allowance early.
+[*]Keep an outfit for up to 20 compatible follow-up tasks. Only successful tasks count. A task needing a different outfit can end the allowance early.
 [/list]
 
 [h1]Keep personal gear personal[/h1]
-Pawns normally restore the same personal items they wore before Work gear was issued, including their previous primary weapon or unarmed state. Missing saved items do not activate a fallback outfit. Tattered personal apparel can be replaced by a suitable better garment only after it is successfully worn.
+Pawns normally restore the same personal items, including their previous primary weapon or unarmed state. Missing saved items do not activate fallback. Tattered personal apparel can be replaced by a suitable better garment only after it is successfully worn.
 
-Optional locker rooms provide a changing point and preferred stock. Nearby saved items are restored before optional distant improvements. Haulers can help recover blocked saved items when suitable accessible storage exists; their work priorities and area permissions still apply.
+Work/Non-Work selected types and retained shared stock cannot become personal snapshots. Existing saves return held shared items through the safe locker path. Nearby saved items are restored first; capable haulers can recover blocked items when suitable storage exists.
 
-[h1]A clearer view of your colony[/h1]
+[h1]Area controls and activity tracking[/h1]
 [list]
-[*]Rule badges and references share their map area's color. Hover to highlight an area; click the badge to center the map on it.
-[*]Custom editable areas appear above special game/mod areas in the selectors.
+[*]Activities, Hauling and Wandering have separate permissions for colonists, mechs/robots, animals, guests, slaves and prisoners. Allow Children adds a child-access control; eligible children still follow outfit requirements.
 [*]Workers and Occupants show humanlike activity, outfit changes and completed buffer counts. Haulers and Wanderers keep animal and robot activity separate.
-[*]Activities, Hauling and Wandering permissions apply separately to colonists, mechs/robots, animals, guests, slaves and prisoners. Allow Children adds a child-access control.
-[*]Selected gear shows its rule names. [Retained] marks unused managed stock; muted grey explains a conflict.
-[*]Edit the short description beside a badge, collapse rules, pause work or Recall one pawn. Deleting a rule asks for confirmation.
+[*]Rule colors match their areas. Hover a badge to highlight; click to center the map. Custom areas appear first in menus.
+[*]Selected gear names its source rules. [Retained] marks unused automatic outfit stock; grey entries explain conflicts.
+[*]Edit descriptions, collapse rules or Recall a pawn, including children. Delete asks for confirmation.
 [/list]
+
+[h1]Pause activities without blocking rest[/h1]
+Pause activities stops ordinary work, meals, recreation and learning. Allowed hauling, wandering, sleep, bed rest and animal nursing continue with access and outfit requirements. Rest in a Work Area still requires its PPE.
+
+Haulers can collect supplies of any item type from a paused Work Area for delivery outside it. Every delivery target must be outside that area, and the pawn needs the required outfit. This allows transport, not processing or construction inside a paused area. Unrelated locker trips avoid unnecessary protected-area entry.
 
 [h1]Getting started[/h1]
 [olist]
-[*]Paint a Work Area and, optionally, a locker area with storage.
-[*]Open Automatic Outfit Manager and select Add Work Area Rule.
-[*]Choose the area, compatible apparel and acceptable primary weapons. Every selected garment is required; weapons are alternatives. Empty categories add no requirement.
-[*]Set gear standards, access and the task buffer. Provide reachable stock and capable haulers.
-[*]For dedicated locker storage, enable Allow managed apparel/weapons and disable the matching non-managed filters.
-[*]Add a Non-Work Area Rule for a dining room or lounge. Start with Default to Saved Personal Outfit and All Work Outfits, then adjust as needed.
+[*]Paint a Work Area and optional locker area. Add a Work Area Rule, choose the outfit and set access, gear standards and the task buffer.
+[*]Provide reachable stock and capable haulers. For dedicated lockers, enable Automatic outfit apparel/weapons, disable their non-automatic counterparts and allow suitable item types and storage limits.
+[*]Add a Non-Work Area Rule for downtime. Start with Default to Saved Personal Outfit and All Work Outfits.
 [/olist]
 
-[h1]Selections and storage[/h1]
-Remove and Clear change a rule's requirements while keeping those types as managed locker stock. Forget returns an unused type to ordinary storage once no rule or current outfit change needs it. Individually saved or borrowed items stay protected. Both Work and Non-Work selections count as managed stock; [Retained] does not promise a copy is available.
+[h1]Lockers and storage[/h1]
+Remove and Clear keep types as automatic outfit stock. Forget releases unused types once no rule or outfit change needs them. Exact saved items use Automatic saved apparel/weapons tags and stay in automatic storage outside active outfit changes.
 
-[h1]Overlapping areas[/h1]
-Compatible Work Areas combine requirements and keep separate buffers. Contradictory outfits are blocked. A Work Area cannot be entirely inside a Non-Work Area, including identical areas. If painting creates that conflict, the Work rule is disabled and its pawns are recalled; adjust the areas and re-enable it. Partial overlaps and Non-Work rooms inside larger Work Areas still need compatible outfits.
+Storage limits are independent of rule sliders. To accept saved outfits of any condition or quality, allow their types and set storage to 0–100% and any quality. Saved tags do not bypass storage filters or create permanent reservations.
 
-[h1]Compatibility and limits[/h1]
+Locker warnings identify overlap and storage problems. Work/Non-Work overlap cells stay highlighted while the mod tab is open; hover a warning, locker button or badge to focus that locker. Keep changing space and personal-outfit storage outside Work Areas.
+
+[h1]Overlaps and compatibility[/h1]
+Compatible Work Areas combine requirements and keep separate buffers. A Work Area cannot be entirely inside a Non-Work Area, including identical areas. If painting creates that conflict, the Work rule is disabled and its pawns recalled; adjust the areas and re-enable it. Other overlaps still require compatible outfits.
+
 [list]
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077]Harmony[/url] is the only dependency. The player chooses areas and gear; AOM does not create rules from detected hazards.
-[*]Eligible humanlike pawns change outfits. Animals and robots follow access permissions without changing gear. Meals, rest and recreation use Activities; robot cleaning uses Wandering.
-[*]Direct player orders and drafting keep their normal behavior. Automatic sidearm choices do not override the required primary weapon; Simple Sidearms memories are preserved.
-[*]Already-managed protection stays on when removing it would expose the pawn or route to vacuum, dangerous temperatures or toxic conditions.
-[*]Gravship area references follow copied destination areas. Hosted visitors return assigned managed stock before naturally leaving.
-[*]Normal equipment eligibility applies. Persona weapons are excluded from automatic selection.
-[*]No ammunition, inventory-sidearm, offhand or drafted weapon-switching management. No per-pawn assignment filters or manual conflict priority. English interface only.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077]Harmony[/url] is the only dependency. You choose the areas and gear; AOM does not create rules from detected hazards.
+[*]Animals and robots follow access permissions without changing outfits. Meals, rest and recreation use Activities; robot cleaning uses Wandering.
+[*]Mental breaks, incapacitation and native emergency control suspend outfit intervention while preserving saved ownership. Normal handling resumes after recovery. Ordinary tiredness and sleep are not exemptions.
+[*]Direct orders and drafting keep their normal behavior. Automatic sidearm choices do not override the required primary; Simple Sidearms memories are preserved.
+[*]Borrowed protection stays on while removing it would expose the pawn or route to vacuum, dangerous temperatures or toxic conditions.
+[*]Gravship areas follow copied destination areas. Hosted visitors return assigned borrowed outfits before naturally leaving.
+[*]Normal equipment eligibility applies; persona weapons are excluded. No ammunition, sidearm/offhand or drafted weapon-switching management. English interface only.
 [/list]
 
 [h1]Support and source[/h1]
-Open [b]Options → Mod settings → Automatic Outfit Manager[/b] for Quiet, Basic (recommended) or Detailed logging. Detailed keeps the job, gear and recovery evidence useful for troubleshooting without filling normal tooltips with diagnostics. Use it while reproducing an issue, then return to Basic.
+Mod settings offer Quiet, Basic (recommended) and Detailed logging. Use Detailed while reproducing a problem, then return to Basic. Include the version, affected pawn/rule and log; a short video helps with repeated outfit changes or persistent Standing.
 
 [url=https://github.com/tekmojo/AutomaticOutfitManager]Player guide and source[/url] | [url=https://github.com/tekmojo/AutomaticOutfitManager/issues]Report an issue[/url]
 
-Please include the mod version, affected pawn/rule and the log covering the problem. A short video helps with repeated outfit changes or persistent Standing.
-
 [h1]License and legal notice[/h1]
-Automatic Outfit Manager's original source and documentation use the MIT License. Third-party software, RimWorld materials, trademarks and game-derived screenshots retain their respective rights; see LICENSE and NOTICE.md.
+Original source and documentation use the MIT License. Third-party software and game-derived materials retain their rights; see LICENSE and NOTICE.md.
 
 Portions of the materials used to create this content/mod are trademarks and/or copyrighted works of Ludeon Studios Inc. All rights reserved by Ludeon. This content/mod is not official and is not endorsed by Ludeon.
+```
+
+## Version 0.4.1 change note — published
+
+```text
+[b]0.4.1 — Safer transitions and clearer locker controls[/b]
+
+Pause activities now reflects both Work and Non-Work Areas. It stops ordinary work, meals, recreation and learning while permitted hauling, sleep, bed rest, nursing and wandering continue with access and outfit requirements. PPE-protected haulers can collect supplies of any item type for delivery outside a paused area; this does not reopen processing or construction inside it.
+
+Improves raid/departure handoffs, saved-outfit continuation and recovery from temporary waits. Reduces unnecessary gearing for unrelated locker trips, preserves legitimate supply hauling and keeps interrupted tasks from consuming buffer progress. Children performing observed activities can also be recalled.
+
+AOM yields during mental breaks, incapacitation and native emergency control, preserving saved outfit ownership and resuming safely after recovery. Ordinary rest still respects PPE requirements.
+
+Storage filters now use Automatic outfit apparel/weapons and Non-automatic outfit apparel/weapons. Exact saved items are tagged Automatic saved apparel/weapons and remain in automatic storage even outside an active outfit change. Storage keeps its own item, condition and quality limits, independent of rule sliders.
+
+Work/Non-Work selected types and retained shared stock cannot become personal snapshots. Existing saves return held shared items through the normal safe locker path; loose items are released from personal ownership without a special retrieval trip.
+
+Locker overlap warnings highlight affected Work and Non-Work cells while the mod tab is open. Storage guidance is clearer, the loading description focuses on gameplay, and Detailed logging remains available for troubleshooting. Existing rule and filter identities are preserved.
 ```
 
 ## Version 0.4.0 change note — published
@@ -108,11 +128,13 @@ Existing Work rules remain Work rules. Non-Work rules are optional additions.
 
 ## Screenshots
 
-All eight [0.4.0 gallery images](Screenshots/README.md) are live on Workshop in the listed order, replacing the older gameplay gallery. Their public Steam image identifiers match the local originals; the branded cover remains separate. Every original is under 1,000,000 bytes. The same eight images form this release's [GitHub gallery](Screenshots/README.md).
+The published 0.4.0 gallery remains the active gallery for 0.4.1, as requested by the maintainer. No screenshots were changed. The [capture plan](Screenshots/CAPTURE-PLAN-0.4.1.md) is deferred for a future refresh.
+
+At 0.4.0 closeout, all eight [0.4.0 gallery images](Screenshots/README.md) were verified live on Workshop in the listed order, replacing the older gameplay gallery. Their public Steam image identifiers match the local originals; the branded cover remains separate. Every original is under 1,000,000 bytes. The same eight images form 0.4.0's [GitHub gallery](Screenshots/README.md).
 
 ## Historical change notes
 
-The following describe their original releases, not current behavior where 0.4.0 supersedes it.
+The following describe their original releases, not current behavior where later releases supersede it.
 
 ## Version 0.3.8 change note
 

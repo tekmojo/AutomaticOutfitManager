@@ -98,6 +98,7 @@ internal static class LockerRecoveryTests
         lumi.CurJob=recovery;
         check(lumi.CanReserve(vest),"admitted exact recovery haul reserves saved vest");
         vest.Spawned=false; vest.Holder=lumi; lumi.carryTracker.CarriedThing=vest;
+        recovery.count -= 1; // Native StartCarryThing subtracts the quantity taken.
         check(SavedGearRecovery.AllowsHaul(lumi,recovery,bowman,vest),"pickup retains safe exact delivery authorization");
         vest.Spawned=true; vest.Holder=null; lumi.carryTracker.CarriedThing=null; vest.Position=new IntVec3(20);
         SavedGearRecovery.NotifyEnded(lumi,recovery);
@@ -209,9 +210,10 @@ namespace AutomaticOutfitManager.Patches
         internal static bool DenySource;
         internal enum ScannerSignature { StandardThing }
         internal static IEnumerable<MethodBase> ScannerMethods(Type result,ScannerSignature signature) =>
-            new[] {typeof(WorkGiver_LockerRestock),typeof(WorkGiver_WeaponLockerRestock)}
+            new[] {typeof(WorkGiver_LockerRestock),typeof(WorkGiver_WeaponLockerRestock),typeof(WorkGiver_ConstructDeliverResources)}
                 .Select(t=>(MethodBase)t.GetMethod(result==typeof(bool)?"HasJobOnThing":"JobOnThing"));
         internal static bool ShouldReject(Pawn p,Thing t)=>DenySource;
+        internal static bool ShouldRejectPausedScannerTarget(WorkGiver_Scanner scanner,Pawn p,Thing t)=>DenySource;
         internal static bool ShouldRejectScannerTarget(WorkGiver_Scanner scanner,Pawn p,Thing t)=>
             ManagedWorkClaimRegistry.IsClaimedByOther(p,p.Map,t,t.Position);
     }
