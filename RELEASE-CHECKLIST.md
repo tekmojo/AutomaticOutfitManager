@@ -1,6 +1,6 @@
 # Automatic Outfit Manager — 0.4.1 release closeout
 
-Released on Workshop **2026-09-08**. Public copy and downloaded package verification are complete, and the normal development junction is restored. Matching GitHub publication is in progress. [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.1.md) records the evidence; [0.4.0 history](RELEASE-HISTORY-0.4.0.md) remains unchanged.
+Released on Workshop **2026-09-08**. Public copy and downloaded package verification are complete, and the normal development junction is restored. The matching [GitHub release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.1) is public and latest; [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.1.md) records the tag and asset verification. [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.1.md) records the evidence; [0.4.0 history](RELEASE-HISTORY-0.4.0.md) remains unchanged.
 
 ## Completed preparation and Workshop release
 
@@ -11,7 +11,7 @@ Released on Workshop **2026-09-08**. Public copy and downloaded package verifica
 - [x] Retain the existing eight screenshots for 0.4.1 at the maintainer's request. Future capture suggestions are deferred, not a release gate.
 - [x] Restore the installed junction after confirming the game is closed; verify the installed DLL matches the release.
 - [x] Build and verify the GitHub ZIP directly from the audited stage: 612,315 bytes, SHA-256 `CB67C35380515AACF47354E55B4408782A982B2E1BCD73C6A725C8D9A4A63E15`.
-- [ ] Commit/tag the frozen release source, fast-forward the release branches, publish the GitHub release and verify uploaded assets.
+- [x] Commit/tag the frozen release source, fast-forward the release branches, publish GitHub release v0.4.1 and verify both uploaded asset sizes and SHA-256 digests.
 
 ## Unverified gameplay follow-up
 

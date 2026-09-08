@@ -13,10 +13,10 @@ The maintainer uploaded the update through RimWorld and saved the description an
 
 RimWorld was closed when the installed mod junction was restored from the upload stage to `C:/GitHub/AutomaticOutfitManager`. The installed DLL matches 0.4.1. Both repositories and their intentional source changes were preserved.
 
-The separate live checkout is not a complete copy of the release package: About metadata, ModIcon and WorkGivers XML differ; Preview, LICENSE and NOTICE are absent. These existing support-file differences are recorded, not silently synchronized. Package and subscriber verification use the audited stage. Future packaging should continue from the authoritative RC worktree.
+The separate live checkout is not a complete copy of the release package: ModIcon and WorkGivers XML differ; Preview, LICENSE and NOTICE are absent. The About version label was subsequently aligned to 0.4.1 after verifying that only the version text differed from the staged metadata. These existing support-file differences are recorded, not silently synchronized. Package and subscriber verification use the audited stage. Future packaging should continue from the authoritative RC worktree.
 
 ## GitHub package and evidence
 
-The prepared ZIP contains exactly the same twelve files at its root, with each entry hash checked against the stage. ZIP size: **612,315 bytes**; SHA-256 `CB67C35380515AACF47354E55B4408782A982B2E1BCD73C6A725C8D9A4A63E15`. GitHub publication verification will be recorded separately.
+The prepared ZIP contains exactly the same twelve files at its root, with each entry hash checked against the stage. ZIP size: **612,315 bytes**; SHA-256 `CB67C35380515AACF47354E55B4408782A982B2E1BCD73C6A725C8D9A4A63E15`. [GitHub closeout](GITHUB-CLOSEOUT-0.4.1.md) records the published matching release and verified asset digests.
 
 Local evidence: `C:/GitHub/AutomaticOutfitManager/work/releases/0.4.1-closeout/` contains saved public pages/API results, subscriber hashes, source freeze, ZIP/checksum, and restored-junction metadata. Focused manual coverage remains disclosed in [the validation record](NEXT-UPDATE-READINESS.md); publication does not convert untested cases into passes.
