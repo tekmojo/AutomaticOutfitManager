@@ -1,6 +1,6 @@
 # 0.4.2 validation record
 
-Updated 2026-09-08. Workshop publication and downloaded-package verification are complete; see [0.4.2 closeout](WORKSHOP-CLOSEOUT-0.4.2.md). The [release checklist](../RELEASE-CHECKLIST.md) retains the unverified gameplay follow-ups and pending GitHub closeout. Publication does not convert those cases into passes. [0.4.1 readiness](READINESS-0.4.1.md) and [closeout](../RELEASE-HISTORY-0.4.1.md) remain history.
+Updated 2026-09-08. Workshop and GitHub publication are complete, with downloaded Workshop files and uploaded GitHub asset digests verified; see [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.2.md) and [GitHub closeout](GITHUB-CLOSEOUT-0.4.2.md). The [release checklist](../RELEASE-CHECKLIST.md) retains the unverified gameplay follow-ups. Publication does not convert those cases into passes. [0.4.1 readiness](READINESS-0.4.1.md) and [closeout](../RELEASE-HISTORY-0.4.1.md) remain history.
 
 ## Build and evidence boundary
 

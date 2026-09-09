@@ -19,6 +19,6 @@ The live development checkout retains its existing support-file differences and 
 
 The [validation record](NEXT-UPDATE-READINESS.md) preserves the focused unverified gameplay cases, including the earlier Ocagobrei simple-meal loop. No new gameplay evidence was obtained during closeout. The copy-build UI/load smoke, mental-state save/load, inactive shared-snapshot cleanup and subscriber-only gameplay remain unverified.
 
-The matching GitHub release, ZIP, commit, tag and push have not been performed or authorized in this closeout. The latest recorded GitHub release remains 0.4.1; documentation links identify that difference explicitly.
+GitHub release operations were completed under the maintainer's subsequent authorization. The matching ZIP and checksum are public as the latest release, with remote asset digests verified. See [GitHub closeout](GITHUB-CLOSEOUT-0.4.2.md) for the tagged release commit, package hashes and publication timestamp.
 
 Local evidence: `C:/GitHub/AutomaticOutfitManager/work/releases/0.4.2-upload/` contains the public baseline/result, rendered note, subscriber hashes, frozen inputs, package, manifests, restored-junction result and live About backup. These records are outside the runtime package.

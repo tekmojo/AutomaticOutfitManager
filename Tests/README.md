@@ -1,6 +1,6 @@
 # Testing and audit records
 
-Use the [0.4.2 validation record](NEXT-UPDATE-READINESS.md), [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.2.md), [copy preflight](RELEASE-COPY-AUDIT-0.4.2.md) and [release checklist](../RELEASE-CHECKLIST.md) for the current release. [Non-Work unavailable-gear contracts](NON-WORK-UNAVAILABLE-GEAR.md) record the gameplay fixes and negative controls.
+Use the [0.4.2 validation record](NEXT-UPDATE-READINESS.md), [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.2.md), [GitHub closeout](GITHUB-CLOSEOUT-0.4.2.md), [copy preflight](RELEASE-COPY-AUDIT-0.4.2.md) and [release checklist](../RELEASE-CHECKLIST.md) for the current release. [Non-Work unavailable-gear contracts](NON-WORK-UNAVAILABLE-GEAR.md) record the gameplay fixes and negative controls.
 
 The [0.4.1 validation record](READINESS-0.4.1.md), [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.1.md) and [copy preflight](RELEASE-COPY-AUDIT-0.4.1.md) remain historical. Their **3,431 checks across 29 suites** belong to that release, not the current candidate.
 

@@ -2,7 +2,7 @@
 
 ## 0.4.2 — 2026-09-08
 
-Published on Steam Workshop; the downloaded twelve-file package matches the audited stage. The matching GitHub release remains pending. See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.2.md).
+Published on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) and [GitHub](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.2). The downloaded Workshop package and GitHub ZIP contain the same twelve audited files; GitHub's asset sizes and SHA-256 values match. See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.2.md) and [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.2.md).
 
 ### Fixed
 

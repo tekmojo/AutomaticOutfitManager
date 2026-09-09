@@ -1,6 +1,6 @@
-# Automatic Outfit Manager — 0.4.2 Workshop closeout
+# Automatic Outfit Manager — 0.4.2 release closeout
 
-Published on Workshop **2026-09-08** (America/Denver). Public copy and all twelve downloaded files are verified, and the development junction is restored. See [0.4.2 Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.2.md). GitHub release/source-control closeout remains pending. The [0.4.1 closeout](RELEASE-HISTORY-0.4.1.md), [published Workshop copy](WORKSHOP-PUBLISHED-0.4.1.md) and [0.4.1 readiness](Tests/READINESS-0.4.1.md) are preserved. Item identity remains 3792731788.
+Published on Workshop and GitHub **2026-09-08** (America/Denver). Public copy, all twelve downloaded Workshop files and both GitHub asset digests are verified. The development junction is restored. See [0.4.2 Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.2.md) and [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.2.md). The [0.4.1 closeout](RELEASE-HISTORY-0.4.1.md), [published Workshop copy](WORKSHOP-PUBLISHED-0.4.1.md) and [0.4.1 readiness](Tests/READINESS-0.4.1.md) are preserved. Item identity remains 3792731788.
 
 ## Current preparation
 
@@ -27,7 +27,7 @@ Exact protected saved-item recovery now has concrete completion evidence: Jono v
 
 Mental-state save/load and inactive shared-snapshot cleanup remain unverified from 0.4.1. Neither is closed by normal post-load restoration. A subscriber-only launch also remains distinct from downloaded-package byte verification.
 
-## Publication and remaining closeout
+## Publication and source-control closeout
 
 - [x] Preserve the final DLL hash and 117 source/package input hashes. This records released content; the focused gameplay findings above remain open.
 - [x] Retain and verify the existing eight-image gallery. [Optional replacements](Screenshots/CAPTURE-PLAN-0.4.2.md) remain suggestions, not completed captures.
@@ -35,5 +35,5 @@ Mental-state save/load and inactive shared-snapshot cleanup remain unverified fr
 - [x] Preserve PublishedFileId and verify the installed uploader source against the audited stage before launch. The maintainer completed the in-game update.
 - [x] Verify the public 0.4.2 item, full description, compact update, separate change note, dependency, gallery and byte count. A visual UI/load smoke remains unverified above.
 - [x] Verify Steam's refreshed subscriber manifest and all twelve files against the stage. Restore the development junction with RimWorld closed and verify the installed 0.4.2 DLL.
-- [ ] Prepare the matching GitHub ZIP/release when requested; it must use the audited stage. The existing GitHub release remains 0.4.1.
-- [ ] Commit/tag/push and publish final notes only when requested; record release date, source commit, asset hashes and any expressly deferred checks at closeout.
+- [x] Create the matching twelve-file GitHub ZIP from the audited stage and publish 0.4.2 as the latest release. Verify uploaded ZIP/checksum asset sizes and SHA-256 values.
+- [x] Commit the released content, tag it v0.4.2 and fast-forward/push main and the RC branch as authorized. Release commit: `a7aec6865d0dbeb5b1140538143b73501e5644ba`. A later documentation closeout records publication evidence without moving the tag. [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.2.md) records hashes, timestamps and validation limits.
