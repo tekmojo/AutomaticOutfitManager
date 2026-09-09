@@ -1980,8 +1980,8 @@ namespace AutomaticOutfitManager.Patches
                 !compatibleWeaponRequirements)
             {
                 foreach (ApparelRule blockedRule in applicableRules)
-                    UnavailableWorkRegistry.Block(
-                        pawn, blockedRule, unavailableBlockTicks);
+                    BlockUnavailableGear(
+                        pawn, blockedRule, newJob, unavailableBlockTicks);
                 string reason = unwearableRule != null
                     ? $"required apparel for '{unwearableRule.Name}' cannot be worn"
                     : transitConflict != null
@@ -2137,8 +2137,8 @@ namespace AutomaticOutfitManager.Patches
                     }
                     else
                     {
-                        UnavailableWorkRegistry.Block(
-                            pawn, sourceRule, unavailableBlockTicks);
+                        BlockUnavailableGear(
+                            pawn, sourceRule, newJob, unavailableBlockTicks);
                     }
                     if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                             pawn, $"gear-unavailable:{sourceRule.Id}:{def.defName}"))
@@ -2190,8 +2190,8 @@ namespace AutomaticOutfitManager.Patches
                     }
                     else
                     {
-                        UnavailableWorkRegistry.Block(
-                            pawn, weaponRule, unavailableBlockTicks);
+                        BlockUnavailableGear(
+                            pawn, weaponRule, newJob, unavailableBlockTicks);
                     }
                     if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                             pawn, $"weapon-unavailable:{weaponRule.Id}:{weaponRule.WeaponSummary}"))
@@ -3098,7 +3098,10 @@ namespace AutomaticOutfitManager.Patches
             Job trigger = MakeSafeWaitJob(pawn, 30);
             ThinkNode jobGiver = null;
             JobTag? tag = null;
-            if (!TryPrepareForMatchingRules(
+            if (!TryRedirectIdleMissingGearWaitWithEgress(
+                    pawn.jobs, pawn, component, component.StateFor(pawn),
+                    ref trigger, ref jobGiver, ref tag, selectedNonWorkOnly: true) &&
+                !TryPrepareForMatchingRules(
                     pawn.jobs, pawn, component, occupiedRules,
                     ref trigger, ref jobGiver, ref tag, false))
             {
@@ -3582,7 +3585,7 @@ namespace AutomaticOutfitManager.Patches
                 !RuleEvaluator.RuleCanApplyToPawn(pawn, rule));
             if (unwearableRule != null)
             {
-                UnavailableWorkRegistry.Block(pawn, unwearableRule);
+                BlockUnavailableGear(pawn, unwearableRule, newJob);
                 if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                         pawn, $"nested-unwearable:{unwearableRule.Id}"))
                 {
@@ -3606,7 +3609,7 @@ namespace AutomaticOutfitManager.Patches
             if (conflict != null || !compatibleWeaponRequirements)
             {
                 foreach (ApparelRule rule in rules)
-                    UnavailableWorkRegistry.Block(pawn, rule);
+                    BlockUnavailableGear(pawn, rule, newJob);
                 if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                         pawn, $"nested-conflict:{string.Join(",", rules.Select(rule => rule.Id))}"))
                 {
@@ -3760,7 +3763,7 @@ namespace AutomaticOutfitManager.Patches
                         return false;
                     }
 
-                    UnavailableWorkRegistry.Block(pawn, sourceRule);
+                    BlockUnavailableGear(pawn, sourceRule, newJob);
                     if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                             pawn, $"nested-gear-unavailable:{sourceRule.Id}:{def.defName}"))
                     {
@@ -3803,7 +3806,7 @@ namespace AutomaticOutfitManager.Patches
                         return false;
                     }
 
-                    UnavailableWorkRegistry.Block(pawn, weaponRule);
+                    BlockUnavailableGear(pawn, weaponRule, newJob);
                     if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
                             pawn, $"nested-weapon-unavailable:{weaponRule.Id}:{weaponRule.WeaponSummary}"))
                     {
@@ -3956,7 +3959,7 @@ namespace AutomaticOutfitManager.Patches
             // Both requirements remain enforceable. Never alternate between
             // mutually exclusive outfits in an overlap or a multi-area job.
             if (claimedByOtherPawn || unwearable)
-                UnavailableWorkRegistry.Block(pawn, destination);
+                BlockUnavailableGear(pawn, destination, newJob);
             if (conflict || claimedByOtherPawn || unwearable ||
                 UnavailableWorkRegistry.HasActiveRuleBlock(pawn, destination))
             {
@@ -4607,6 +4610,22 @@ namespace AutomaticOutfitManager.Patches
                     PawnInsideArea(pawn, rule.ChangingArea));
         }
 
+        private static void BlockUnavailableGear(
+            Pawn pawn, ApparelRule rule, Job rejectedJob, int ticks = 1200)
+        {
+            UnavailableWorkRegistry.Block(pawn, rule, ticks);
+            if (rule?.IsNonWork != true || rule.DefaultToSavedPersonalOutfit ||
+                rejectedJob?.playerForced != false || !IsBufferableJob(rejectedJob))
+                return;
+
+            // An outside worksite can still need an ingredient or a late-bound
+            // destination inside this area. Remember that exact native task,
+            // not just inside-area targets, so the next scan can choose others.
+            UnavailableWorkRegistry.Block(pawn, rule, rejectedJob, ticks);
+            ProtectedBoundaryRetryRegistry.Clear(pawn, rejectedJob);
+            ManagedWorkClaimRegistry.Release(pawn, rejectedJob);
+        }
+
         private static bool TryReplaceUnavailableGearWaitWithEgress(
             Pawn_JobTracker tracker,
             Pawn pawn,
@@ -4641,13 +4660,25 @@ namespace AutomaticOutfitManager.Patches
             if (missingOccupiedRules.Count == 0)
                 return false;
 
-            Area preferredArea = missingOccupiedRules
+            bool localNonWorkExit = missingOccupiedRules.Any(rule =>
+                rule.IsNonWork && !rule.DefaultToSavedPersonalOutfit);
+            Area preferredArea = localNonWorkExit ? null : missingOccupiedRules
                 .Select(rule => rule.ChangingArea)
                 .FirstOrDefault(area => area?.Map == pawn.Map);
+            // No gear was acquired for this failed selection. Leave locally;
+            // a distant locker trip can require re-entering the blocked area.
             if (!TryFindSafeTransitionCell(
                     pawn, preferredArea, occupiedRules,
-                    out IntVec3 safeCell))
+                    out IntVec3 safeCell, requireExitRoute: localNonWorkExit))
             {
+                if (AomLog.DetailedEnabled && AomLog.ShouldLogDetailed(
+                        pawn, "unavailable-gear-no-exit", 600))
+                {
+                    AomLog.Detailed($"[AutomaticOutfitManager] {pawn.LabelShortCap}: " +
+                        $"missing-gear exit has no usable destination from {pawn.Position}; " +
+                        $"occupied rules=[{string.Join(", ", occupiedRules.Select(rule => rule.Name))}], " +
+                        $"local Non-Work exit={localNonWorkExit}; retrying after the gear wait.");
+                }
                 return false;
             }
 
@@ -4675,8 +4706,8 @@ namespace AutomaticOutfitManager.Patches
                 string ruleNames = string.Join(
                     ", ", missingOccupiedRules.Select(rule => $"'{rule.Name}'"));
                 AomLog.Detailed(
-                    $"[AutomaticOutfitManager] {pawn.LabelShortCap}: complete gear " +
-                    $"is unavailable inside {ruleNames}; leaving for safe cell " +
+                    $"[AutomaticOutfitManager] {pawn.LabelShortCap}: required gear " +
+                    $"does not match inside {ruleNames}; leaving for safe cell " +
                     $"{safeCell} before reconsidering {interruptedJob.def.defName}.");
             }
             return true;
@@ -4689,15 +4720,24 @@ namespace AutomaticOutfitManager.Patches
             PawnApparelState state,
             ref Job newJob,
             ref ThinkNode jobGiver,
-            ref JobTag? tag)
+            ref JobTag? tag,
+            bool selectedNonWorkOnly = false)
         {
             bool playerWorker = pawn != null &&
                 (pawn.IsColonist || pawn.IsSlave) &&
                 !PawnAccessClassifier.IsHostedGuest(pawn) &&
                 !PawnAccessClassifier.IsColonyPrisoner(pawn);
-            if (!playerWorker || newJob?.playerForced == true ||
-                !IsTargetlessRecoveryWaitJob(newJob) ||
-                pawn.pather?.Moving == true ||
+            bool selectedNonWorkMismatch = component?.Rules?.Any(rule =>
+                rule?.Enabled == true && rule.IsNonWork &&
+                !rule.DefaultToSavedPersonalOutfit && !rule.WorkAreaPaused &&
+                rule.Area?.Map == pawn?.Map && PawnInsideArea(pawn, rule.Area) &&
+                RuleEvaluator.HasMissingRequiredGear(pawn, rule)) == true;
+            if ((selectedNonWorkOnly && !selectedNonWorkMismatch) ||
+                !playerWorker || newJob?.playerForced == true ||
+                IsChangingAreaTravelJob(newJob) ||
+                NativeRuleControl.Suspends(pawn, newJob) ||
+                (!selectedNonWorkMismatch &&
+                 (!IsTargetlessRecoveryWaitJob(newJob) || pawn.pather?.Moving == true)) ||
                 pawn.carryTracker?.CarriedThing != null ||
                 state?.Transition == ApparelTransition.ReturningToChangingArea ||
                 state?.Transition == ApparelTransition.Restoring)
@@ -4730,6 +4770,15 @@ namespace AutomaticOutfitManager.Patches
             if (!TryReplaceUnavailableGearWaitWithEgress(
                     tracker, pawn, ref newJob, ref jobGiver, ref tag))
             {
+                // An unchecked selected outfit is an entry requirement even
+                // when stock exists. Do not fall through to fitting that new
+                // outfit inside the room when the exit is temporarily blocked.
+                if (selectedNonWorkMismatch)
+                {
+                    tracker.ClearQueuedJobs(false);
+                    ReplaceWithWait(pawn, 300, ref newJob, ref jobGiver, ref tag);
+                    return true;
+                }
                 return false;
             }
 
@@ -4750,7 +4799,7 @@ namespace AutomaticOutfitManager.Patches
             {
                 AomLog.Detailed(
                     $"[AutomaticOutfitManager] {pawn.LabelShortCap}: safely idle " +
-                    $"{waitName} needs no work outfit; leaving the protected area " +
+                    $"or mismatched selected Non-Work outfit ({waitName}); leaving the protected area " +
                     "instead of starting gear preparation.");
             }
             return true;
@@ -4786,7 +4835,8 @@ namespace AutomaticOutfitManager.Patches
             Area preferredArea,
             IEnumerable<ApparelRule> protectedRules,
             out IntVec3 cell,
-            PawnApparelState restorationState = null)
+            PawnApparelState restorationState = null,
+            bool requireExitRoute = false)
         {
             cell = IntVec3.Invalid;
             if (pawn?.Map == null)
@@ -4797,6 +4847,11 @@ namespace AutomaticOutfitManager.Patches
                 .GroupBy(rule => rule.Id)
                 .Select(group => group.First())
                 .ToList() ?? new List<ApparelRule>();
+            List<ApparelRule> exitRouteRules = requireExitRoute
+                ? AutomaticOutfitManagerGameComponent.Current?.Rules?
+                    .Where(rule => rule?.Enabled == true && rule.Area?.Map == pawn.Map)
+                    .ToList() ?? rules
+                : rules;
             bool IsSafe(IntVec3 candidate) =>
                 candidate.IsValid && candidate.InBounds(pawn.Map) &&
                 rules.All(rule => !rule.Area[candidate]);
@@ -4806,7 +4861,10 @@ namespace AutomaticOutfitManager.Patches
                 ChangingCellIsAvailable(pawn, candidate) &&
                 (restorationState == null ||
                  !HazardousEnvironmentSafety.MustRetainManagedProtectionAt(
-                     pawn, restorationState, candidate, out _));
+                     pawn, restorationState, candidate, out _)) &&
+                (!requireExitRoute || ProtectedPathAvoidance.SegmentAvoidsRules(
+                    pawn, pawn.Position, candidate, exitRouteRules,
+                    exactEndMode: PathEndMode.OnCell, allowInitialEgress: true));
 
             if (preferredArea?.Map == pawn.Map)
             {
@@ -4837,10 +4895,24 @@ namespace AutomaticOutfitManager.Patches
             }
 
             cell = boundaryCells
-                .Where(IsUsable)
                 .OrderBy(candidate =>
                     candidate.DistanceToSquared(pawn.Position))
+                .Where(IsUsable)
                 .DefaultIfEmpty(IntVec3.Invalid).First();
+            if (!cell.IsValid && requireExitRoute)
+            {
+                // The immediate exterior can be a wall, a doorway, or an
+                // occupied/reserved threshold. Search a small apron beyond
+                // that edge for a place to finish the exit, using the same
+                // reachability, reservation and one-way route checks.
+                cell = boundaryCells
+                    .SelectMany(edge => GenRadial.RadialCellsAround(edge, 3.9f, true))
+                    .Where(candidate => !boundaryCells.Contains(candidate) && IsSafe(candidate))
+                    .Distinct()
+                    .OrderBy(candidate => candidate.DistanceToSquared(pawn.Position))
+                    .Where(IsUsable)
+                    .DefaultIfEmpty(IntVec3.Invalid).First();
+            }
             return cell.IsValid;
         }
 

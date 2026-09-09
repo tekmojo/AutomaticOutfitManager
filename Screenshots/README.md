@@ -1,6 +1,6 @@
 # 0.4.0 replacement screenshot gallery
 
-This completed 0.4.0 gallery is retained unchanged for 0.4.1 at the maintainer’s request. Some labels have since changed, including Pause activities and Automatic saved apparel/weapons. The [capture plan](CAPTURE-PLAN-0.4.1.md) is deferred for a future refresh.
+This completed 0.4.0 gallery was retained unchanged for 0.4.1 at the maintainer’s request. It is a legacy gallery for the 0.4.2 candidate: labels have since changed, including Pause activities and Automatic saved apparel/weapons. The [current capture suggestions](CAPTURE-PLAN-0.4.2.md) describe useful replacements; no new images are claimed complete.
 
 Eight new screenshots supplied by the maintainer are saved below at their original resolution and encoding. No cropping, resizing, recompression or visual editing was applied. The published Workshop order starts with Work and Non-Work setup, then shows the supporting controls and pawn status.
 

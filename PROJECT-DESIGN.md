@@ -1,8 +1,18 @@
 # Automatic Outfit Manager — Project Design
 
+## 0.4.2 — selected Non-Work gear and boundary movement
+
+Published Workshop verification and remaining evidence are in [the release checklist](RELEASE-CHECKLIST.md) and [validation record](Tests/NEXT-UPDATE-READINESS.md). The [0.4.1 release record](RELEASE-HISTORY-0.4.1.md) remains dated history.
+
+- With saved-personal preference unchecked, occupied Non-Work mismatch is handled before ordinary gear preparation, including moving/working pawns. Safe exit precedes changing even when selected gear is available. Checked preference continues to use the effective saved-personal source; a dormant fallback edit alone does not invalidate it.
+- Unavailable or unwearable selected gear blocks the exact autonomous task and rule temporarily, clears obsolete boundary retries and releases the managed claim so other reachable native tasks can proceed. Requirements edits clear rule-wide unavailable state, including stateless pawns. This does not manufacture alternate jobs or allow protected entry without usable gear.
+- Local exit selection validates the full route, searches beyond the boundary when adjacent cells are unusable, and removes the initially occupied rule's entry cost only during directional exit search. Final validation retains the no-re-entry constraint and unrelated area avoidance. Native control, carried-item handling, valid owned transitions and hazardous retained protection keep their exceptions.
+- A blocked next-cell path stops movement before native job cleanup. Ending a job alone does not clear its path; otherwise movement may continue while the current job is null between native job-selection intervals. Regression fixtures cover that ordering and later movement, not only the prefix return value.
+- Version metadata and one option tooltip change during release preparation; no new serialized state, rule defaults or permission categories are introduced.
+
 ## 0.4.1 — transition stability and storage clarity
 
-The post-0.4.0 update consolidates pause, hauling, sleep, native-control and saved-outfit recovery changes. The current release gates and evidence are in [the release checklist](RELEASE-CHECKLIST.md) and [readiness record](Tests/NEXT-UPDATE-READINESS.md).
+The post-0.4.0 update consolidates pause, hauling, sleep, native-control and saved-outfit recovery changes. Its published status and evidence are preserved in [0.4.1 closeout](RELEASE-HISTORY-0.4.1.md) and [0.4.1 readiness](Tests/READINESS-0.4.1.md).
 
 - `NativeRuleControl` must agree across job admission, path boundaries, component ticks and activity rows. Mental, incapacitated and native emergency states suspend intervention while retaining exact saved ownership. Remove only obsolete AOM continuations; do not interrupt native mental behavior. Normal sleep, hunger and fatigue do not grant this exemption.
 - Pause activities blocks ordinary work, meals, recreation and learning. Allowed hauling, sleep/bed rest, nursing and wandering retain access and PPE checks. The supply exception is transport-only, accepts any item type, and requires all delivery recipients outside the paused source area; queued recipients and building footprints count. It does not authorize processing jobs or avoidable protected transit.

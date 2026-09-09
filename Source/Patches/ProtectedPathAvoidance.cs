@@ -309,14 +309,23 @@ namespace AutomaticOutfitManager.Patches
 
         internal static bool SegmentAvoidsRules(Pawn pawn, IntVec3 start,
             LocalTargetInfo destination, List<ApparelRule> restrictedRules,
-            Predicate<IntVec3> unsafeCell = null, PathEndMode? exactEndMode = null)
+            Predicate<IntVec3> unsafeCell = null, PathEndMode? exactEndMode = null,
+            bool allowInitialEgress = false)
         {
             bool previous = BeginAutomaticCustomizerSuppression();
             try
             {
+                // Leaving an occupied area must not make each necessary
+                // interior step pay the entry-avoidance penalty. Keep the
+                // complete rule list for validation: after the initial exit,
+                // even an occupied rule must still reject re-entry.
+                List<ApparelRule> costRules = allowInitialEgress
+                    ? restrictedRules.Where(rule => !start.IsValid ||
+                        !start.InBounds(pawn.Map) || !rule.Area[start]).ToList()
+                    : restrictedRules;
                 return SegmentFound(pawn, start, destination,
-                    restrictedRules.Count == 0 ? null : GridFor(pawn.Map, restrictedRules), restrictedRules,
-                    unsafeCell, exactEndMode);
+                    costRules.Count == 0 ? null : GridFor(pawn.Map, costRules), restrictedRules,
+                    unsafeCell, exactEndMode, allowInitialEgress);
             }
             finally { EndAutomaticCustomizerSuppression(previous); }
         }

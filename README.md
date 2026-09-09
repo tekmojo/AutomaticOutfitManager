@@ -4,7 +4,7 @@
 
 Automatic Outfit Manager lets you choose outfits and access permissions for RimWorld map areas. Use **Work Area Rules** for protective clothing, uniforms or primary weapons. Use **Non-Work Area Rules** to return work outfits before entering a dining room, lounge or bedroom.
 
-**Version 0.4.1** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [GitHub download](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.1) · [Changelog](CHANGELOG.md)
+**Version 0.4.2** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [GitHub download](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.2) · [Changelog](CHANGELOG.md) · [Release status](RELEASE-CHECKLIST.md)
 
 Requires **RimWorld 1.6** and **Harmony**. Vanilla and modded apparel and primary weapons are supported. Radiation equipment inspired the original mod, but Rimatomics is not required. You choose the areas and gear; AOM does not create rules from detected hazards.
 
@@ -29,11 +29,15 @@ Use **Add Non-Work Area Rule** for a dining room, recreation room or another pla
 | Option | What it does |
 | --- | --- |
 | **Default to Saved Personal Outfit** — checked by default | Prefer the personal outfit saved before Work gear was issued. Selected apparel and weapons are a fallback only when no personal outfit has been saved. |
-| **Default to Saved Personal Outfit** — unchecked | Use this rule's selected apparel and weapons for everyone, after returning the chosen Work outfits. |
+| **Default to Saved Personal Outfit** — unchecked | Equip this rule's selected apparel and weapons before entry, after returning the chosen Work outfits. |
 | **Remove Work Outfits** | Defaults to **All Work Outfits**. Choose individual Work rules to keep gear from other rules. |
 | **View saved outfits…** | Inspect saved apparel and the primary weapon, including an unarmed outfit. Viewing does not capture or change an outfit. |
 
 Missing or unreachable saved items **do not activate fallback**. A saved unarmed outfit stays unarmed. An empty fallback category adds no requirement and does not choose random items. When saved-outfit preference is off, empty slots may stay empty and compatible personal gear already worn may remain.
+
+With saved-outfit preference **unchecked**, changing the selection can make a pawn already inside noncompliant. The pawn leaves safely before changing, even when the newly selected gear is available. They must equip the requirements before returning. If gear is unavailable or cannot be worn, including by a child, the pawn stays outside and can continue other reachable tasks; a task that requires entry must wait. Correcting the selection allows a fresh attempt. Native emergencies, explicit player control and protection needed for a safe exit retain their exceptions.
+
+With the preference **checked**, a pawn using a valid saved personal outfit follows that outfit instead of the dormant fallback selection. Changing fallback gear alone does not make that personal outfit invalid.
 
 Gear shared by several Work rules stays on unless all its recorded sources are selected for removal. Saved personal items fill compatible slots around Work gear you keep. Older issued items without source history are retained in individual-selection mode; **All Work Outfits** can still return them.
 
@@ -147,7 +151,7 @@ Report persistent stalls, repeated gear swaps or errors with the mod version, ma
 
 ## Screenshots
 
-The existing eight-image gallery is retained for 0.4.1. These captures show the 0.4.0 interface; some labels have since changed, including Pause activities and automatic saved item tags. The [future capture list](Screenshots/CAPTURE-PLAN-0.4.1.md) records a deferred refresh.
+The existing eight-image gallery was retained for 0.4.1. These captures show the 0.4.0 interface and are legacy examples for this candidate; labels have since changed, including Pause activities and automatic saved item tags. The [0.4.2 capture suggestions](Screenshots/CAPTURE-PLAN-0.4.2.md) identify useful replacements.
 
 Work Area outfit requirements and access controls:
 

@@ -1,6 +1,6 @@
-# Steam Workshop copy — 0.4.2 published
+# Steam Workshop copy — 0.4.1
 
-Published on the existing item on 2026-09-08 (America/Denver). The public description and full note match this text, and Steam's downloaded files match the audited stage. The eight-image gallery is unchanged. See [0.4.2 Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.2.md) and [release status](RELEASE-CHECKLIST.md). The [published 0.4.1 copy](WORKSHOP-PUBLISHED-0.4.1.md) remains history.
+Published on the existing Workshop item on 2026-09-08. The public description and full change note match the prepared text, and the downloaded package matches the audited stage. The current eight-image gallery is retained. See [0.4.1 Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.1.md) and the [release checklist](RELEASE-CHECKLIST.md).
 
 - Existing item: `3792731788` — Automatic Outfit Manager. Preserve its identity and visibility.
 - Supported version: RimWorld 1.6. Required item: Harmony.
@@ -22,15 +22,14 @@ Choose outfits and access permissions for RimWorld map areas. Work Area Rules pr
 
 [quote][b]RimWorld 1.6[/b] | [b]Harmony required[/b] | Vanilla and modded apparel and primary weapons[/quote]
 
-[quote][b]Latest update — 0.4.2[/b]
-Improves Non-Work outfit enforcement: mismatched pawns leave safely before changing, selected gear is equipped before entry, and unavailable or unwearable selections let other reachable tasks continue outside. Saved-personal preference keeps its existing behavior.
+[quote][b]Latest update — 0.4.1[/b]
+Improves outfit transitions, Pause activities, supply hauling and safe rest. Adds locker overlap warnings and highlights, clearer automatic outfit/saved item labels, and stronger separation between shared outfits and personal snapshots. AOM yields during mental breaks and resumes after recovery.
 [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788]Read the full change notes[/url][/quote]
 
 [h1]Choose outfits by area[/h1]
 [list]
 [*]Require every selected garment and one of the selected primary weapons before entry. Requirements remain in force during work, meals, recreation, sleep and necessary transit. Empty categories add no requirement.
 [*]Return Work outfits and prefer saved personal clothing. Select fallback gear for pawns without a saved outfit, or turn the preference off to require a selected outfit for everyone.
-[*]With saved-personal preference off, a pawn inside who no longer matches an edited selection leaves safely before changing. Unavailable or unwearable gear keeps them outside while other reachable tasks can continue. Native safety and player-control exceptions remain.
 [*]All Work Outfits is the default. Choose individual source rules to keep other issued gear; shared items stay until all their sources are selected for removal.
 [*]Set condition and quality ranges for selected apparel and weapons. Saved personal restoration ignores these ranges.
 [*]Keep an outfit for up to 20 compatible follow-up tasks. Only successful tasks count. A task needing a different outfit can end the allowance early.
@@ -93,20 +92,6 @@ Original source and documentation use the MIT License. Third-party software and 
 Portions of the materials used to create this content/mod are trademarks and/or copyrighted works of Ludeon Studios Inc. All rights reserved by Ludeon. This content/mod is not official and is not endorsed by Ludeon.
 ```
 
-## Version 0.4.2 change note — published
-
-```text
-[b]0.4.2 — Non-Work outfit entry and safe exits[/b]
-
-Pawns stopped at a protected boundary now stop their movement while the next job is reconsidered, preventing a brief unmatched entry before outfit preparation.
-
-With Default to Saved Personal Outfit unchecked, pawns already inside who no longer match an edited selection leave safely before changing, even when the new gear is available. They equip the selected requirements before returning. If gear is unavailable or cannot be worn, including by children, other reachable tasks can continue outside. Correcting the selection clears obsolete gear-unavailability delays.
-
-Checked saved-personal behavior is preserved: selections are fallback only when no personal outfit is saved, and missing saved items do not activate fallback. Native safety, explicit player control and protection needed for safe exits retain their exceptions.
-
-The option tooltip and player guide explain these choices. Existing rule defaults and save keys are unchanged.
-```
-
 ## Version 0.4.1 change note — published
 
 ```text
@@ -143,7 +128,7 @@ Existing Work rules remain Work rules. Non-Work rules are optional additions.
 
 ## Screenshots
 
-The existing gallery was retained for published 0.4.1. Its older labels are legacy examples for this candidate. No images have been changed; [0.4.2 capture suggestions](Screenshots/CAPTURE-PLAN-0.4.2.md) identify the useful replacements. The earlier retention decision is not a claim that new captures are complete.
+The published 0.4.0 gallery remains the active gallery for 0.4.1, as requested by the maintainer. No screenshots were changed. The [capture plan](Screenshots/CAPTURE-PLAN-0.4.1.md) is deferred for a future refresh.
 
 At 0.4.0 closeout, all eight [0.4.0 gallery images](Screenshots/README.md) were verified live on Workshop in the listed order, replacing the older gameplay gallery. Their public Steam image identifiers match the local originals; the branded cover remains separate. Every original is under 1,000,000 bytes. The same eight images form 0.4.0's [GitHub gallery](Screenshots/README.md).
 

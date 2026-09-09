@@ -167,6 +167,13 @@ namespace AutomaticOutfitManager.Patches
             if (rule == null)
                 return true;
 
+            // EndCurrentJob(startNewJob: false) clears the tracker without
+            // stopping its path. PatherTick can run again before the next
+            // job-tracker interval; the no-current-job guard would then allow
+            // the old next cell through. Cancel movement while still outside,
+            // before cleanup or native replacement-job callbacks can run.
+            __instance.StopDead();
+
             // Only inspect conflicts after a real block, keeping the ordinary
             // path-cell fast path allocation-free. Late-bound chairs, beds and
             // routes must not alternate incompatible work/personal outfits.

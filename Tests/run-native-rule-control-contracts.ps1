@@ -1,4 +1,4 @@
-param([string]$PreviousPathSource = '')
+param([string]$PreviousPathSource = '',[switch]$PreviousMovementDecision)
 $ErrorActionPreference='Stop'
 $rcRoot=Split-Path $PSScriptRoot -Parent
 $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
@@ -16,6 +16,7 @@ try {
     $start=Get-Content -Raw -LiteralPath (Join-Path $rcRoot 'Source/Patches/PawnJobTracker_StartJob_Patch.cs')
     $core=Get-Content -Raw -LiteralPath (Join-Path $rcRoot 'Source/Core/AutomaticOutfitManagerGameComponent.cs')
     $path=Get-Content -Raw -LiteralPath $(if($PreviousPathSource){$PreviousPathSource}else{Join-Path $rcRoot 'Source/Patches/PawnPathFollower_ProtectedArea_Patch.cs'})
+    if($PreviousMovementDecision){$path=$path.Replace('__instance.StopDead();','')}
     $guard=Read-Block $start 'if (IsNativeMentalActivity(pawn, newJob))'
     $fixture=@'
 using System;using System.Collections.Generic;using System.Linq;using Verse;using Verse.AI;
@@ -37,7 +38,10 @@ ThinkNode jobGiver=null;JobTag? tag=null;ThinkTreeDef thinkTree=null;
     $oldPreference=$ErrorActionPreference
     try{$ErrorActionPreference='Continue';$output=& $exe 2>&1;$result=$LASTEXITCODE}finally{$ErrorActionPreference=$oldPreference}
     $output | ForEach-Object { "$_" }
-    if($PreviousPathSource) {
+    if($PreviousMovementDecision) {
+        if($result -eq 0 -or ($output -join "`n") -notmatch 'blocked path stays outside until next job interval'){throw 'Previous movement decision did not reproduce protected entry'}
+        'PASS: previous production decision lets the old path enter during the jobless interval (negative control).'
+    } elseif($PreviousPathSource) {
         if($result -eq 0 -or ($output -join "`n") -notmatch 'mental meal reaches next cell without a boundary interruption'){throw 'Previous path decision did not reproduce the intended mental meal loop'}
         'PASS: previous production path guard reproduces the mental meal boundary failure (negative control).'
     } elseif($result -ne 0){throw 'Native rule-control checks failed'}

@@ -102,7 +102,7 @@ foreach ($xmlFile in $xmlFiles) {
     }
 }
 
-$expectedVersion = "0.4.1"
+$expectedVersion = "0.4.2"
 $aboutXml = [xml](Get-Content -LiteralPath (Join-Path $stagedAboutDirectory "About.xml") -Raw)
 if ($aboutXml.ModMetaData.modVersion -ne $expectedVersion) {
     throw "About.xml modVersion must be $expectedVersion. Current value: $($aboutXml.ModMetaData.modVersion)"

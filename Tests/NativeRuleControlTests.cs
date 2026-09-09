@@ -97,8 +97,41 @@ static class NativeRuleControlTests
     }
     public static int Main()
     {
-        try { MentalMealLoop(); ControlAndRecovery(); Console.WriteLine("PASS "+checks+" native rule-control checks (production next-cell guard, suspension and admission blocks)."); return 0; }
+        try { MentalMealLoop(); ControlAndRecovery(); BoundaryBetweenJobTicks(); Console.WriteLine("PASS "+checks+" native rule-control checks (production next-cell guard, suspension and admission blocks)."); return 0; }
         catch(Exception e) { Console.Error.WriteLine("FAIL "+e.Message); return 1; }
+    }
+    static void BoundaryBetweenJobTicks()
+    {
+        foreach(string name in new[]{"DoBill","HaulToCell","Ingest"})
+        {
+            var p=Setup(false); RuleEvaluator.Rules[0].IsNonWork=true;
+            RuleEvaluator.Rules[0].Area.Cells=new HashSet<int>{1};
+            ProtectedBoundaryRetryRegistry.Root=null;
+            var original=Job(name); p.jobs.curJob=original;
+            var follower=new Pawn_PathFollower {Pawn=p}; follower.StartPath(1);
+            bool stoppedBeforeCleanup=false;
+            p.jobs.BeforeCleanup=()=>stoppedBeforeCleanup=!follower.Moving && !follower.HasPath;
+            follower.PatherTick();
+            Check(p.Position.Value==0 && p.CurJob==null,"boundary rejects original native task while still outside: "+name);
+            // RimWorld movement ticks can precede the next job-tracker interval.
+            // EndCurrentJob(false) clears curJob but does not cancel that path.
+            for(int tick=0;tick<5;tick++)follower.PatherTick();
+            Check(p.Position.Value==0,"blocked path stays outside until next job interval: "+name);
+            Check(stoppedBeforeCleanup,"path stopped before cleanup callbacks: "+name);
+            Check(!follower.HasPath && !follower.Moving && follower.Next.Value==0,"old path and next step retired: "+name);
+            Check(ProtectedBoundaryRetryRegistry.Root==original,"exact native continuation retained for preparation: "+name);
+            Check(p.jobs.Ends==1,"jobless movement ticks do not repeat interruption: "+name);
+
+            // Resume native scheduling: gear retrieval stays outside. Completion
+            // changes actual compliance before the protected task is retried.
+            p.jobs.StartJob(Job("Wear",true)); follower.StartPath(3); follower.PatherTick();
+            Check(p.Position.Value==3 && !p.Compliant,"outside gear retrieval can proceed before outfit completion: "+name);
+            p.Compliant=true; p.jobs.StartJob(original); follower.StartPath(1); follower.PatherTick();
+            Check(p.Position.Value==1 && p.CurJob==original,"prepared original task enters after actual gear completion: "+name);
+
+            p.Compliant=false; p.jobs.curJob=Job("Goto"); follower.StartPath(0); follower.PatherTick();
+            Check(p.Position.Value==0 && p.jobs.Ends==1,"mismatched occupant keeps outward movement: "+name);
+        }
     }
 }
 namespace Verse
@@ -106,7 +139,7 @@ namespace Verse
     public class Pawn { public bool Dead,Downed,Drafted,InMentalState,CustodyEscape,Compliant; public Map Map=new Map(); public Pawn_JobTracker jobs; public Job CurJob=>jobs?.curJob; public int thingIDNumber=1; public string LabelShortCap=>"Ocag"; public IntVec3 Position; }
     public class Map { }
     public struct IntVec3 { public int Value; public bool IsValid=>Value>=0; public bool InBounds(Map m)=>m!=null; public static IntVec3 Invalid=>new IntVec3 {Value=-1}; }
-    public class Area { public bool this[IntVec3 cell]=>true; }
+    public class Area { public HashSet<int> Cells; public bool this[IntVec3 cell]=>Cells==null||Cells.Contains(cell.Value); }
     public static class Find { public static TickManager TickManager=new TickManager(); }
     public class TickManager { public int TicksGame=1000; }
     public class ThinkTreeDef { }
@@ -122,13 +155,27 @@ namespace Verse.AI
     public class Pawn_JobTracker
     {
         public Pawn Pawn; public Job curJob; public JobQueue jobQueue=new JobQueue(); public int Ends,ManagedChecks;
+        public Action BeforeCleanup;
         public Pawn_JobTracker(Pawn p) {Pawn=p;}
         public void StartJob(Job job, JobCondition condition=JobCondition.InterruptForced, ThinkNode node=null, bool a=false,bool b=false,bool fromQueue=false)
         { PawnJobTracker_StartJob_Patch.Admit(this,ref job,fromQueue); curJob=job; }
-        public void EndCurrentJob(JobCondition condition,bool startNext=false,bool pool=true) {Ends++;curJob=null;}
+        public void EndCurrentJob(JobCondition condition,bool startNext=false,bool pool=true) {BeforeCleanup?.Invoke();Ends++;curJob=null;}
         public void ClearQueuedJobs(bool ignored) {jobQueue.Clear();}
     }
-    public class Pawn_PathFollower { public Pawn Pawn; public IntVec3 Next; }
+    public class Pawn_PathFollower
+    {
+        public Pawn Pawn; public IntVec3 Next; public bool Moving,HasPath; public float CostLeft;
+        public void StartPath(int cell){Next=new IntVec3{Value=cell};Moving=true;HasPath=true;CostLeft=1;}
+        public void StopDead(){HasPath=false;Moving=false;Next=Pawn.Position;CostLeft=0;}
+        public void PatherTick()
+        {
+            // Relevant native PatherTick body ordering: retained path and cost
+            // drive movement independently of the interval-based job tracker.
+            if(!HasPath || (!Moving && CostLeft<=0))return;
+            if(CostLeft>0)CostLeft--;
+            if(CostLeft<=0 && PawnPathFollower_ProtectedArea_Patch.Prefix(this))Pawn.Position=Next;
+        }
+    }
 }
 namespace AutomaticOutfitManager.Rules { public class ApparelRule {public string Id="kitchen",Name="Kitchen"; public bool IsNonWork,WorkAreaPaused,Allows=true; public Area Area=new Area();} }
 namespace AutomaticOutfitManager.State

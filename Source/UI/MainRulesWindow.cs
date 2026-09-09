@@ -477,7 +477,7 @@ namespace AutomaticOutfitManager.UI
                 TooltipHandler.TipRegion(viewOutfitsRect,
                     "View each pawn's personal outfit saved before Work gear was issued, including whether they were unarmed. Viewing does not save or change an outfit.");
                 TooltipHandler.TipRegion(outfitSourceRect,
-                    "Checked: use the personal outfit saved before work, including an unarmed weapon slot. The selections below are a fallback only when no outfit has been saved; missing saved items do not activate fallback.\n\nUnchecked: use the selections below for everyone. Empty categories add no requirement. In either mode, Remove Work Outfits controls which borrowed gear is returned. This option does not save a new outfit.");
+                    "Checked: use the saved personal outfit, including an unarmed weapon slot. Selections below apply only when no outfit is saved; missing saved items do not activate fallback.\n\nUnchecked: equip the selections before entry. If a change leaves a pawn inside without the required outfit, they leave safely before changing. Unavailable or unwearable gear keeps them outside; other reachable tasks can continue.\n\nEmpty categories add no requirement. Remove Work Outfits controls which borrowed gear is returned. This option does not save a new outfit.");
                 y += 34f;
                 Widgets.Label(new Rect(x, y + 4f, 150f, 24f), "Remove Work Outfits:");
                 string removalLabel = (rule.RemoveAllWorkOutfits ? "All Work Outfits" :
@@ -941,7 +941,7 @@ namespace AutomaticOutfitManager.UI
                 Find.WindowStack.Add(new Dialog_MessageBox(
                     $"No saved non-work outfit for {pawn.LabelShortCap}.\n\n" +
                     "AOM records a pawn's personal outfit automatically before issuing work gear. " +
-                    "Until an outfit is saved, Non-Work Area rules use their fallback selections."));
+                    "When no personal outfit is saved, Non-Work rules use their selected apparel and weapons."));
                 return;
             }
 

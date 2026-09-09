@@ -113,6 +113,16 @@ namespace AutomaticOutfitManager.Detection
                 Entries.Remove(pawn.thingIDNumber);
         }
 
+        public static void ClearRule(string ruleId)
+        {
+            if (string.IsNullOrEmpty(ruleId)) return;
+            foreach (int pawnId in Entries.Keys.ToList())
+            {
+                Entries[pawnId].RemoveAll(entry => entry.RuleId == ruleId);
+                if (Entries[pawnId].Count == 0) Entries.Remove(pawnId);
+            }
+        }
+
         public static void ClearPauseBlocks(ApparelRule rule)
         {
             if (rule == null || rule.WorkAreaPaused) return;

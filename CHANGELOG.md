@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.4.2 — 2026-09-08
+
+Published on Steam Workshop; the downloaded twelve-file package matches the audited stage. The matching GitHub release remains pending. See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.2.md).
+
+### Fixed
+
+- Stop a blocked protected-area route before reconsidering the pawn's job, preventing continued movement into the area during the gap before a replacement job starts.
+- When **Default to Saved Personal Outfit** is unchecked, a pawn already inside with mismatched selected gear leaves safely before changing, even if the new gear is available. Selected requirements must be equipped before re-entry.
+- Let pawns continue other reachable tasks outside a Non-Work Area when its selected gear is unavailable or unwearable. Improve safe local exits for children and avoid repeated attempts at the same blocked task. Correcting requirements clears obsolete gear-unavailability delays.
+
+### Changed
+
+- Clarify selected Non-Work outfit entry, safe exit and saved-personal behavior in the option tooltip, player guide and Workshop description.
+
+No save keys or rule defaults change. [Release status](RELEASE-CHECKLIST.md) records tested cases and remaining checks; the earlier Ocagobrei simple-meal loop is not claimed fixed by this update.
+
 ## 0.4.1 — 2026-09-08
 
 ### Changed
@@ -21,7 +37,7 @@
 - Improve raid/departure handoffs, pause enforcement and valid job continuation so obsolete tasks do not repeatedly restart outfit changes. Preserve exact saved-gear continuation across temporary waits and allow safe essential rest while retrieval is blocked.
 - Reduce unnecessary Work-outfit preparation for unrelated locker hauling, preserve legitimate PPE-protected supply collection, and keep failed or interrupted jobs from consuming task-buffer progress.
 
-Existing rules and filter identities are retained. The existing screenshot gallery is unchanged. [Release status and validation limits](RELEASE-CHECKLIST.md) distinguish published results from remaining focused gameplay checks.
+Existing rules and filter identities are retained. The existing screenshot gallery is unchanged. [Release status and validation limits](RELEASE-HISTORY-0.4.1.md) distinguish published results from remaining focused gameplay checks.
 
 ## 0.4.0 — 2026-09-06
 

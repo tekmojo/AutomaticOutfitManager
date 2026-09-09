@@ -4210,6 +4210,9 @@ namespace AutomaticOutfitManager.Core
             if (string.IsNullOrEmpty(ruleId))
                 return;
 
+            // Pawns rejected before preparation have no PawnState to recall.
+            // A corrected selection must release their old shortage too.
+            UnavailableWorkRegistry.ClearRule(ruleId);
             foreach (PawnApparelState state in PawnStates.Where(state =>
                          state?.Pawn != null &&
                          (state.ActiveRuleId == ruleId ||
