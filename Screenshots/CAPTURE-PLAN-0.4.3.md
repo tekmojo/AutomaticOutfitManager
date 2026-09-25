@@ -1,5 +1,7 @@
 # 0.4.3 capture plan
 
+For the September 25 same-version maintenance update, retain the existing public gallery. The necessary new evidence is a normal-scale in-game check of the Task Buffer minus/plus controls, the selected-outfit tooltip and the concise About description. This check need not become a public screenshot. The broader replacement-gallery plan below remains optional follow-up work.
+
 The existing eight-image gallery remains unchanged and uses older UI labels. No replacement captures are claimed. Preserve originals; review any upload derivatives before changing public galleries.
 
 1. **Child access:** show Allow Children checked and child rows marked Spectating alongside adults marked Equipping or Active. Capture the normal interface without performance overlays or unrelated tooltips.

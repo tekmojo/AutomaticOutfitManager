@@ -1,5 +1,7 @@
 # 0.4.3 interface punctuation correction
 
+Historical record of the 23 dash corrections published on September 24. The September 25 audit found a distinct corrupted minus sign still present in the Task Buffer button; this earlier check was incomplete. See [current maintenance preflight](MAINTENANCE-PREFLIGHT-0.4.3.md) for the follow-up. The historical hashes and results below remain unchanged.
+
 The GitHub pre-release source review found 21 em dashes and two en dashes incorrectly re-encoded in `Source/UI/MainRulesWindow.cs`. The initial published 0.4.3 DLL contained those strings. The maintainer requested correction before GitHub publication and a replacement Workshop package.
 
 Only those 23 string fragments were corrected. Reversing the substitutions reproduces the pre-fix source exactly. The release build succeeds, contains the correct `Drafted — ` label and contains none of the two corrupted dash sequences. Gameplay code and the other eleven package files are unchanged. This is a build/string verification, not an in-game visual smoke.

@@ -1,32 +1,29 @@
-# 0.4.3 release validation
+# 0.4.3 maintenance readiness
 
-Current scope: child access and Ideology ceremony gathering. Published 0.4.2 evidence is preserved in [READINESS-0.4.2.md](READINESS-0.4.2.md). The [release checklist](../RELEASE-CHECKLIST.md) is the current action list.
+The September 25 published maintenance update corrects presentation only: Task Buffer minus sign, concise About description and adult/child wording for selected Non-Work outfits. Version remains 0.4.3. No gameplay logic or saved data changes. Use the [release checklist](../RELEASE-CHECKLIST.md) for the in-game Mods-menu upload workflow and [maintenance preflight](MAINTENANCE-PREFLIGHT-0.4.3.md) for build evidence.
 
-## Runtime identity
-
-- Earlier gameplay-tested DLL: `1E9F72F40BE9CCC2A17B220C9217F23886D1C3956791200D03F431075EA562BA`. Its assembly version is 0.4.2; behavior includes the child and ritual changes.
-- Historical initial Workshop 0.4.3 DLL: `149A319E8D6BDAB4494AD6727AA3607D3974DAE2BC2BDE1A6526BB18A005DF1D`. Initial subscriber verification is recorded in [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.3.md).
-- Corrected public GitHub/Workshop, subscriber and live/installed DLL: `FB5F15960E286091A24CFB50E39989C5C1BDDDCA706E17924E17F7CDE7AA4BA9`. It corrects 23 garbled dash characters only. Build, package and uploaded asset checks pass; see [GitHub closeout](GITHUB-CLOSEOUT-0.4.3.md).
-- Replacement Workshop manifest `8379366355831222618` and all twelve subscriber files match the corrected GitHub ZIP. With RimWorld closed, the installed junction was restored to the live repository and the corrected runtime deployed. Neither a dedicated UI smoke nor subscriber-only gameplay is established by publication.
-
-## Observed in-game
-
-| Scenario | Evidence and scope |
+| State | DLL SHA-256 |
 |---|---|
-| qZ3tO7luJB role ceremony | At 90 seconds Arakis, Kyoto, Loto and Turoksen explicitly show Spectating while adults still prepare. Loto's tooltip identifies a child. No child outfit rejections or child entries in the wait list. At 210 seconds Arakis, Kyoto and Loto remain listed; no claim is made about Turoksen's later departure. |
-| Adult gathering | Twelve newly outfitted adults resume exact SpectateCeremony jobs. Aoroto finishes the last robe at tick 51358088, then the hold releases. Ready children and the leader do not bypass the adult wait. |
-| Moto's transition | Returns prior Radiation Zone gear, continues the exact saved-outfit queue through a temporary wait, clears the snapshot, then prepares the Temple outfit and joins. |
-| Session health | 28 successful apparel endings, one successful weapon ending, no failed outfit endings or preparation/locker/restoration rebuilds. One completed restoration, before the ceremony. Full post-ceremony returns are not established. |
-| Earlier old-build tests | 4OL1aIHIpY and 8xG3V4RAhm identify the old child wearability block despite the checkbox. They used the earlier runtime, so they are not failures of the deployed child-bypass change. |
+| Published maintenance; stage, subscriber and installed hashes match; About card observed | `4CA32704045B015AB50A6FA20AFA236A72E717E90DDF812F785830CB1A0E9B32` |
+| Prior published/subscriber baseline audited September 25 | `FB5F15960E286091A24CFB50E39989C5C1BDDDCA706E17924E17F7CDE7AA4BA9` |
 
-Evidence inputs: `qZ3tO7luJB.mp4` and attachment `3b73eb36-e107-4c84-80b6-78938b12a6d9/Pasted text.txt`, GooseButter_04_ALL_MODS load at line 1527. Local audit: `C:/GitHub/AutomaticOutfitManager/.codex-audit/ideology-qZ3tO7luJB/AUDIT.md`. Log lines: Moto restoration 3830; Aoroto final Wear 4701; hold release 4723. Full reports preserve all source line references.
+## September 25 session evidence
 
-## Automated evidence
+The supplied 3,927-line excerpt has 108 AOM messages matching the full process log's later `GooseButter_03_ALL_MODS` load. Current-tick anchors span 51,333,900–51,343,237; the newly saved `GooseButter_ANOM_ALL_MODS` is at 51,343,736. The earlier `GooseButter_04_ALL_MODS` load is a separate interval. Saving the new file is not a demonstrated reload.
 
-The deployed child candidate passed 2,078 checks across child access, Non-Work evaluator, paused hauling/restoration, pause cooldown, unavailable Non-Work, area permissions, preparation handoff, saved-gear recovery, meal/buffer, pause behavior, ritual, installed native ritual probe and access-exit suites. The prior production evaluator fails the new adult-only robe regression as expected. Runtime tests catch failures and exit without unhandled Windows crash dialogs.
+- Oto, Schmurda and Gonzalez complete personal restoration. Four weapon and 14 apparel step endings succeed, with no failed outfit endings. Two isolated locker recoveries and seven wait continuations resolve; no repeated post-completion restoration is shown.
+- Schmurda's exact saved weapon is released from another pawn's inventory, hauled and successfully restored. Gonzalez receives buffer credit after successful deliveries and adopts a replacement robe only after successful wear.
+- Moto finishes Radiation Zone preparation and resumes the exact Rimatomics machining-table DoBill. Actual bill completion and Moto's later full return are not established.
+- Arakis has 12 rapid-job warnings for the same crib. The end save shows a 10.69-year-old still assigned that crib, with no AOM outfit state; pawn and crib endpoints are outside configured areas. Test a normal-bed assignment before attributing cause. This candidate does not fix or conceal that loop.
+- Full-log compatibility concerns include a missing Fortified map component, 39 apparel initialization error headlines with expanded traces into Layered Apparel, and a missing trench component type. These are not represented as AOM fixes.
+- The saved Anomaly Work rule has no selected gear. Anomaly study, psychic rituals, pit travel and new-save reload have not been demonstrated by this excerpt. Ideology gathering coverage does not establish Anomaly psychic-ritual coverage.
 
-These checks establish production policy/callback contracts; they do not replace in-game cancellation, newly created save/load, additional ritual types or migration of an old child gear session. The copy-only build needs proportionate UI/load validation, not repetition of every unaffected gameplay session.
+Detailed evidence: `C:/GitHub/AutomaticOutfitManager/.codex-audit/anomaly-text-2026-09-25/AUDIT.md`. These observations apply to the baseline DLL, not newly repeated candidate gameplay tests.
 
-## Remaining
+## Candidate checks and carry-forward coverage
 
-Use the short ordered checklist in [RELEASE-CHECKLIST.md](../RELEASE-CHECKLIST.md). Keep the older meal/bill and native suspension follow-ups scoped to their original findings. Neither missing logs nor one completed restoration proves an unobserved outcome.
+Build and whole compiled-text verification apply to the candidate. The supplied Mods-menu screenshot verifies the concise About card, title, preview and version. Task Buffer controls for both rule kinds, the selected-outfit tooltip and one normal restoration remain unverified in-game. No broad gameplay-suite rerun is claimed for a string-only edit.
+
+The [published 0.4.3 readiness](READINESS-0.4.3-PUBLISHED.md) preserves child/role-ceremony gathering and earlier automated checks. Full post-ceremony returns, child exit/overlap/pause edges, another ritual type, fresh preparation save/load, cancellation and legacy child-session restoration remain distinct follow-ups. [0.4.2 readiness](READINESS-0.4.2.md) retains older meal/bill, mental-state save/load and snapshot-cleanup cases; this session does not close them.
+
+The [maintenance deployment](MAINTENANCE-DEPLOYMENT-0.4.3.md) verifies matching candidate/live/staged/subscriber/installed hashes, the public maintenance note, manifest 2204596392603111389 and restoration of the live junction. Additional UI/gameplay smoke remains unverified. See [maintenance closeout](MAINTENANCE-CLOSEOUT-0.4.3.md) for source and download records.

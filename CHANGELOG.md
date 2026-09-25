@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.3 maintenance update — 2026-09-25
+
+- Correct the garbled minus sign on the Task Buffer button.
+- Restore the shorter About/loading-screen description.
+- Clarify selected Non-Work outfit guidance: adults follow outfit requirements; children use Allow Children independently.
+
+Version remains 0.4.3. No gameplay logic, save keys or rule defaults change. This update does not claim to fix the Arakis crib loop or other mods' loading errors. Published through the in-game Mods menu; all twelve Steam-downloaded files match the verified package. Closeout and remaining checks are tracked in [release status](RELEASE-CHECKLIST.md).
+
 ## 0.4.3 — 2026-09-24
 
 Published on [GitHub](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.3) and [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) with corrected interface punctuation. All twelve refreshed subscriber files match the GitHub ZIP and corrected stage. See [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.3.md) and the initial [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.3.md).

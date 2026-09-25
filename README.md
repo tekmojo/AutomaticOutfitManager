@@ -35,7 +35,7 @@ Use **Add Non-Work Area Rule** for a dining room, recreation room or another pla
 
 Missing or unreachable saved items **do not activate fallback**. A saved unarmed outfit stays unarmed. An empty fallback category adds no requirement and does not choose random items. When saved-outfit preference is off, empty slots may stay empty and compatible personal gear already worn may remain.
 
-With saved-outfit preference **unchecked**, changing the selection can make a pawn already inside noncompliant. The pawn leaves safely before changing, even when the newly selected gear is available. They must equip the requirements before returning. If gear is unavailable or cannot be worn, including by a child, the pawn stays outside and can continue other reachable tasks; a task that requires entry must wait. Correcting the selection allows a fresh attempt. Native emergencies, explicit player control and protection needed for a safe exit retain their exceptions.
+With saved-outfit preference **unchecked**, changing the selection can make an adult already inside noncompliant. The pawn leaves safely before changing, even when the newly selected gear is available. They must equip the requirements before returning. If gear is unavailable or cannot be worn, the adult stays outside and can continue other reachable tasks; a task that requires entry must wait. Children use **Allow Children** independently of outfit requirements. Correcting the selection allows a fresh attempt. Native emergencies, explicit player control and protection needed for a safe exit retain their exceptions.
 
 With the preference **checked**, a pawn using a valid saved personal outfit follows that outfit instead of the dormant fallback selection. Changing fallback gear alone does not make that personal outfit invalid.
 
@@ -157,7 +157,7 @@ Native Ideology participation, cancellation and safety decisions still apply. Pa
 
 ## Screenshots
 
-The existing eight-image gallery was retained through 0.4.2. These captures show the 0.4.0 interface and are legacy examples for this candidate; labels have since changed, including Pause activities and automatic saved item tags. The [0.4.3 capture plan](Screenshots/CAPTURE-PLAN-0.4.3.md) adds child-access and ceremony examples; no new captures are claimed.
+The existing eight-image gallery was retained through the published 0.4.3 release. These captures show the 0.4.0 interface and remain legacy examples; labels have since changed, including Pause activities and automatic saved item tags. The [0.4.3 capture plan](Screenshots/CAPTURE-PLAN-0.4.3.md) covers child-access and ceremony examples; no new captures are claimed.
 
 Work Area outfit requirements and access controls:
 

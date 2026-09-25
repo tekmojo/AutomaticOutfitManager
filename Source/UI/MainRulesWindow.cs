@@ -429,7 +429,7 @@ namespace AutomaticOutfitManager.UI
             Rect bufferLabelRect = new Rect(x, y + 4f, 100f, 24f);
             Widgets.Label(bufferLabelRect, "Task Buffer:");
             Rect bufferMinusRect = new Rect(x + 100f, y, 32f, 28f);
-            if (Widgets.ButtonText(bufferMinusRect, "âˆ’"))
+            if (Widgets.ButtonText(bufferMinusRect, "\u2212"))
                 rule.ReturnTaskBuffer = Mathf.Max(0, rule.ReturnTaskBuffer - 1);
             Rect bufferValueRect = new Rect(x + 138f, y + 4f, 110f, 24f);
             Widgets.Label(bufferValueRect, rule.ReturnTaskBuffer == 0
@@ -477,7 +477,7 @@ namespace AutomaticOutfitManager.UI
                 TooltipHandler.TipRegion(viewOutfitsRect,
                     "View each pawn's personal outfit saved before Work gear was issued, including whether they were unarmed. Viewing does not save or change an outfit.");
                 TooltipHandler.TipRegion(outfitSourceRect,
-                    "Checked: use the saved personal outfit, including an unarmed weapon slot. Selections below apply only when no outfit is saved; missing saved items do not activate fallback.\n\nUnchecked: equip the selections before entry. If a change leaves a pawn inside without the required outfit, they leave safely before changing. Unavailable or unwearable gear keeps them outside; other reachable tasks can continue.\n\nEmpty categories add no requirement. Remove Work Outfits controls which borrowed gear is returned. This option does not save a new outfit.");
+                    "Checked: use the saved personal outfit, including an unarmed weapon slot. Selections below apply only when no outfit is saved; missing saved items do not activate fallback.\n\nUnchecked: adults equip the selections before entry. If a change leaves an adult inside without the required outfit, they leave safely before changing. Unavailable or unwearable gear keeps them outside; other reachable tasks can continue. Children use Allow Children.\n\nEmpty categories add no requirement. Remove Work Outfits controls which borrowed gear is returned. This option does not save a new outfit.");
                 y += 34f;
                 Widgets.Label(new Rect(x, y + 4f, 150f, 24f), "Remove Work Outfits:");
                 string removalLabel = (rule.RemoveAllWorkOutfits ? "All Work Outfits" :

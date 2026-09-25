@@ -1,8 +1,10 @@
 # Automatic Outfit Manager — Project Design
 
-## 0.4.3 candidate — child access and ritual gathering
+## 0.4.3 maintenance update — September 25 interface text
 
-Current behavior and evidence are tracked in [release readiness](Tests/NEXT-UPDATE-READINESS.md); 0.4.2 publication is archived in [its release record](RELEASE-HISTORY-0.4.2.md).
+This published same-version maintenance update corrects the Task Buffer minus sign, restores the concise About/loading description and clarifies that selected Non-Work outfits apply to adults. It changes no gameplay logic, saved data or defaults. Version remains 0.4.3 at the maintainer's request. Published through RimWorld's Mods menu to existing Workshop item `3792731788`; all twelve subscriber files match the verified stage. Current evidence is tracked in [release readiness](Tests/NEXT-UPDATE-READINESS.md); the prior published 0.4.3 state is archived in [its release record](RELEASE-HISTORY-0.4.3.md).
+
+## Child access and Ideology ritual gathering
 
 - Humanlike Child-stage pawns do not enter adult outfit planning, missing-gear checks, Non-Work changes or outfit buffers. Per enabled area, AllowChildren controls access independently of group permissions and pause. An unchecked overlapping area still denies entry. Native eligibility, custody/emergency control, explicit orders and safe egress remain separate boundaries.
 - The existing `allowChildWorkWatching` save key and default false are retained. Runtime enforcement retires legacy Preparing/Active child outfit sessions via normal recall/restoration, preserving exact personal ownership. Allowed children discard stale rule-shortage records; obsolete Non-Work buffers clear.

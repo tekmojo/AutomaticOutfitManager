@@ -1,45 +1,39 @@
-# Automatic Outfit Manager — 0.4.3 release status
+# Automatic Outfit Manager — September 25 maintenance closeout
 
-Corrected GitHub and Workshop 0.4.3 are published and verified. All twelve subscriber files match the GitHub ZIP and corrected stage; the local development setup is restored. See [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.3.md). See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.3.md). Child access and Ideology ceremony preparation are included. Existing Workshop item: `3792731788`. Published 0.4.2 closeout is preserved in [release history](RELEASE-HISTORY-0.4.2.md), [published Workshop copy](WORKSHOP-PUBLISHED-0.4.2.md) and [readiness](Tests/READINESS-0.4.2.md). Workshop publication date: 2026-09-24 (America/Denver).
+Uploaded through the Mods menu on September 25. The public change note is verified; all twelve downloaded files match the maintenance stage. The installed junction is restored to the live repository with the maintenance DLL verified. Keep version **0.4.3** for these small corrections, as requested. Update existing Workshop item **3792731788** through **RimWorld's in-game Mods menu**. Preserve its identity and public visibility. Prior publication is archived in [0.4.3 release history](RELEASE-HISTORY-0.4.3.md), [published Workshop copy](WORKSHOP-PUBLISHED-0.4.3.md) and [published readiness](Tests/READINESS-0.4.3-PUBLISHED.md).
 
-## Corrected package verified
+## Prepared scope
 
-The GitHub source review found corrupted dash characters in the initial 0.4.3 interface. The maintainer requested a correction. The [replacement package](Tests/PUNCTUATION-CORRECTION-0.4.3.md) changes only those strings. Both releases now contain the corrected DLL. Workshop content handle and subscriber manifest `8379366355831222618`, all twelve files and the latest correction note are verified. The previous detailed change note remains intact.
+- [x] Correct the Task Buffer minus sign using an explicit Unicode escape.
+- [x] Restore the exact pre-0.4.3 concise About/loading description, retaining current metadata/version.
+- [x] Correct stale child-wearability guidance in the player guide and clarify the selected Non-Work outfit tooltip for adults.
+- [x] Preserve gameplay logic, save keys, rule defaults, package ID and version identifiers.
+- [x] Prepare a compact Workshop update and separate maintenance change note in [Workshop copy](WORKSHOP.md).
+- [x] Archive prior publication records and preserve their hashes and test limits.
+- [x] Build the candidate and scan source/XML plus all compiled user strings. See [maintenance preflight](Tests/MAINTENANCE-PREFLIGHT-0.4.3.md).
 
-## Prepared locally
+## Short remaining validation
 
-- [x] Preserve all earlier source changes and archive completed 0.4.2 records.
-- [x] Update 0.4.3 metadata, About, player guide, current design, changelog and separate draft Workshop fields.
-- [x] Correct adult-permission and pause tooltips to agree with Allow Children.
-- [x] Record the deployed gameplay evidence without promoting other ritual types or save/load cases to passed.
-- [x] Prepare focused screenshot guidance; the existing eight-image gallery remains legacy material.
-- [x] Complete static/build verification and installed skill-guidance verification in [copy preflight](Tests/RELEASE-COPY-AUDIT-0.4.3.md).
+- [x] Deploy the candidate DLL to the live repository, create the twelve-file stage and verify the installed upload source.
+- [ ] Check Task Buffer at 0, 1 and 20 for both rule kinds; verify readable minus/plus, decrement to Immediate and the existing upper limit.
+- [x] Inspect the concise About card, title, preview and version in the maintainer's Mods-menu screenshot.
+- [ ] Inspect the selected-outfit tooltip at normal UI scale, then load the intended save and perform one outfit return.
+- [ ] Independently check Arakis with an appropriate normal bed; the audit found a persistent crib loop. This text-only candidate does not claim a fix.
 
-## Shortest remaining gameplay checks
+The [current readiness record](Tests/NEXT-UPDATE-READINESS.md) preserves healthy restoration evidence and separates older ceremony, meal/bill, save/load and Anomaly cases. Do not restart the whole gameplay matrix for these text-only changes. The existing public gallery remains a legacy example; new marketing images are not required for this correction.
 
-1. **Finish the role ceremony and adult returns.** The qZ3tO7luJB recording confirms four child spectators and twelve newly prepared adults, including Moto's earlier Work-outfit return. It ends during the ceremony; verify later adult restoration without repeated outfit changes.
-2. **Child permission edges.** Uncheck Allow Children with a child inside; confirm safe exit and useful native follow-up. Check one overlapping denied area and one allowed child in a paused area with adult permissions off. A child's adult-only clothing selection must not create outfit preparation.
-3. **Fresh save/load and native interruption.** Save during adult ritual preparation, reload that new file, and verify continued gathering/ownership. Exercise one cancellation or mental-state interruption and one additional ritual type, preferably conversion. A loaded legacy child outfit session must return borrowed gear safely; this is separate from a newly admitted child spectator.
-4. **Candidate UI/load smoke after a separately requested deployment.** Check child, Activities/Hauling/Wandering and Pause/Resume hovers at normal UI scale, plus the 0.4.3 version/About text. Copy/version changes preserve unrelated gameplay evidence from the tested live hash.
+## Mod-menu Workshop handoff
 
-[Current readiness](Tests/NEXT-UPDATE-READINESS.md) distinguishes automated checks, deployed behavior and unexercised cases. Successful attendance without outfit intervention is supported by video, not merely an absence of child log messages.
+1. Stage when requested, using `package-workshop.ps1` and a distinct maintenance output directory. Verify the twelve-file runtime allowlist, version 0.4.3, metadata, assets and new DLL hash. Preserve `About/PublishedFileId.txt` (`3792731788`).
+2. While RimWorld is closed, verify the installed mod junction. Retarget to the audited upload stage only with authorization, then compare installed About, Workshop ID, preview and DLL with the stage **before** asking the maintainer to launch.
+3. The maintainer launches manually through Steam. Verify the staged About card in the Mods menu: concise description, title, preview and version 0.4.3. Use that menu to update the existing Workshop item with the prepared note; do not create a new item or switch to a CLI uploader.
+4. Verify the public update and note, then compare every downloaded file with the audited stage after the subscriber cache refreshes. Public byte count alone does not verify the subscriber copy.
+5. With RimWorld closed, restore any temporary upload junction to the live repository and verify the intended runtime. Record upload time, manifest/content handle, metadata and DLL hashes, and any unperformed downloaded-copy smoke.
 
-## Older follow-up coverage
+The maintenance upload and subscriber-file verification are complete; see the deployment record below. The installed junction is restored to the live repository. The maintainer authorized the remaining closeout. Commit and push the maintenance source, add a dated download to the existing GitHub release, then verify its digest and record the source commit. Preserve the existing version tag and older assets. See [maintenance closeout](Tests/MAINTENANCE-CLOSEOUT-0.4.3.md).
 
-The earlier Ocagobrei Kitchen/Dining simple-meal loop, Roboto/Zendaya exact ingredient-to-bill completion, mental-state save/load and inactive shared-snapshot cleanup remain scoped follow-ups from [0.4.2 readiness](Tests/READINESS-0.4.2.md). This candidate does not claim their resolution. The old unwearable-child denial test is superseded by checkbox-only access; retain its historical evidence and use child exit/overlap checks above.
+Candidate SHA-256: `4CA32704045B015AB50A6FA20AFA236A72E717E90DDF812F785830CB1A0E9B32`.
 
-## Release gates still open
+Prior published/subscriber baseline SHA-256: `FB5F15960E286091A24CFB50E39989C5C1BDDDCA706E17924E17F7CDE7AA4BA9`.
 
-- [x] Review the accumulated gameplay/source diff and freeze the corrected build inputs. The punctuation fault found in review is corrected.
-- [ ] Focused gameplay checks remain as disclosed above; publication does not mark them passed.
-- [ ] Review or explicitly retain the legacy screenshot gallery; [capture plan](Screenshots/CAPTURE-PLAN-0.4.3.md).
-- [x] Stage with package-workshop.ps1 and verify the twelve-file runtime package, metadata, assets and hashes.
-- [x] Preserve PublishedFileId and verify the installed uploader source. The maintainer uploaded the update; public content and subscriber hashes are verified.
-- [x] Verify refreshed subscriber manifest and every downloaded file against the stage.
-- [ ] Subscriber-only gameplay smoke remains unverified.
-- [x] Maintainer published Workshop description and change note; verified the public result and restored the development junction with 0.4.3 menu metadata.
-- [x] Commit/tag/push the corrected source and publish GitHub 0.4.3 as latest. Uploaded ZIP/checksum sizes and digests are verified.
-- [x] Verify replacement Workshop upload, subscriber manifest and all corrected files; preserve the detailed note alongside the new correction note.
-- [x] Restore the live junction and deploy the corrected runtime while RimWorld is closed. Candidate/live/installed hashes match.
-
-The corrected GitHub/staged runtime SHA-256 is `FB5F15960E286091A24CFB50E39989C5C1BDDDCA706E17924E17F7CDE7AA4BA9`. Workshop/subscriber, the live runtime and the installed development junction now match that corrected hash. The initial `149A319E8D6BDAB4494AD6727AA3607D3974DAE2BC2BDE1A6526BB18A005DF1D` package is retained only as historical evidence. Earlier gameplay evidence used the behavior-equivalent 0.4.2-versioned build; publication does not mark the remaining gameplay checks as passed.
+Upload-source record: [maintenance deployment](Tests/MAINTENANCE-DEPLOYMENT-0.4.3.md). Candidate, live, staged, subscriber and installed DLL hashes match. Junction restoration is complete. Steam manifest: 2204596392603111389. Additional in-game UI and downloaded-copy smoke checks remain unclaimed.
