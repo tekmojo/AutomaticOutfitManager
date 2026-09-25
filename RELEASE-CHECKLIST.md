@@ -1,10 +1,10 @@
-# Automatic Outfit Manager — 0.4.3 release preparation
+# Automatic Outfit Manager — 0.4.3 release status
 
-Workshop 0.4.3 is published and verified; GitHub/source-control closeout remains pending. See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.3.md). Child access and Ideology ceremony preparation are included. Existing Workshop item: `3792731788`. Published 0.4.2 closeout is preserved in [release history](RELEASE-HISTORY-0.4.2.md), [published Workshop copy](WORKSHOP-PUBLISHED-0.4.2.md) and [readiness](Tests/READINESS-0.4.2.md). Workshop publication date: 2026-09-24 (America/Denver).
+Corrected GitHub 0.4.3 is published and verified as latest; the initial Workshop 0.4.3 is verified, with its punctuation replacement still pending. See [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.3.md). See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.3.md). Child access and Ideology ceremony preparation are included. Existing Workshop item: `3792731788`. Published 0.4.2 closeout is preserved in [release history](RELEASE-HISTORY-0.4.2.md), [published Workshop copy](WORKSHOP-PUBLISHED-0.4.2.md) and [readiness](Tests/READINESS-0.4.2.md). Workshop publication date: 2026-09-24 (America/Denver).
 
 ## Corrected package pending upload
 
-The GitHub source review found corrupted dash characters in the initial 0.4.3 interface. The maintainer requested a correction. The [replacement package](Tests/PUNCTUATION-CORRECTION-0.4.3.md) changes only those strings; it is staged and selected for another Workshop upload. The initial Workshop/subscriber verification does not apply to the corrected DLL. GitHub publication will follow replacement verification.
+The GitHub source review found corrupted dash characters in the initial 0.4.3 interface. The maintainer requested a correction. The [replacement package](Tests/PUNCTUATION-CORRECTION-0.4.3.md) changes only those strings; it is staged and selected for another Workshop upload. The initial Workshop/subscriber verification does not apply to the corrected DLL. The maintainer subsequently authorized GitHub publication; that corrected release is public. Replacement Workshop upload/subscriber verification remains pending.
 
 ## Prepared locally
 
@@ -38,6 +38,7 @@ The earlier Ocagobrei Kitchen/Dining simple-meal loop, Roboto/Zendaya exact ingr
 - [x] Verify refreshed subscriber manifest and every downloaded file against the stage.
 - [ ] Subscriber-only gameplay smoke remains unverified.
 - [x] Maintainer published Workshop description and change note; verified the public result and restored the development junction with 0.4.3 menu metadata.
-- [ ] Commit/tag/push the corrected source and prepare the GitHub draft with the corrected ZIP/checksum. Publish after the replacement Workshop package is verified.
+- [x] Commit/tag/push the corrected source and publish GitHub 0.4.3 as latest. Uploaded ZIP/checksum sizes and digests are verified.
+- [ ] Complete replacement Workshop upload, verify the new subscriber manifest and corrected DLL, then restore the live junction and deploy the corrected runtime after RimWorld closes.
 
-The deployed and published 0.4.3 runtime SHA-256 is `149A319E8D6BDAB4494AD6727AA3607D3974DAE2BC2BDE1A6526BB18A005DF1D`. Earlier gameplay evidence used the behavior-equivalent 0.4.2-versioned build; publication does not mark the remaining gameplay checks as passed.
+The corrected GitHub/staged runtime SHA-256 is `FB5F15960E286091A24CFB50E39989C5C1BDDDCA706E17924E17F7CDE7AA4BA9`. The initial Workshop/subscriber and live-repository runtime remains `149A319E8D6BDAB4494AD6727AA3607D3974DAE2BC2BDE1A6526BB18A005DF1D`; the installed junction currently selects the corrected stage while RimWorld is running. Earlier gameplay evidence used the behavior-equivalent 0.4.2-versioned build; publication does not mark the remaining gameplay checks as passed.

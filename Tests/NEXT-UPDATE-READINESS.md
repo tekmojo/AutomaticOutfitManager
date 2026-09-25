@@ -4,11 +4,10 @@ Current scope: child access and Ideology ceremony gathering. Published 0.4.2 evi
 
 ## Runtime identity
 
-The initial 0.4.3 publication below has a subsequent string-only [punctuation correction](PUNCTUATION-CORRECTION-0.4.3.md). Corrected DLL: `FB5F15960E286091A24CFB50E39989C5C1BDDDCA706E17924E17F7CDE7AA4BA9`. Its build and package pass verification; replacement Workshop upload and a visual smoke remain pending at source freeze. The installed junction currently targets the corrected upload stage.
-
-- Earlier gameplay-tested DLL: `1E9F72F40BE9CCC2A17B220C9217F23886D1C3956791200D03F431075EA562BA`. Its assembly version is 0.4.2; behavior includes the new child and ritual changes.
-- Published and deployed 0.4.3 DLL: `149A319E8D6BDAB4494AD6727AA3607D3974DAE2BC2BDE1A6526BB18A005DF1D`. Text/version changes preserve the earlier tested implementation. The dedicated UI/load smoke remains unverified.
-- Workshop publication and the refreshed twelve-file subscriber package are verified in [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.3.md). The installed junction has returned to the live repository, with matching runtime and 0.4.3 About metadata. Subscriber-only gameplay was not run.
+- Earlier gameplay-tested DLL: `1E9F72F40BE9CCC2A17B220C9217F23886D1C3956791200D03F431075EA562BA`. Its assembly version is 0.4.2; behavior includes the child and ritual changes.
+- Initial Workshop 0.4.3 and live-repository DLL: `149A319E8D6BDAB4494AD6727AA3607D3974DAE2BC2BDE1A6526BB18A005DF1D`. Initial subscriber verification is recorded in [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.3.md).
+- Corrected public GitHub/staged DLL: `FB5F15960E286091A24CFB50E39989C5C1BDDDCA706E17924E17F7CDE7AA4BA9`. It corrects 23 garbled dash characters only. Build, package and uploaded asset checks pass; see [GitHub closeout](GITHUB-CLOSEOUT-0.4.3.md).
+- The installed junction selects the corrected upload stage while RimWorld runs. Replacement Workshop upload/subscriber verification and later restoration/deployment to the live repository remain pending. Neither a dedicated UI smoke nor subscriber-only gameplay is established by publication.
 
 ## Observed in-game
 
