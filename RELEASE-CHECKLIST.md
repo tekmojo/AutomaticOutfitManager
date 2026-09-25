@@ -30,7 +30,7 @@ The [current readiness record](Tests/NEXT-UPDATE-READINESS.md) preserves healthy
 4. Verify the public update and note, then compare every downloaded file with the audited stage after the subscriber cache refreshes. Public byte count alone does not verify the subscriber copy.
 5. With RimWorld closed, restore any temporary upload junction to the live repository and verify the intended runtime. Record upload time, manifest/content handle, metadata and DLL hashes, and any unperformed downloaded-copy smoke.
 
-The maintenance upload and subscriber-file verification are complete; see the deployment record below. The installed junction is restored to the live repository. The maintainer authorized the remaining closeout. Commit and push the maintenance source, add a dated download to the existing GitHub release, then verify its digest and record the source commit. Preserve the existing version tag and older assets. See [maintenance closeout](Tests/MAINTENANCE-CLOSEOUT-0.4.3.md).
+The maintenance closeout is complete. Workshop and subscriber-file verification pass, the installed junction is restored, and source commit `d35ca0f` is pushed to `main` and `codex/workshop-release-prep`. The dated maintenance ZIP and checksum are published on the existing GitHub 0.4.3 release with matching remote sizes and digests. The original version tag and older assets are preserved. This later documentation commit records publication; see [maintenance closeout](Tests/MAINTENANCE-CLOSEOUT-0.4.3.md). The unperformed gameplay checks above remain follow-ups.
 
 Candidate SHA-256: `4CA32704045B015AB50A6FA20AFA236A72E717E90DDF812F785830CB1A0E9B32`.
 

@@ -13,14 +13,16 @@ The maintainer requested completion of the remaining closeout after uploading th
 
 ## GitHub maintenance download
 
-Prepared directly from the frozen Workshop stage. Every decompressed ZIP entry matches the stage and downloaded subscriber copy. The older undated assets will remain available. Publication verification is recorded below once completed.
+Published to the existing [GitHub 0.4.3 release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.3), directly from the frozen Workshop stage. Every decompressed ZIP entry matches the stage and downloaded subscriber copy. GitHub's reported size and SHA-256 digest match both new assets. The older undated assets retain their original asset IDs and digests. The release notes identify the dated maintenance download first and preserve the original release notes as history.
 
 | Asset | Bytes | SHA-256 |
 | --- | ---: | --- |
-| AutomaticOutfitManager-0.4.3-maintenance-20260925.zip | 620,204 | `22AB6D175F7BBBDD7379C389DC119CF7D3A79DFB82EE4CA0A2A6F1952222D979` |
-| AutomaticOutfitManager-0.4.3-maintenance-20260925.zip.sha256 | 121 | `51505C5C5AAEDCCFC7D86497572064C1A6456229803F5D0A1A9E35C23C687C91` |
+| [AutomaticOutfitManager-0.4.3-maintenance-20260925.zip](https://github.com/tekmojo/AutomaticOutfitManager/releases/download/v0.4.3/AutomaticOutfitManager-0.4.3-maintenance-20260925.zip) | 620,204 | `22AB6D175F7BBBDD7379C389DC119CF7D3A79DFB82EE4CA0A2A6F1952222D979` |
+| [AutomaticOutfitManager-0.4.3-maintenance-20260925.zip.sha256](https://github.com/tekmojo/AutomaticOutfitManager/releases/download/v0.4.3/AutomaticOutfitManager-0.4.3-maintenance-20260925.zip.sha256) | 121 | `51505C5C5AAEDCCFC7D86497572064C1A6456229803F5D0A1A9E35C23C687C91` |
 
 The original annotated `v0.4.3` tag remains at `442cbd428cdbe07a7f7a195e65a3104f498190f7`; its tag object is `c36f8fb5d84318d106baa6b511092b058b639bd7`. Automatic source archives attached to that tag represent the original release. The maintenance source is identified separately by commit, without moving the tag or creating a new version.
+
+Maintenance source commit: [`d35ca0f572d575e20d82f0e4257e3d0647686c46`](https://github.com/tekmojo/AutomaticOutfitManager/commit/d35ca0f572d575e20d82f0e4257e3d0647686c46). Both `main` and `codex/workshop-release-prep` were fast-forwarded and pushed from `2e02f76`. This subsequent documentation commit records verified publication without changing the runtime. Its final commit ID and matching remote references are retained in the local evidence folder after the closeout push.
 
 ## Verification and limits
 
