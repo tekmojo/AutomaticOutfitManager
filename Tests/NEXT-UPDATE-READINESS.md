@@ -1,28 +1,33 @@
-# 0.4.2 validation record
+# 0.4.3 release validation
 
-Updated 2026-09-08. Workshop and GitHub publication are complete, with downloaded Workshop files and uploaded GitHub asset digests verified; see [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.2.md) and [GitHub closeout](GITHUB-CLOSEOUT-0.4.2.md). The [release checklist](../RELEASE-CHECKLIST.md) retains the unverified gameplay follow-ups. Publication does not convert those cases into passes. [0.4.1 readiness](READINESS-0.4.1.md) and [closeout](../RELEASE-HISTORY-0.4.1.md) remain history.
+Current scope: child access and Ideology ceremony gathering. Published 0.4.2 evidence is preserved in [READINESS-0.4.2.md](READINESS-0.4.2.md). The [release checklist](../RELEASE-CHECKLIST.md) is the current action list.
 
-## Build and evidence boundary
+## Runtime identity
 
-Latest gameplay-tested DLL: **F634D86039F215FC98FD883C667701DFB66F8E990A2221AD60292CFD5ACF2FD5**. The 0.4.2 preparation changes version metadata, About and one option tooltip, not gameplay decisions. The new build/hash and validation are recorded in [copy preflight](RELEASE-COPY-AUDIT-0.4.2.md). Built, deployed and tested are separate states.
+The initial 0.4.3 publication below has a subsequent string-only [punctuation correction](PUNCTUATION-CORRECTION-0.4.3.md). Corrected DLL: `FB5F15960E286091A24CFB50E39989C5C1BDDDCA706E17924E17F7CDE7AA4BA9`. Its build and package pass verification; replacement Workshop upload and a visual smoke remain pending at source freeze. The installed junction currently targets the corrected upload stage.
 
-## Recent test outcomes
+- Earlier gameplay-tested DLL: `1E9F72F40BE9CCC2A17B220C9217F23886D1C3956791200D03F431075EA562BA`. Its assembly version is 0.4.2; behavior includes the new child and ritual changes.
+- Published and deployed 0.4.3 DLL: `149A319E8D6BDAB4494AD6727AA3607D3974DAE2BC2BDE1A6526BB18A005DF1D`. Text/version changes preserve the earlier tested implementation. The dedicated UI/load smoke remains unverified.
+- Workshop publication and the refreshed twelve-file subscriber package are verified in [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.3.md). The installed junction has returned to the live repository, with matching runtime and 0.4.3 About metadata. Subscriber-only gameplay was not run.
 
-| Evidence | Result and limit |
-| --- | --- |
-| Latest boundary correction; eN89V3kPdn investigation | A rejected route could continue moving while current job was null. The path now stops before job cleanup. Native movement ordering and unchecked Non-Work exits have positive and previous-decision negative controls in [the focused record](NON-WORK-UNAVAILABLE-GEAR.md). |
-| Large map, 9IY04v5LHt | Juroksen stopped outside, equipped selected armor and resumed his retained DoBill. No unmatched entry/exit detour. Zendaya's outside boundary also held, but her original bill continuation cancelled; later hauling/eating and restoration progressed. Roboto did not make a clearly recorded boundary attempt. |
-| Same large map | Nine restoration completions; 37 successful apparel endings and four saved-weapon equips, no failures. Loto's previous repeated exit stall did not recur. Only about 5.2 game hours are explicitly anchored. |
-| Small map, CHVEpIAO5m | Loaded AnuStart_01_ALL_MODS, 250×250 with 188 mod/DLC entries. Seven snapshots and one pending work claim recovered. All 66 inspected AOM references resolved, no duplicate inspected job IDs or saved personal owners. About 15.94 game hours; no new save created. |
-| Same small map: meals | Bowman, Jono, Lumi and Hanh each reached actual Ingest after Kitchen-to-Dining restoration. Lumi's one displaced haul completed without buffer credit before the fresh Ingest retry. Ocagobrei used packaged food elsewhere; his earlier simple-meal loop stays open. |
-| Same small map: protected sash | Sash #1459688 had native reach but blocked protected reach. Jonah hauled the exact sash out; Ocagobrei wore it and cleared his snapshot. The roughly one-game-hour wait ended with actual recovery, not repeated empty-plan rebuilding. |
-| Same small map: progress | 27 restorations, 179 successful apparel endings, 18 successful weapon equips (16 work, two saved), nine successful construction deliveries. No new confirmed AOM fault. |
-| Earlier small-map QOiUhixqU2 on released B8C1A1D… | Jono's protected flak vest recovered through Bowman and restored exactly. Separately, Ocagobrei repeated 17 Kitchen/Dining meal cycles with no confirmed Ingest admission. That finding remains unresolved; no blanket meal-fix claim. |
+## Observed in-game
 
-Full local audits are under `C:/GitHub/AutomaticOutfitManager/.codex-audit/`: `entry-followup-2026-09-08`, `full-session-2026-09-08-2118`, `small-map-2026-09-08-2123`, and `small-map-2026-09-08`. They are local evidence, not package inputs. Each report records its source, hash and timing limits.
+| Scenario | Evidence and scope |
+|---|---|
+| qZ3tO7luJB role ceremony | At 90 seconds Arakis, Kyoto, Loto and Turoksen explicitly show Spectating while adults still prepare. Loto's tooltip identifies a child. No child outfit rejections or child entries in the wait list. At 210 seconds Arakis, Kyoto and Loto remain listed; no claim is made about Turoksen's later departure. |
+| Adult gathering | Twelve newly outfitted adults resume exact SpectateCeremony jobs. Aoroto finishes the last robe at tick 51358088, then the hold releases. Ready children and the leader do not bypass the adult wait. |
+| Moto's transition | Returns prior Radiation Zone gear, continues the exact saved-outfit queue through a temporary wait, clears the snapshot, then prepares the Temple outfit and joins. |
+| Session health | 28 successful apparel endings, one successful weapon ending, no failed outfit endings or preparation/locker/restoration rebuilds. One completed restoration, before the ceremony. Full post-ceremony returns are not established. |
+| Earlier old-build tests | 4OL1aIHIpY and 8xG3V4RAhm identify the old child wearability block despite the checkbox. They used the earlier runtime, so they are not failures of the deployed child-bypass change. |
 
-## Evidence still needed
+Evidence inputs: `qZ3tO7luJB.mp4` and attachment `3b73eb36-e107-4c84-80b6-78938b12a6d9/Pasted text.txt`, GooseButter_04_ALL_MODS load at line 1527. Local audit: `C:/GitHub/AutomaticOutfitManager/.codex-audit/ideology-qZ3tO7luJB/AUDIT.md`. Log lines: Moto restoration 3830; Aoroto final Wear 4701; hold release 4723. Full reports preserve all source line references.
 
-Use the ordered cases in the release checklist: Ocagobrei's actual simple-meal route, Roboto/Zendaya ingredient-to-bill completion, alternate work after an unwearable child denial, and a newly created transition save/reload. Preserve the 0.4.1 follow-ups for mental-state save/load and inactive shared-snapshot cleanup.
+## Automated evidence
 
-Do not repeat broad endurance play solely because a tooltip/version changed. A UI/load smoke covers that copy-only difference; unresolved gameplay cases need the matching pawn, job and conditions. A fresh session restarted from an old save can have an earlier game tick than a physically older autosave, so match file timestamps, hashes and load boundaries before assigning save evidence.
+The deployed child candidate passed 2,078 checks across child access, Non-Work evaluator, paused hauling/restoration, pause cooldown, unavailable Non-Work, area permissions, preparation handoff, saved-gear recovery, meal/buffer, pause behavior, ritual, installed native ritual probe and access-exit suites. The prior production evaluator fails the new adult-only robe regression as expected. Runtime tests catch failures and exit without unhandled Windows crash dialogs.
+
+These checks establish production policy/callback contracts; they do not replace in-game cancellation, newly created save/load, additional ritual types or migration of an old child gear session. The copy-only build needs proportionate UI/load validation, not repetition of every unaffected gameplay session.
+
+## Remaining
+
+Use the short ordered checklist in [RELEASE-CHECKLIST.md](../RELEASE-CHECKLIST.md). Keep the older meal/bill and native suspension follow-ups scoped to their original findings. Neither missing logs nor one completed restoration proves an unobserved outcome.

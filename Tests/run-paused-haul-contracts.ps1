@@ -20,6 +20,9 @@ try{
  foreach($method in @('public static ApparelRule DeniedActivityRule(','public static ApparelRule DeniedPausedAreaRule(','public static bool MatchesPermittedHaulingRule(','public static bool HasPermittedHaulingContext(','internal static bool IsPermittedHaulingContinuation(','internal static Job FinalizerForPreparedHaul(','internal static bool ShouldRecallForPausedRule(','public static bool JobMayEnterPausedRule(','public static bool MatchesProtectedTransitRule(')){
   $methods+=Extract-Method $filter $method
  }
+ foreach($signature in @('private static bool HaulingAllowedFor','internal static bool WorkAllowedFor','private static bool WanderingAllowedFor')) {
+  $methods+=[regex]::Match($filter,[regex]::Escape($signature)+'[\s\S]*?;').Value
+ }
  $methods+=[regex]::Match($filter,'internal static bool ActivityRestrictedFor\([\s\S]*?;').Value
  $methods+=Extract-Method $filter 'public static bool IsEssentialPersonalJob('
  $ui=Get-Content (Join-Path $rcRoot 'Source/UI/MainRulesWindow.cs') -Raw
@@ -118,7 +121,7 @@ try{
   $generated=Join-Path $testDir 'Filter.cs'
   Set-Content -LiteralPath $generated -Value ('using System;using System.Linq;using System.Collections.Generic;using Verse;using Verse.AI;using RimWorld;using AutomaticOutfitManager.Core;using AutomaticOutfitManager.Detection;using AutomaticOutfitManager.Rules;using AutomaticOutfitManager.State;namespace AutomaticOutfitManager.Detection{internal static class GearRetrievalRoute{'+$footprint+'}internal static class ActivityJobClassifier{'+$classifier+'}}namespace AutomaticOutfitManager.Patches{'+$scannerHooks+'public static partial class ProtectedPathAvoidance{'+$paths+'}public static partial class PausedAreaWorkFilter{'+$body+'}internal static partial class PawnJobTracker_StartJob_Patch{'+$exitMethod+$policy+'}}')
   $exe=Join-Path $testDir 'PausedHaulTests.exe'
-  & $compiler /nologo /target:exe /main:PausedHaulTests /define:AOM_PAUSED_HAUL_TESTS /langversion:latest /warn:0 "/out:$exe" "/reference:$harmony" $generated (Join-Path $PSScriptRoot 'PausedHaulTests.cs') (Join-Path $PSScriptRoot 'PreparationHandoffTests.cs') (Join-Path $rcRoot 'Source/Patches/PreparationJobHandoff.cs') (Join-Path $testDir 'Rest.cs') (Join-Path $testDir 'Needs.cs') (Join-Path $rcRoot 'Source/Detection/RestorationPlanProgress.cs') (Join-Path $PSScriptRoot 'RestAndSupplyTests.cs') (Join-Path $PSScriptRoot 'HaulRecoveryRegressionTests.cs') (Join-Path $testDir 'PauseControl.cs') (Join-Path $PSScriptRoot 'PauseControlTests.cs') (Join-Path $rcRoot 'Source/Patches/AnimalNursingPolicy.cs') (Join-Path $rcRoot 'Source/Patches/NativeRuleControl.cs')
+  & $compiler /nologo /target:exe /main:PausedHaulTests /define:AOM_PAUSED_HAUL_TESTS /langversion:latest /warn:0 "/out:$exe" "/reference:$harmony" $generated (Join-Path $PSScriptRoot 'PausedHaulTests.cs') (Join-Path $rcRoot 'Source/Detection/ChildAreaAccessPolicy.cs') (Join-Path $PSScriptRoot 'PreparationHandoffTests.cs') (Join-Path $rcRoot 'Source/Patches/PreparationJobHandoff.cs') (Join-Path $testDir 'Rest.cs') (Join-Path $testDir 'Needs.cs') (Join-Path $rcRoot 'Source/Detection/RestorationPlanProgress.cs') (Join-Path $PSScriptRoot 'RestAndSupplyTests.cs') (Join-Path $PSScriptRoot 'HaulRecoveryRegressionTests.cs') (Join-Path $testDir 'PauseControl.cs') (Join-Path $PSScriptRoot 'PauseControlTests.cs') (Join-Path $rcRoot 'Source/Patches/AnimalNursingPolicy.cs') (Join-Path $rcRoot 'Source/Patches/NativeRuleControl.cs')
   if($LASTEXITCODE -ne 0){throw 'Paused haul compilation failed'}
   # Windows PowerShell represents native stderr as ErrorRecords. Expected
   # negative-control failures must reach the explicit exit/message assertions.

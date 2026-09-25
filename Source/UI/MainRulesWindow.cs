@@ -302,7 +302,7 @@ namespace AutomaticOutfitManager.UI
             string[] permissionHeaderTips =
             {
                 "Change every group in this row. Checked means all groups are allowed.",
-                "Player colonists, including children when Allow Children is enabled below.",
+                "Adult player colonists. Children use the separate Allow Children checkbox.",
                 "Player-controlled mechanoids and compatible robot pawns.",
                 "Tamed or player-owned animals.",
                 "Friendly visiting pawns who are not members of the colony.",
@@ -331,7 +331,7 @@ namespace AutomaticOutfitManager.UI
             if (allWork != previousAllWork)
                 SetAllWork(rule, allWork);
             DrawPermissionCheckbox(x, y, permissionLabelWidth, permissionColumnWidth, 1, ref rule.AllowColonistWork,
-                "Allow colonists to work, eat, rest, learn and recreate in this area.");
+                "Allow adult colonists to work, eat, rest, learn and recreate in this area. Children use Allow Children.");
             DrawPermissionCheckbox(x, y, permissionLabelWidth, permissionColumnWidth, 2, ref rule.AllowRobotWork,
                 "Allow compatible robots and mechs to perform their assigned work and purposeful activities. Cleaning uses Wandering; hauling is separate.");
             DrawPermissionCheckbox(x, y, permissionLabelWidth, permissionColumnWidth, 3, ref rule.AllowAnimalWork,
@@ -343,7 +343,7 @@ namespace AutomaticOutfitManager.UI
             DrawPermissionCheckbox(x, y, permissionLabelWidth, permissionColumnWidth, 6, ref rule.AllowPrisonerWork,
                 "Allow prisoners to eat, rest, learn, recreate and perform work their prison-labor system permits. The same area restrictions apply as for other groups.");
             TooltipHandler.TipRegion(workAccessLabelRect,
-                "Allow work, meals, rest, learning and recreation. The same categories apply to colonists, guests, slaves and prisoners. Eligible humanlike pawns must also meet the outfit requirements. Hauling is separate; robot cleaning uses Wandering. A confined pawn with no safe exit may still rest.");
+                "Allow work, meals, rest, learning and recreation. The same categories apply to colonists, guests, slaves and prisoners. Eligible adult humanlike pawns must also meet the outfit requirements. Children use Allow Children instead of these permissions. Hauling is separate; robot cleaning uses Wandering. A confined pawn with no safe exit may still rest.");
 
             y += 28f;
             Rect haulingLabelRect = new Rect(x, y + 2f, permissionLabelWidth, 24f);
@@ -355,7 +355,7 @@ namespace AutomaticOutfitManager.UI
             if (allHauling != previousAllHauling)
                 SetAllHauling(rule, allHauling);
             DrawPermissionCheckbox(x, y, permissionLabelWidth, permissionColumnWidth, 1, ref rule.AllowColonistHauling,
-                "Allow colonists, including children, to haul into, out of, or through this area.");
+                "Allow adult colonists to haul into, out of, or through this area. Children use Allow Children.");
             DrawPermissionCheckbox(x, y, permissionLabelWidth, permissionColumnWidth, 2, ref rule.AllowRobotHauling,
                 "Allow player-controlled mechanoids and compatible robots to haul into, out of, or through this area.");
             DrawPermissionCheckbox(x, y, permissionLabelWidth, permissionColumnWidth, 3, ref rule.AllowAnimalHauling,
@@ -367,7 +367,7 @@ namespace AutomaticOutfitManager.UI
             DrawPermissionCheckbox(x, y, permissionLabelWidth, permissionColumnWidth, 6, ref rule.AllowPrisonerHauling,
                 "Allow prisoners to haul into, out of, or through this area when vanilla or modded prison labor permits hauling.");
             TooltipHandler.TipRegion(haulingLabelRect,
-                "Allow hauling into, out of or through this area. Eligible humanlike haulers must also meet the outfit requirements. This permits hauling; it does not assign hauling work or change work priorities.");
+                "Allow hauling into, out of or through this area. Eligible adult humanlike haulers must also meet the outfit requirements. Children use Allow Children instead of these permissions. This permits hauling; it does not assign hauling work or change work priorities.");
 
             y += 28f;
             Rect wanderingLabelRect = new Rect(x, y + 2f, permissionLabelWidth, 24f);
@@ -379,7 +379,7 @@ namespace AutomaticOutfitManager.UI
             if (allWandering != previousAllWandering)
                 SetAllWandering(rule, allWandering);
             DrawPermissionCheckbox(x, y, permissionLabelWidth, permissionColumnWidth, 1, ref rule.AllowColonistWandering,
-                "Allow colonists, including children, to choose autonomous wandering destinations in this area.");
+                "Allow adult colonists to choose autonomous wandering destinations in this area. Children use Allow Children.");
             DrawPermissionCheckbox(x, y, permissionLabelWidth, permissionColumnWidth, 2, ref rule.AllowRobotWandering,
                 "Allow player-controlled mechanoids and compatible robots to choose autonomous wandering destinations in this area.");
             DrawPermissionCheckbox(x, y, permissionLabelWidth, permissionColumnWidth, 3, ref rule.AllowAnimalWandering,
@@ -391,7 +391,7 @@ namespace AutomaticOutfitManager.UI
             DrawPermissionCheckbox(x, y, permissionLabelWidth, permissionColumnWidth, 6, ref rule.AllowPrisonerWandering,
                 "Allow prisoners to choose autonomous wandering destinations in this area.");
             TooltipHandler.TipRegion(wanderingLabelRect,
-                "Allow idle wandering and robot cleaning. Meals, rest, learning and recreation use Activities. Required charging, emergencies and direct player orders retain their normal behavior.");
+                "Allow idle wandering and robot cleaning. Children use Allow Children instead of these permissions. Meals, rest, learning and recreation use Activities. Required charging, emergencies and direct player orders retain their normal behavior.");
 
             y += 28f;
             Rect childWatchingLabelRect = new Rect(x, y + 2f, 100f, 24f);
@@ -401,7 +401,7 @@ namespace AutomaticOutfitManager.UI
             DrawLeadingCheckbox(childWatchingRect, "Allow Children", ref rule.AllowChildren);
             if (allowedChildren != rule.AllowChildren) RuleEvaluator.ResetRuntimeCache();
             TooltipHandler.TipRegion(new Rect(x, y, 330f, 26f),
-                "Allow children to use or pass through this area. Their group permissions and outfit requirements still apply. " +
+                "Allow children to use or pass through this area without clothing or weapon requirements, outfit changes or task buffers, even if adult permissions are off or the area is paused. Every overlapping area must allow children. Native age and job eligibility still apply. " +
                 "When off, children already inside leave safely. Babies and carried pawns are unaffected. " +
                 "Direct orders, emergencies and necessary outfit returns keep their normal exceptions. Off by default.");
 
@@ -429,7 +429,7 @@ namespace AutomaticOutfitManager.UI
             Rect bufferLabelRect = new Rect(x, y + 4f, 100f, 24f);
             Widgets.Label(bufferLabelRect, "Task Buffer:");
             Rect bufferMinusRect = new Rect(x + 100f, y, 32f, 28f);
-            if (Widgets.ButtonText(bufferMinusRect, "−"))
+            if (Widgets.ButtonText(bufferMinusRect, "âˆ’"))
                 rule.ReturnTaskBuffer = Mathf.Max(0, rule.ReturnTaskBuffer - 1);
             Rect bufferValueRect = new Rect(x + 138f, y + 4f, 110f, 24f);
             Widgets.Label(bufferValueRect, rule.ReturnTaskBuffer == 0
@@ -502,7 +502,7 @@ namespace AutomaticOutfitManager.UI
             Rect gearLabelRect = new Rect(x, y + 4f, gearLabelWidth, 24f);
             Widgets.Label(gearLabelRect, rule.IsNonWork && rule.DefaultToSavedPersonalOutfit ? "Fallback Apparel:" : "Apparel:");
             TooltipHandler.TipRegion(gearLabelRect, rule.IsNonWork
-                ? "All selected apparel must be worn together. With saved-outfit preference on, these choices apply only when no personal outfit has been saved. With it off, they apply to everyone. Empty selections add no clothing requirement."
+                ? "All selected apparel must be worn together. With saved-outfit preference on, these choices apply only when no personal outfit has been saved. With it off, they apply to adults. Children use Allow Children. Empty selections add no clothing requirement."
                 : "Require every selected garment before entry and while inside. Choose items that can be worn together, such as a suit and helmet. Empty selections add no clothing requirement.");
             Rect addGearRect = new Rect(x + gearLabelWidth, y, 160f, 28f);
             if (Widgets.ButtonText(addGearRect, "Choose apparel"))
@@ -1347,9 +1347,9 @@ namespace AutomaticOutfitManager.UI
             rule.WorkAreaPaused ? "Resume activities" : "Pause activities";
 
         private static string PauseButtonTip(ApparelRule rule) => rule.WorkAreaPaused
-            ? "Resume activities here. Pawns meet this rule's outfit requirements before returning."
+            ? "Resume activities here. Adults meet this rule's outfit requirements before returning. Children use Allow Children and are unaffected by pause."
             : "Stop activities here, including meals and recreation, and recall pawns using this rule. " +
-              "Allowed hauling, wandering, sleep, bed rest and animal nursing continue. Outfit requirements and access permissions still apply; direct orders keep their normal behavior.";
+              "Allowed hauling, wandering, sleep, bed rest and animal nursing continue. Adult outfit requirements and access permissions still apply. Children use Allow Children and are unaffected by pause; direct orders keep their normal behavior.";
 
         private static void MarkConfiguredAreaForDraw(
             Area configuredArea, Rect buttonRect)

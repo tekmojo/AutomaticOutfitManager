@@ -33,6 +33,8 @@ class ChildAreaAccessPolicyTests
                 var pawn = new Pawn { RaceProps = new RaceProperties { Humanlike = humanlike }, DevelopmentalStage = stage };
                 var rule = new ApparelRule { Enabled = enabled, AllowChildren = allow };
                 bool expected = humanlike && stage == DevelopmentalStage.Child && enabled && !allow;
+                Check(ChildAreaAccessPolicy.BypassesAdultRules(pawn, rule) ==
+                    (humanlike && stage == DevelopmentalStage.Child && enabled && allow), "adult bypass scope");
                 Check(ChildAreaAccessPolicy.Disallows(pawn, rule) == expected,
                     $"humanlike={humanlike}, stage={stage}, enabled={enabled}, allow={allow}");
             }

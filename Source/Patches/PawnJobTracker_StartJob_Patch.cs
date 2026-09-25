@@ -3571,6 +3571,8 @@ namespace AutomaticOutfitManager.Patches
             out bool essentialGearUnavailable)
         {
             essentialGearUnavailable = false;
+            rules = rules.Where(rule => !ChildAreaAccessPolicy.IsChild(pawn)).ToList();
+            if (rules.Count == 0) return false;
             if (TryPrepareNonWorkOutfit(tracker, pawn, component, rules,
                     ref newJob, ref jobGiver, ref tag))
                 return true;
@@ -3898,7 +3900,7 @@ namespace AutomaticOutfitManager.Patches
             ref Job newJob, ref ThinkNode jobGiver, ref JobTag? tag,
             IReadOnlyList<ApparelRule> earlyPickupRules = null)
         {
-            if (!candidates.Any(rule => rule?.IsNonWork == true))
+            if (ChildAreaAccessPolicy.IsChild(pawn) || !candidates.Any(rule => rule?.IsNonWork == true))
                 return false;
             List<ApparelRule> rules = candidates.Where(rule => rule != null)
                 .GroupBy(rule => rule.Id).Select(group => group.First()).ToList();
@@ -4304,7 +4306,7 @@ namespace AutomaticOutfitManager.Patches
                 ProtectedBoundaryRetryRegistry.MatchingRules(pawn, job));
             rules.AddRange(PersistedBoundaryRulesForJob(pawn, job));
             return rules
-                .Where(rule => rule != null)
+                .Where(rule => rule != null && !ChildAreaAccessPolicy.IsChild(pawn))
                 .GroupBy(rule => rule.Id)
                 .Select(group => group.First())
                 .ToList();

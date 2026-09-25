@@ -139,7 +139,7 @@ namespace AutomaticOutfitManager.Patches
                 return false;
 
             return RuleEvaluator.PausedRulesForMap(targetMap).Any(rule =>
-                targetCell.InBounds(targetMap) &&
+                !ChildAreaAccessPolicy.BypassesAdultRules(pawn, rule) && targetCell.InBounds(targetMap) &&
                 rule.Area[targetCell]);
         }
 
@@ -621,6 +621,7 @@ namespace AutomaticOutfitManager.Patches
                 rule != null &&
                 rule.Enabled &&
                 rule.WorkAreaPaused &&
+                !ChildAreaAccessPolicy.BypassesAdultRules(pawn, rule) &&
                 rule.Area?.Map == pawn.Map &&
                 !AnimalNursingPolicy.Allowed(pawn, job, rule) &&
                 !IsPermittedMaterialCollection(pawn, job, rule) &&
@@ -920,7 +921,8 @@ namespace AutomaticOutfitManager.Patches
 
         public static bool JobMayEnterPausedRule(Pawn pawn, Job job, ApparelRule rule)
         {
-            return MatchesPermittedHaulingRule(pawn, job, rule) ||
+            return ChildAreaAccessPolicy.BypassesAdultRules(pawn, rule) ||
+                   MatchesPermittedHaulingRule(pawn, job, rule) ||
                    MatchesPermittedWanderingRule(pawn, job, rule) ||
                    RestActivityPolicy.Allowed(pawn, job, rule) ||
                    AnimalNursingPolicy.Allowed(pawn, job, rule);
@@ -929,9 +931,10 @@ namespace AutomaticOutfitManager.Patches
         // Pause and the Activities toggles must agree for native meals and
         // recreation too, including occupants with no managed outfit state.
         internal static bool ActivityRestrictedFor(ApparelRule rule, Pawn pawn, Job job) =>
-            !WorkAllowedFor(rule, pawn) ||
+            !ChildAreaAccessPolicy.BypassesAdultRules(pawn, rule) &&
+            (!WorkAllowedFor(rule, pawn) ||
             (rule.WorkAreaPaused && !IsEssentialPersonalJob(job) &&
-             !AnimalNursingPolicy.Allowed(pawn, job, rule));
+             !AnimalNursingPolicy.Allowed(pawn, job, rule)));
 
         internal static bool IsOwnedAccessEgress(Pawn pawn, Job job, ApparelRule rule) =>
             AccessExitJobs.IsOwned(pawn, job) && IsRestrictedRoamingEgress(pawn, job, rule);
@@ -946,6 +949,7 @@ namespace AutomaticOutfitManager.Patches
                 return false;
             }
 
+            if (ChildAreaAccessPolicy.BypassesAdultRules(pawn, rule)) return true;
             if (ChildAreaAccessPolicy.Disallows(pawn, rule))
                 // The path guard separately admits a transition's exact owning
                 // area. Do not grant it entry through unrelated child-disabled areas.
@@ -1030,7 +1034,7 @@ namespace AutomaticOutfitManager.Patches
             Pawn pawn, Job job, ApparelRule rule)
         {
             if (pawn?.Map == null || job == null || rule == null ||
-                !PawnAccessClassifier.IsApparelEligibleHuman(pawn) ||
+                ChildAreaAccessPolicy.IsChild(pawn) || !PawnAccessClassifier.IsApparelEligibleHuman(pawn) ||
                 pawn.Drafted || !rule.Enabled || rule.WorkAreaPaused ||
                 rule.Area?.Map != pawn.Map ||
                 !RuleEvaluator.RuleCanApplyToPawn(pawn, rule) ||
@@ -1130,7 +1134,7 @@ namespace AutomaticOutfitManager.Patches
             Pawn pawn, Job job, ApparelRule rule)
         {
             if (pawn?.Map == null || job == null || rule == null ||
-                !PawnAccessClassifier.IsApparelEligibleHuman(pawn) || pawn.Drafted || !rule.Enabled ||
+                ChildAreaAccessPolicy.IsChild(pawn) || !PawnAccessClassifier.IsApparelEligibleHuman(pawn) || pawn.Drafted || !rule.Enabled ||
                 rule.WorkAreaPaused || rule.Area?.Map != pawn.Map ||
                 !RuleEvaluator.RuleCanApplyToPawn(pawn, rule))
             {
@@ -1575,16 +1579,19 @@ namespace AutomaticOutfitManager.Patches
                 IsRobotOrMechanoid(pawn), pawn?.RaceProps?.Animal == true, IsFriendlyGuest(pawn));
 
         private static bool HaulingAllowedFor(ApparelRule rule, Pawn pawn) =>
-            !ChildAreaAccessPolicy.Disallows(pawn, rule) &&
-            AreaActivityPermissions.Allows(rule, PermissionGroup(pawn), AccessActivity.Hauling);
+            ChildAreaAccessPolicy.BypassesAdultRules(pawn, rule) ||
+            (!ChildAreaAccessPolicy.Disallows(pawn, rule) &&
+             AreaActivityPermissions.Allows(rule, PermissionGroup(pawn), AccessActivity.Hauling));
 
         internal static bool WorkAllowedFor(ApparelRule rule, Pawn pawn) =>
-            !ChildAreaAccessPolicy.Disallows(pawn, rule) &&
-            AreaActivityPermissions.Allows(rule, PermissionGroup(pawn), AccessActivity.Activities);
+            ChildAreaAccessPolicy.BypassesAdultRules(pawn, rule) ||
+            (!ChildAreaAccessPolicy.Disallows(pawn, rule) &&
+             AreaActivityPermissions.Allows(rule, PermissionGroup(pawn), AccessActivity.Activities));
 
         private static bool WanderingAllowedFor(ApparelRule rule, Pawn pawn) =>
-            !ChildAreaAccessPolicy.Disallows(pawn, rule) &&
-            AreaActivityPermissions.Allows(rule, PermissionGroup(pawn), AccessActivity.Wandering);
+            ChildAreaAccessPolicy.BypassesAdultRules(pawn, rule) ||
+            (!ChildAreaAccessPolicy.Disallows(pawn, rule) &&
+             AreaActivityPermissions.Allows(rule, PermissionGroup(pawn), AccessActivity.Wandering));
 
         private static bool IsManagedPawn(Pawn pawn)
         {

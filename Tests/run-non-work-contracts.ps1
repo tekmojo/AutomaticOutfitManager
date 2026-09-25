@@ -1,4 +1,4 @@
-param([switch]$VerifyFailureReporting, [string]$SnapshotPolicySource = "")
+param([switch]$VerifyFailureReporting, [string]$SnapshotPolicySource = "", [string]$PreviousChildEvaluator = "")
 
 $ErrorActionPreference = 'Stop'
 $rcRoot = Split-Path $PSScriptRoot -Parent
@@ -12,7 +12,8 @@ $sources = @(
     (Join-Path $rcRoot 'Source\Rules\ApparelRule.cs'),
     (Join-Path $rcRoot 'Source\State\SavedNonWorkOutfit.cs'),
     (Join-Path $rcRoot 'Source\State\NonWorkOutfitBuffer.cs'),
-    (Join-Path $rcRoot 'Source\Detection\RuleEvaluator.cs'),
+    $(if ($PreviousChildEvaluator) { $PreviousChildEvaluator } else { Join-Path $rcRoot 'Source\Detection\RuleEvaluator.cs' }),
+    (Join-Path $rcRoot 'Source\Detection\ChildAreaAccessPolicy.cs'),
     (Join-Path $rcRoot 'Source\Detection\NonWorkFallbackPolicy.cs'),
     (Join-Path $rcRoot 'Source\Detection\GearSelectionPolicy.cs'),
     (Join-Path $rcRoot 'Source\Detection\SnapshotReturnMigration.cs'),
@@ -23,6 +24,16 @@ $sources = @(
 try {
     & $compiler /nologo /target:exe /langversion:latest /warn:0 "/out:$testOutput" $sources
     if ($LASTEXITCODE -ne 0) { throw 'Contract test compilation failed.' }
+    if ($PreviousChildEvaluator) {
+        $savedPreference = $ErrorActionPreference
+        try { $ErrorActionPreference = 'Continue'; $output = & $testOutput 2>&1; $code = $LASTEXITCODE }
+        finally { $ErrorActionPreference = $savedPreference }
+        if ($code -ne 1 -or ($output -join "`n") -notmatch 'allowed child bypasses adult-only robe eligibility') {
+            throw 'Previous evaluator did not fail the child robe regression.'
+        }
+        Write-Output 'PASS previous evaluator fails the child robe regression (negative control).'
+        exit 0
+    }
     & $testOutput
     if ($LASTEXITCODE -ne 0) { throw 'Contract checks failed.' }
     $migrationOutput = & $testOutput --previous-inactive-cleanup 2>&1

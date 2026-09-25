@@ -14,6 +14,7 @@ using Verse.AI;
 using RimWorld;
 
 namespace Verse {
+ public static class DevelopmentalStage {public const int Child=2,Adult=1;}
  public struct IntVec3 {public int X;public static IntVec3 Invalid=>(IntVec3)(-1);public bool IsValid=>X>=0;public bool InBounds(Map m)=>IsValid;public static implicit operator IntVec3(int x)=>new IntVec3{X=x};public static implicit operator int(IntVec3 c)=>c.X;}
  public partial struct LocalTargetInfo {IntVec3 cell; public bool HasThing=>Thing!=null; public IntVec3 Cell{get=>Thing!=null?Thing.Position:(HasCell?cell:(IntVec3)(-1));set{cell=value;HasCell=value.IsValid;}}}
  public enum ThingCategory {Item,Building}
@@ -26,7 +27,7 @@ namespace Verse {
  public partial class Pawn {public CarryTracker carryTracker=new CarryTracker();public Faction Faction=Faction.OfPlayerSilentFail;}
  public class Area { public Map Map; public int Cell=1; public bool this[int cell]=>cell==Cell; }
  public partial class RaceProperties {public object body;public bool Humanlike=true;}
- public partial class Pawn {public string LabelShortCap=>"Test";public RaceProperties RaceProps=new RaceProperties();public bool Child,CanWear=true;public ApparelTracker apparel=new ApparelTracker();public Equipment equipment=new Equipment();public HashSet<Thing> Reserved=new HashSet<Thing>();public bool CellReserved;public bool CanReserve(LocalTargetInfo t,int a,int b,object c,bool d)=>t.HasThing?!Reserved.Contains(t.Thing):!CellReserved;}
+ public partial class Pawn {public string LabelShortCap=>"Test";public RaceProperties RaceProps=new RaceProperties();public int DevelopmentalStage=>Child?Verse.DevelopmentalStage.Child:Verse.DevelopmentalStage.Adult;public bool Child,CanWear=true;public ApparelTracker apparel=new ApparelTracker();public Equipment equipment=new Equipment();public HashSet<Thing> Reserved=new HashSet<Thing>();public bool CellReserved;public bool CanReserve(LocalTargetInfo t,int a,int b,object c,bool d)=>t.HasThing?!Reserved.Contains(t.Thing):!CellReserved;}
  public class ApparelTracker {public List<Apparel> WornApparel=new List<Apparel>();}
  public class Equipment {public ThingWithComps Primary;}
 }
@@ -49,7 +50,7 @@ namespace RimWorld {
  public class WorkGiver_Refuel:WorkGiver_Scanner{}
 }
 namespace AutomaticOutfitManager.Rules {
- public class ApparelRule {public string Id="ship";public string Name=>Id;public Area Area;public bool Enabled=true,WorkAreaPaused=true,Hauling=true,Wandering,Activities=true,Children=true,IsNonWork,MissingGear,SavedPersonal,MustReturnWork;public int ReturnTaskBuffer=3;}
+ public class ApparelRule {public bool AllowChildren=>Children;public string Id="ship";public string Name=>Id;public Area Area;public bool Enabled=true,WorkAreaPaused=true,Hauling=true,Wandering,Activities=true,Children=true,IsNonWork,MissingGear,SavedPersonal,MustReturnWork;public int ReturnTaskBuffer=3;}
 }
 namespace AutomaticOutfitManager.State {
  public static class NonWorkOutfitPolicy {public static bool ShouldReturn(Pawn p,ApparelRule r,ThingWithComps t)=>r.MustReturnWork;}
@@ -103,21 +104,21 @@ namespace AutomaticOutfitManager.Patches {
   internal static bool IsAssignedTransitionApparelJob(PawnApparelState s,Job j)=>j.def==JobDefOf.Wear&&PreparationJobHandoff.IsOwnedStep(s.Pawn,s,j);
   internal static bool IsAssignedTransitionWeaponJob(PawnApparelState s,Job j)=>j.def==JobDefOf.Equip&&PreparationJobHandoff.IsOwnedStep(s.Pawn,s,j);
  }
- public static class ChildAreaAccessPolicy {public static bool Disallows(Pawn p,ApparelRule r)=>p.Child&&!r.Children;}
+
  public static partial class ProtectedPathAvoidance {
   public static bool JobPathCrossesArea(Pawn p,Job j,Area a)=>j.Crosses;
   // Path search is a controlled oracle; the production combined-route policy
   // decides whether this avoidable crossing may request preparation.
   static bool RouteExistsAvoiding(Pawn p,Job j,List<ApparelRule> r)=>j.Avoidable;
  }
+ public enum AccessActivity {Activities,Hauling,Wandering}
+ public static class AreaActivityPermissions {public static bool Allows(ApparelRule r,int group,AccessActivity activity)=>activity==AccessActivity.Activities?r.Activities:activity==AccessActivity.Hauling?r.Hauling:r.Wandering;}
  public static partial class PausedAreaWorkFilter {
   static bool IsRobotOrMechanoid(Pawn p)=>false;
   static bool IsManagedPawn(Pawn p)=>true;
   internal static bool IsHaulingJob(Job j)=>ActivityJobClassifier.IsHauling(j);
   internal static List<ApparelRule> MatchingProtectedTransitRules(Pawn p,Job j)=>new List<ApparelRule>();
-  static bool HaulingAllowedFor(ApparelRule r,Pawn p)=>r.Hauling&&!ChildAreaAccessPolicy.Disallows(p,r);
-  static bool WanderingAllowedFor(ApparelRule r,Pawn p)=>r.Wandering;
-  internal static bool WorkAllowedFor(ApparelRule r,Pawn p)=>r.Activities;
+  static int PermissionGroup(Pawn p)=>0;
   static bool IsRestrictedRoamingJob(Pawn p,Job j,ThinkNode n)=>j?.def?.defName=="Goto";
   static bool HasNativeActivityOverride(Pawn p,Job j,bool transitions=true)=>j.playerForced||p.Drafted||p.Downed||p.InMentalState||(transitions&&PreparationJobHandoff.IsOwnedStep(p,AutomaticOutfitManagerGameComponent.Current.StateFor(p),j));
   static bool ChildActivityHasNativeOverride(Pawn p,Job j,bool transitions)=>HasNativeActivityOverride(p,j,transitions);
@@ -145,6 +146,38 @@ partial class PausedHaulTests {
   p.jobs.Guards=true;return p;
  }
  static void Pulse(Pawn p,ApparelRule r)=>AutomaticOutfitManagerGameComponent.Current.Pulse(p,r);
+ static void ChildCheckboxCases(){
+  foreach(bool paused in new[]{false,true}) {
+   var p=Setup(out var s,out var r);p.Child=true;r.WorkAreaPaused=paused;
+   r.Children=true;r.Activities=false;r.Hauling=false;r.Wandering=false;
+   AutomaticOutfitManagerGameComponent.Current.States.Clear();
+   foreach(var def in new[]{new JobDef{defName="SpectateCeremony"},JobDefOf.HaulToCell,JobDefOf.Goto}) {
+    var job=new Job{def=def,Targets=true,targetA=new LocalTargetInfo{Cell=1}};
+    Check(PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(p,job,r), "child checkbox admits every activity despite adult toggles and pause");
+    Check(!PausedAreaWorkFilter.ActivityRestrictedFor(r,p,job), "child checkbox clears runtime activity restriction");
+    Check(PausedAreaWorkFilter.DeniedPausedAreaRule(p,job)==null, "child is not denied by adult pause");
+    r.Children=false;
+    Check(!PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(p,job,r), "unchecked child denied at actual boundary");
+    r.Children=true;
+   }
+   var target=new Thing{Map=p.Map,Position=1,def=new ThingDef{category=ThingCategory.Building}};
+   var scanner=new WorkGiver_Refuel{def=new WorkGiverDef{workType=WorkTypeDefOf.Hauling},Candidate=new Job{def=new JobDef{defName="RearmTurret"}}};
+   Check(scanner.HasJobOnThing(p,target)&&scanner.JobOnThing(p,target)==scanner.Candidate,"native scanner callbacks preserve allowed child candidate");
+   p.Reserved.Add(target);
+   Check(!scanner.HasJobOnThing(p,target),"allowed child does not override native reservation denial");
+   p.Reserved.Clear();r.Children=false;
+   Check(!scanner.HasJobOnThing(p,target)&&scanner.JobOnThing(p,target)==null,"unchecked child denied in both native scanner callbacks");
+   r.Children=true;p.Position=0;
+   var transit=new Job{def=new JobDef{defName="SpectateCeremony"},Targets=false,targetA=new LocalTargetInfo{Cell=3}};
+   Check(ProtectedPathAvoidance.RestrictedTransitRules(p,transit).Count==0,"allowed child transit has no adult avoidance grid");
+   var other=new ApparelRule{Id="nested",Area=r.Area,Children=false};
+   AutomaticOutfitManagerGameComponent.Current.Rules.Add(other);
+   var restricted=ProtectedPathAvoidance.RestrictedTransitRules(p,transit);
+   Check(restricted.Count==1&&restricted[0]==other,"nested unchecked rule remains independently protected");
+   p.Child=false;
+   Check(!PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(p,transit,r),"adult remains denied by adult Activities setting");
+  }
+ }
  static int Main(){try{
   var harmony=new Harmony("aom.tests.paused-haul");harmony.PatchAll(typeof(PreparationJobHandoff).Assembly);
   foreach(string kind in new[]{"HaulToCell","HaulToContainer"}){
@@ -355,7 +388,7 @@ partial class PausedHaulTests {
    var scanner=new WorkGiver_Scanner{def=new WorkGiverDef{workType=new WorkTypeDef{defName="FSFHauling"}},Candidate=Haul()};
    Check(scanner.HasJobOnThing(p,item)&&scanner.JobOnThing(p,item)==scanner.Candidate,"FSF hauling scanner preserves transport permission without type-name fallback");
   }
-  RestAndSupplyCases(); HaulRecoveryCases(); PauseControlCases();
+  ChildCheckboxCases(); RestAndSupplyCases(); HaulRecoveryCases(); PauseControlCases();
   Console.WriteLine("Passed "+checks+" paused hauling/restoration checks.");return 0;
  }catch(Exception e){Console.Error.WriteLine(e);return 1;}}
 }

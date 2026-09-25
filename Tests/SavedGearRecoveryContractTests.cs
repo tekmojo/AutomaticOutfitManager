@@ -235,7 +235,10 @@ namespace Verse
     public static class Reach { public static bool CanReach(this Pawn p,Thing t,PathEndMode mode,Danger danger)=>!t.Unreachable; public static bool IsForbidden(this Thing t,Pawn p)=>t.Forbidden; }
     public class MapPawns { public List<Pawn> AllPawnsSpawned = new List<Pawn>(); }
     public class Area { public Map Map; HashSet<int> cells; public Area(Map map, params int[] values) { Map = map; cells = new HashSet<int>(values); } public IEnumerable<IntVec3> ActiveCells=>cells.Select(v=>new IntVec3(v)); public bool this[IntVec3 cell] => cells.Contains(cell.Value); }
-    public class ThingDef { public object apparel; public bool IsWeapon; public int stackLimit = 1; }
+    public class ThingDef { public object apparel; public bool IsWeapon; public int stackLimit = 1; public BuildingProperties building = new BuildingProperties(); }
+    public class BuildingProperties { public bool isSittable, multiSittable; }
+    public class Building : Thing { }
+    public static class GridsUtility { public static Building GetEdifice(this IntVec3 cell, Map map) => null; }
     public class Thing { public Map Map; public bool Forbidden, Unreachable, Destroyed, Spawned = true; public Pawn Holder; public int stackCount = 1; public ThingDef def = new ThingDef(); public IntVec3 Position; public IntVec3 PositionHeld => Holder?.Position ?? Position; public Map MapHeld => Holder?.Map ?? Map; public string LabelCap => "gear"; public string ThingID => "exact"; }
     public class ThingWithComps : Thing { }
     public partial class Pawn { public Map Map; public IntVec3 Position; public Faction Faction = Faction.OfPlayer; public bool Spawned=true, Drafted, Downed, InMentalState; public Job CurJob; public CarryTracker carryTracker = new CarryTracker(); public string LabelShortCap => "pawn"; }

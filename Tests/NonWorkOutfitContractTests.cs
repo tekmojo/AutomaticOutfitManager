@@ -65,9 +65,39 @@ internal static class NonWorkOutfitContractTests
         Check(!loaded.Start(20, 0, false, true, true), "Immediate never creates follow-up credit");
     }
 
+    private static void CheckChildBypass()
+    {
+        var component = new AutomaticOutfitManagerGameComponent();
+        AutomaticOutfitManagerGameComponent.Current = component;
+        var pawn = new Pawn { DevelopmentalStage = DevelopmentalStage.Child };
+        var robe = new ThingDef { apparel = new ApparelProperties() }; // Adult-only.
+        var gun = new ThingDef { IsWeapon = true, IsRangedWeapon = true };
+        var rule = new ApparelRule { AllowChildren = true };
+        rule.RequiredApparel.Add(robe); rule.RequiredWeapons.Add(gun);
+        Check(RuleEvaluator.RuleCanApplyToPawn(pawn, rule), "allowed child bypasses adult-only robe eligibility");
+        Check(!RuleEvaluator.RequiredApparelFor(pawn, rule).Any(), "allowed child has no planned apparel");
+        Check(!RuleEvaluator.MissingRequiredApparel(pawn, rule).Any(), "allowed child has no missing robe");
+        Check(!RuleEvaluator.HasMissingRequiredApparel(pawn, rule), "allowed child bypasses apparel requirement");
+        Check(!RuleEvaluator.HasMissingRequiredWeapon(pawn, rule), "allowed child bypasses weapon requirement");
+        Check(!RuleEvaluator.HasMissingRequiredGear(pawn, rule), "allowed child requires no outfit transition");
+        Check(RuleEvaluator.TryCombinedWeaponRequirement(new[]{rule}, out var combined, pawn) && !combined.HasRequirement,
+            "allowed child receives no combined weapon plan");
+        rule.Kind = AreaRuleKind.NonWork;
+        Check(!RuleEvaluator.NeedsNonWorkGearReturn(pawn, rule), "allowed child keeps personal outfit in Non-Work area");
+        Check(!RuleEvaluator.SelectedNonWorkOutfitConflicts(pawn, new[]{rule}), "allowed child ignores selected Non-Work conflicts");
+        Check(!RuleEvaluator.SavedNonWorkOutfitConflicts(pawn, new[]{rule}), "allowed child ignores saved Non-Work conflicts");
+        rule.AllowChildren = false;
+        Check(ChildAreaAccessPolicy.Disallows(pawn, rule), "unchecked child is denied before preparation");
+        rule.AllowChildren = true; pawn.DevelopmentalStage = DevelopmentalStage.Adult;
+        Check(RuleEvaluator.HasMissingRequiredApparel(pawn, rule) && RuleEvaluator.HasMissingRequiredWeapon(pawn, rule),
+            "growing up immediately restores adult gear requirements");
+        Check(RuleEvaluator.RequiredApparelFor(pawn, rule).Contains(robe), "adult still plans robe");
+    }
+
     private static void RunChecks()
     {
         CheckNonWorkBuffers();
+        CheckChildBypass();
         var component = new AutomaticOutfitManagerGameComponent();
         AutomaticOutfitManagerGameComponent.Current = component;
         var shirtDef = new ThingDef { apparel = new ApparelProperties() };
@@ -1033,6 +1063,7 @@ namespace Verse
         public bool HasQuality; public QualityCategory Quality;
         public bool TryGetQuality(out QualityCategory quality) { quality = Quality; return HasQuality; }
     }
+    public static class DevelopmentalStage { public const int Adult=1, Child=2, Baby=4; }
     public class Pawn
     {
         public Map Map;

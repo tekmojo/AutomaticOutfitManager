@@ -166,6 +166,21 @@ namespace AutomaticOutfitManager.Detection
             if (pawn?.Map == null || job == null)
                 return targets;
 
+            // Spectate reserves targetA's sittable/spot, not targetB's ceremony focus
+            // or facing target. In particular a multi-cell kneel sheet reserves
+            // one cell, so changing clothes must not claim the whole crowd.
+            if (job.def?.defName == "SpectateCeremony")
+            {
+                IntVec3 seat = job.targetA.Cell;
+                if (!job.targetA.IsValid || !seat.IsValid || !seat.InBounds(pawn.Map))
+                    return targets;
+                Building building = seat.GetEdifice(pawn.Map);
+                Thing exclusiveSeat = building?.def?.building?.multiSittable != true &&
+                    building?.def?.building?.isSittable == true ? building : null;
+                targets.Add(new WorkTarget { Map = pawn.Map, Thing = exclusiveSeat, Cell = seat });
+                return targets;
+            }
+
             foreach (LocalTargetInfo target in EnumerateTargets(job))
             {
                 if (!target.IsValid || !target.HasThing || target.Thing == null)

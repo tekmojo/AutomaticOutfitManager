@@ -26,7 +26,7 @@ namespace AutomaticOutfitManager.Patches
             if (!PausedAreaWorkFilter.IsEssentialPersonalJob(job) || pawn?.Map == null)
                 return new List<ApparelRule>();
             return RuleEvaluator.PausedRulesForMap(pawn.Map).Where(rule =>
-                Allowed(pawn, job, rule) &&
+                !ChildAreaAccessPolicy.IsChild(pawn) && Allowed(pawn, job, rule) &&
                 (RuleEvaluator.JobPreparationTargetsArea(job, rule.Area) ||
                  ProtectedPathAvoidance.RouteRequiresRestrictedArea(pawn, job, new[] { rule }, false)))
                 .ToList();

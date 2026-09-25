@@ -37,7 +37,7 @@ try {
  if($PreviousDecision -eq 'Edit'){$notify=$notify.Replace('UnavailableWorkRegistry.ClearRule(ruleId);','')}
  $body+='namespace AutomaticOutfitManager.Core { public partial class AutomaticOutfitManagerGameComponent {'+$notify+'}}'
  Set-Content -LiteralPath ($stem+'.cs') -Value $body
- & $compiler /nologo /target:exe /langversion:latest /warn:0 "/out:$stem.exe" ($stem+'.cs') (Join-Path $PSScriptRoot 'UnavailableNonWorkTests.cs') (Join-Path $rcRoot 'Source/Detection/UnavailableWorkRegistry.cs')
+ & $compiler /nologo /target:exe /langversion:latest /warn:0 "/out:$stem.exe" ($stem+'.cs') (Join-Path $PSScriptRoot 'UnavailableNonWorkTests.cs') (Join-Path $rcRoot 'Source/Detection/ChildAreaAccessPolicy.cs') (Join-Path $rcRoot 'Source/Detection/UnavailableWorkRegistry.cs')
  if($LASTEXITCODE -ne 0){throw 'Unavailable Non-Work fixture compilation failed'}
  $output=& ($stem+'.exe') 2>&1; $result=$LASTEXITCODE; $output | Write-Output
  if($PreviousDecision -eq 'None'){if($result -ne 0){throw 'Unavailable Non-Work contracts failed'}}

@@ -136,7 +136,9 @@ namespace AutomaticOutfitManager.Detection
             }
         }
 
-        private static bool Expired(Entry entry, int now) =>
+        private static bool Expired(Entry entry, int now, Pawn pawn) =>
+            ChildAreaAccessPolicy.BypassesAdultRules(pawn,
+                AutomaticOutfitManagerGameComponent.Current?.RuleById(entry.RuleId)) ||
             entry.UntilTick <= now || (entry.PauseOnly &&
                 AutomaticOutfitManagerGameComponent.Current?.RuleById(entry.RuleId)?.WorkAreaPaused != true);
 
@@ -147,7 +149,7 @@ namespace AutomaticOutfitManager.Detection
                 return false;
 
             int now = Find.TickManager?.TicksGame ?? 0;
-            pawnEntries.RemoveAll(entry => Expired(entry, now));
+            pawnEntries.RemoveAll(entry => Expired(entry, now, pawn));
             if (pawnEntries.Count == 0)
             {
                 Entries.Remove(pawn.thingIDNumber);
@@ -176,7 +178,7 @@ namespace AutomaticOutfitManager.Detection
             }
 
             int now = Find.TickManager?.TicksGame ?? 0;
-            pawnEntries.RemoveAll(entry => Expired(entry, now));
+            pawnEntries.RemoveAll(entry => Expired(entry, now, pawn));
             if (pawnEntries.Count == 0)
             {
                 Entries.Remove(pawn.thingIDNumber);
@@ -196,7 +198,7 @@ namespace AutomaticOutfitManager.Detection
             }
 
             int now = Find.TickManager?.TicksGame ?? 0;
-            pawnEntries.RemoveAll(entry => Expired(entry, now));
+            pawnEntries.RemoveAll(entry => Expired(entry, now, pawn));
             if (pawnEntries.Count == 0)
             {
                 Entries.Remove(pawn.thingIDNumber);

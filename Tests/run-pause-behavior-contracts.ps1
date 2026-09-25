@@ -51,7 +51,7 @@ try {
         Set-Content -LiteralPath $mealSource -Value $meal
         Set-Content -LiteralPath $generated -Value ($prefix + 'namespace AutomaticOutfitManager.Patches {public static partial class PausedAreaWorkFilter {' + $denied + $usePolicy + $exitMethods + $useObservedPolicy + '} public static partial class NonWorkBufferTracker {' + $useRefresh + '}} namespace AutomaticOutfitManager.Core {public partial class AutomaticOutfitManagerGameComponent {' + $useRecall + $observedAction + '}}')
         Add-Content -LiteralPath $generated -Value ('namespace AutomaticOutfitManager.Patches {public static partial class PawnJobTracker_StartJob_Patch {' + $nativeHelpers + '}}')
-        & $compiler /nologo /target:exe /langversion:latest /warn:0 "/out:$testOutput" $generated (Join-Path $PSScriptRoot 'PauseBehaviorTests.cs') $mealSource (Join-Path $rcRoot 'Source/Patches/NativeRuleControl.cs')
+        & $compiler /nologo /target:exe /langversion:latest /warn:0 "/out:$testOutput" $generated (Join-Path $PSScriptRoot 'PauseBehaviorTests.cs') (Join-Path $rcRoot 'Source/Detection/ChildAreaAccessPolicy.cs') $mealSource (Join-Path $rcRoot 'Source/Patches/NativeRuleControl.cs')
         if ($LASTEXITCODE -ne 0) { throw 'Pause contract compilation failed' }
         # Expected negative controls write to stderr; Windows PowerShell must
         # reach the explicit exit/message assertion instead of stopping early.

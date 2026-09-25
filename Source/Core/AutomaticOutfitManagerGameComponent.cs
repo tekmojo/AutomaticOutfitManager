@@ -1131,6 +1131,18 @@ namespace AutomaticOutfitManager.Core
                         // decides whether a required primary is missing.
                         DetectExternalWeaponOverride(pawn, runtimeState, job);
                     }
+                    // Legacy child sessions keep their saved items and finish the
+                    // normal return path; the checkbox no longer creates outfits.
+                    PawnApparelState legacyChildState = runtimeState ?? StateFor(pawn);
+                    if (ChildAreaAccessPolicy.IsChild(pawn) && legacyChildState != null &&
+                        !legacyChildState.RecallRequested &&
+                        (legacyChildState.Transition == ApparelTransition.Preparing ||
+                         legacyChildState.Transition == ApparelTransition.Active))
+                    {
+                        ManagedWorkClaimRegistry.ReleaseAll(pawn);
+                        ClearPendingWork(legacyChildState);
+                        RequestRecall(legacyChildState);
+                    }
                     // A newly disabled child permission must resolve access
                     // before occupancy can start another outfit intervention.
                     if (Patches.PausedAreaWorkFilter.ShouldRejectProtectedAreaJob(pawn, job))
@@ -2085,6 +2097,15 @@ namespace AutomaticOutfitManager.Core
                     state.ActiveIdleTicks = 0;
                     activeWorkProgress.Remove(pawn);
                     ContinueNativeQueue(pawn, state, currentTick, pawn.jobs.curJob, "activity");
+                    continue;
+                }
+
+                // A ready ritual participant is waiting for native gathering or
+                // another participant's outfit, not finished with the activity.
+                if (Patches.RitualOutfitPreparation.RetainReadyOutfit(pawn, state))
+                {
+                    state.ActiveIdleTicks = 0;
+                    activeWorkProgress.Remove(pawn);
                     continue;
                 }
 

@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.4.3 — 2026-09-24
+
+Published on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788). The refreshed subscriber package matches all twelve staged files. See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.3.md); GitHub publication remains pending.
+
+### Added
+
+- Ideology ceremonies in AOM-designated areas wait at gathering for eligible participants to finish available, reachable outfit changes. Ready leaders and role recipients do not bypass other participants' preparation. Dressing time adds no attendance or ritual progress; native eligibility, cancellation and safety remain authoritative.
+
+### Changed
+
+- **Allow Children** is now the area's direct child-access toggle. Checked children bypass adult clothing/weapon requirements, outfit changes, task buffers, group permissions and pause. Unchecked areas still block ordinary child entry; overlapping areas each enforce their own setting.
+- Preserve existing checkbox values and the default-off setting. Legacy child outfit sessions use normal gear restoration, and obsolete child gear/access delays clear when the area allows them. Babies, carried pawns and native/player safety exceptions retain their behavior.
+
+### Fixed
+
+- Restore correct dash characters in interface labels and gear ranges.
+- Ceremony spectators can prepare concurrently without competing merely because they share the same ceremony focus. Ready participants retain their outfits while waiting for gathering, and the outfit hold stays responsive until the ceremony actually begins.
+
+The role-change test confirms four children spectating without outfit intervention while adults finish preparing. Other ritual types, interruption/save-load cases and full post-ceremony returns remain focused checks; see [release readiness](Tests/NEXT-UPDATE-READINESS.md). This update does not claim to fix the earlier Ocagobrei simple-meal loop.
+
 ## 0.4.2 — 2026-09-08
 
 Published on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) and [GitHub](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.2). The downloaded Workshop package and GitHub ZIP contain the same twelve audited files; GitHub's asset sizes and SHA-256 values match. See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.2.md) and [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.2.md).

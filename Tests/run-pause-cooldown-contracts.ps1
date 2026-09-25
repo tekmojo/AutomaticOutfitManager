@@ -16,7 +16,7 @@ try {
  if($PreviousDecision){$registry=$registry.Replace('1200, rule?.WorkAreaPaused == true','1200, false')}
  Set-Content -LiteralPath $registryFile -Value $registry
  Set-Content -LiteralPath $generated -Value ('using System.Linq;using System.Collections.Generic;using AutomaticOutfitManager.Core;using AutomaticOutfitManager.Detection;using AutomaticOutfitManager.Rules;namespace AutomaticOutfitManager.UI { public static partial class MainRulesWindow {'+$toggle+'}}')
- & $compiler /nologo /target:exe /langversion:latest /warn:0 "/out:$exe" $generated $registryFile (Join-Path $PSScriptRoot 'PauseCooldownTests.cs')
+ & $compiler /nologo /target:exe /langversion:latest /warn:0 "/out:$exe" $generated $registryFile (Join-Path $PSScriptRoot 'PauseCooldownTests.cs') (Join-Path $rcRoot 'Source/Detection/ChildAreaAccessPolicy.cs')
  if($LASTEXITCODE -ne 0){throw 'Pause cooldown contract compilation failed'}
  $pref=$ErrorActionPreference
  try{$ErrorActionPreference='Continue';$output=& $exe 2>&1;$result=$LASTEXITCODE}finally{$ErrorActionPreference=$pref}

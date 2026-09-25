@@ -144,6 +144,8 @@ class UnavailableNonWorkTests
 }
 namespace Verse
 {
+    public static class DevelopmentalStage {public const int Child=2;}
+    public class RaceProperties {public bool Humanlike=true;}
     public class Map
     {
         public HashSet<IntVec3> StandingCells;
@@ -173,6 +175,7 @@ namespace Verse
     public class Thing { public bool Destroyed; public Map MapHeld; public IntVec3 PositionHeld; }
     public class Pawn:Thing
     {
+        public RaceProperties RaceProps=new RaceProperties();public int DevelopmentalStage=>IsChild?Verse.DevelopmentalStage.Child:0;
         public Map Map; public IntVec3 Position; public int thingIDNumber; public string LabelShortCap=>"Pawn";
         public bool IsColonist=true,IsSlave,IsChild,NativeOverride,Hazard;
         public Pawn_JobTracker jobs; public Pather pather=new Pather(); public CarryTracker carryTracker=new CarryTracker();
@@ -214,7 +217,7 @@ namespace Verse.AI
 namespace RimWorld { }
 namespace AutomaticOutfitManager.Rules
 {
-    public class ApparelRule { public string Id,Name; public bool Enabled=true,IsNonWork=true,DefaultToSavedPersonalOutfit,WorkAreaPaused,Satisfied; public Area Area,ChangingArea; }
+    public class ApparelRule {public bool AllowChildren; public string Id,Name; public bool Enabled=true,IsNonWork=true,DefaultToSavedPersonalOutfit,WorkAreaPaused,Satisfied; public Area Area,ChangingArea; }
 }
 namespace AutomaticOutfitManager.State
 {

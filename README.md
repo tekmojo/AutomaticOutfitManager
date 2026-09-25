@@ -4,7 +4,7 @@
 
 Automatic Outfit Manager lets you choose outfits and access permissions for RimWorld map areas. Use **Work Area Rules** for protective clothing, uniforms or primary weapons. Use **Non-Work Area Rules** to return work outfits before entering a dining room, lounge or bedroom.
 
-**Version 0.4.2** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [GitHub download](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.2) · [Changelog](CHANGELOG.md) · [Release status](RELEASE-CHECKLIST.md)
+**Version 0.4.3 — available on Steam Workshop** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [Latest GitHub download (0.4.2)](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.2) · [Changelog](CHANGELOG.md) · [Release status](RELEASE-CHECKLIST.md)
 
 Requires **RimWorld 1.6** and **Harmony**. Vanilla and modded apparel and primary weapons are supported. Radiation equipment inspired the original mod, but Rimatomics is not required. You choose the areas and gear; AOM does not create rules from detected hazards.
 
@@ -65,7 +65,7 @@ Only successful tasks count. Travel, brief waits, failed tasks and interrupted t
 | **Hauling** | Carrying items into, out of or through the area. This permits hauling; it does not change work priorities. |
 | **Wandering** | Idle wandering and autonomous robot cleaning. Required robot charging duties keep their normal behavior. |
 
-**Allow Children** additionally controls ordinary child activity and transit. Group permissions and outfit requirements still apply; selected gear must be usable by that child. Babies and carried pawns are unaffected. Pawns already inside retain a safe way out. Direct player orders, drafting, emergencies and necessary outfit returns keep their normal exceptions.
+**Allow Children** takes precedence over the adult permissions and pause behavior described here. It directly controls ordinary child activity and transit. When checked, children bypass this area's clothing and weapon requirements, outfit changes, task buffers, adult group permissions and pause. Every overlapping area must allow children. Native age and job eligibility still apply. Babies and carried pawns are unaffected. Pawns already inside retain a safe way out. Direct player orders, drafting, emergencies and necessary outfit returns keep their normal exceptions.
 
 Humanlike pawns change outfits. Animals, mechs and robots follow access permissions without changing outfits. Guests, slaves and prisoners use the same activity categories, subject to the jobs the game and their other mods permit.
 
@@ -149,9 +149,15 @@ Report persistent stalls, repeated gear swaps or errors with the mod version, ma
 
 [Report an issue](https://github.com/tekmojo/AutomaticOutfitManager/issues) · [Workshop change notes](https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788)
 
+## Ideology ceremonies
+
+In an AOM-designated ceremony area, eligible participants can finish their required outfits before ceremony progress begins. A ready leader or role recipient does not start the ceremony ahead of other participants who are still preparing. Gathering time does not earn ritual attendance or progress credit.
+
+Native Ideology participation, cancellation and safety decisions still apply. Pawns unable to attend, reach their outfit or obtain usable gear do not hold the ceremony for an impossible outfit change. Adult Activities, Hauling, Wandering and protected-transit rules still apply. Allowed children attend in their existing outfits and do not wait for adult clothing or weapons. Ceremonies outside AOM-designated areas retain native timing. Ideology is only needed for this integration; Harmony remains the mod's sole required dependency.
+
 ## Screenshots
 
-The existing eight-image gallery was retained for 0.4.1. These captures show the 0.4.0 interface and are legacy examples for this candidate; labels have since changed, including Pause activities and automatic saved item tags. The [0.4.2 capture suggestions](Screenshots/CAPTURE-PLAN-0.4.2.md) identify useful replacements.
+The existing eight-image gallery was retained through 0.4.2. These captures show the 0.4.0 interface and are legacy examples for this candidate; labels have since changed, including Pause activities and automatic saved item tags. The [0.4.3 capture plan](Screenshots/CAPTURE-PLAN-0.4.3.md) adds child-access and ceremony examples; no new captures are claimed.
 
 Work Area outfit requirements and access controls:
 

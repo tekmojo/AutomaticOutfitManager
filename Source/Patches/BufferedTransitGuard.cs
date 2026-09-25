@@ -19,7 +19,7 @@ namespace AutomaticOutfitManager.Patches
         internal static bool BlockUnnecessaryEntry(Pawn pawn, Job job, IntVec3 next)
         {
             var state = AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn);
-            if (job == null || job.playerForced || pawn.Drafted || pawn.Downed || pawn.InMentalState ||
+            if (ChildAreaAccessPolicy.IsChild(pawn) || job == null || job.playerForced || pawn.Drafted || pawn.Downed || pawn.InMentalState ||
                 PawnJobTracker_StartJob_Patch.IsNativeEmergencySafetyJob(job) ||
                 PawnJobTracker_StartJob_Patch.IsMapDepartureJob(job) ||
                 PawnPathFollower_ProtectedArea_Patch.IsManagedTransitionJob(pawn, job, state)) return false;

@@ -163,6 +163,7 @@ class PauseBehaviorTests
     }
 }
 namespace Verse {
+ public static class DevelopmentalStage {public const int Child=2;}
  public class Map {}
  public struct IntVec3 : IEquatable<IntVec3> {
   public int X; public IntVec3(int x){X=x;} public bool IsValid=>X>=0;
@@ -178,7 +179,7 @@ namespace Verse {
  public static class Extensions { public static IEnumerable<T> InRandomOrder<T>(this IEnumerable<T> xs)=>xs; }
  public class Thing {public Map MapHeld;}
  public class RaceProperties {public bool Humanlike=true;}
- public class Pawn : Thing { public Map Map; public RaceProperties RaceProps=new RaceProperties(); public IntVec3 Position; public string Group; public bool Dead,Drafted,Downed,InMentalState,IsPrisoner; public bool Spawned=true; public Verse.AI.Pawn_JobTracker jobs; public Verse.AI.Job CurJob=>jobs?.curJob; public Carry carryTracker=new Carry(); public int GetRoom()=>Position.GetRoom(Map); public bool CanReserveSittableOrSpot(IntVec3 c)=>true; public bool CanReach(IntVec3 c,Verse.AI.PathEndMode m,Danger d)=>true; }
+ public class Pawn : Thing {public int DevelopmentalStage; public Map Map; public RaceProperties RaceProps=new RaceProperties(); public IntVec3 Position; public string Group; public bool Dead,Drafted,Downed,InMentalState,IsPrisoner; public bool Spawned=true; public Verse.AI.Pawn_JobTracker jobs; public Verse.AI.Job CurJob=>jobs?.curJob; public Carry carryTracker=new Carry(); public int GetRoom()=>Position.GetRoom(Map); public bool CanReserveSittableOrSpot(IntVec3 c)=>true; public bool CanReach(IntVec3 c,Verse.AI.PathEndMode m,Danger d)=>true; }
  public static class Messages {public static void Message(string s,Pawn p,object type,bool historical){}}
  public static class Find {public static TickManager TickManager=new TickManager();} public class TickManager {public int TicksGame;}
  public class Carry { public Thing CarriedThing; } public enum Danger {Some}
@@ -199,7 +200,7 @@ namespace HarmonyLib {
  public static class AccessTools {public delegate U FieldRef<T,U>(T value);public static FieldRef<T,U> FieldRefAccess<T,U>(string n)=>v=>default(U);}
 }
 namespace RimWorld {public static class MessageTypeDefOf {public static object RejectInput;}}
-namespace AutomaticOutfitManager.Rules {public class ApparelRule {public string Id;public Area Area;public bool Enabled,WorkAreaPaused; public bool ActivitiesAllowed=true,IsNonWork=true;public int ReturnTaskBuffer=2;}}
+namespace AutomaticOutfitManager.Rules {public class ApparelRule {public bool AllowChildren;public string Id;public Area Area;public bool Enabled,WorkAreaPaused; public bool ActivitiesAllowed=true,IsNonWork=true;public int ReturnTaskBuffer=2;}}
 namespace AutomaticOutfitManager.State {public class NestedBuffer {public string RuleId;} public enum ApparelTransition {Active,ReturningToChangingArea,Restoring} public class PawnApparelState {public string ActiveRuleId,NonWorkRestorationRuleId;public List<string> CurrentRuleIds;public List<NestedBuffer> NestedRuleBuffers;public Pawn Pawn; public ApparelTransition Transition;public bool RecallRequested,RecallInterruptPending,ApparelInterventionActive,WeaponInterventionActive;public int LastRecallInterruptAttemptTick=-1;}}
 namespace AutomaticOutfitManager.Core {
  public partial class AutomaticOutfitManagerGameComponent {

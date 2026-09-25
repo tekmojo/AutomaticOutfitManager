@@ -161,6 +161,7 @@ namespace AutomaticOutfitManager.Detection
             var matches = new List<ApparelRule>();
             foreach (ApparelRule rule in ActiveRulesForMap(pawn.Map))
             {
+                if (ChildAreaAccessPolicy.IsChild(pawn)) continue;
                 if (JobPreparationTargetsArea(job, rule.Area))
                 {
                     matches.Add(rule);
@@ -196,6 +197,7 @@ namespace AutomaticOutfitManager.Detection
                    !pawn.Downed &&
                    rule != null &&
                    rule.Enabled &&
+                   !ChildAreaAccessPolicy.IsChild(pawn) &&
                    !rule.WorkAreaPaused &&
                    rule.Area != null &&
                    rule.Area.Map == pawn.Map &&
@@ -224,6 +226,7 @@ namespace AutomaticOutfitManager.Detection
             var matches = new List<ApparelRule>();
             foreach (ApparelRule rule in ActiveRulesForMap(pawn.Map))
             {
+                if (ChildAreaAccessPolicy.IsChild(pawn)) continue;
                 if (rule.Area[pawn.Position])
                     matches.Add(rule);
             }
@@ -249,7 +252,7 @@ namespace AutomaticOutfitManager.Detection
             {
                 foreach (ApparelRule rule in activeRules)
                 {
-                    if (rule.Area[pawn.Position])
+                    if (!ChildAreaAccessPolicy.IsChild(pawn) && rule.Area[pawn.Position])
                         AddUniqueRule(matches, rule);
                 }
             }
@@ -262,7 +265,7 @@ namespace AutomaticOutfitManager.Detection
 
             foreach (ApparelRule rule in activeRules)
             {
-                if (JobPreparationTargetsArea(job, rule.Area))
+                if (!ChildAreaAccessPolicy.IsChild(pawn) && JobPreparationTargetsArea(job, rule.Area))
                     AddUniqueRule(matches, rule);
             }
 
@@ -282,17 +285,19 @@ namespace AutomaticOutfitManager.Detection
         }
 
         public static bool UsesSavedNonWorkOutfit(Pawn pawn, ApparelRule rule) =>
+            !ChildAreaAccessPolicy.IsChild(pawn) &&
             rule?.IsNonWork == true && rule.DefaultToSavedPersonalOutfit &&
             AutomaticOutfitManagerGameComponent.Current?.NonWorkOutfitFor(pawn) != null;
 
         public static IEnumerable<ThingDef> RequiredApparelFor(Pawn pawn, ApparelRule rule) =>
-            UsesSavedNonWorkOutfit(pawn, rule)
+            (ChildAreaAccessPolicy.IsChild(pawn) || UsesSavedNonWorkOutfit(pawn, rule))
                 ? Enumerable.Empty<ThingDef>()
                 : rule?.RequiredApparel ?? Enumerable.Empty<ThingDef>();
 
         public static bool NeedsNonWorkGearReturn(Pawn pawn, ApparelRule rule)
         {
-            if (rule?.IsNonWork != true || UsesSavedNonWorkOutfit(pawn, rule))
+            if (ChildAreaAccessPolicy.IsChild(pawn) ||
+                rule?.IsNonWork != true || UsesSavedNonWorkOutfit(pawn, rule))
                 return false;
             var state = AutomaticOutfitManagerGameComponent.Current?.StateFor(pawn);
             return pawn.apparel?.WornApparel.Any(item =>
@@ -303,7 +308,8 @@ namespace AutomaticOutfitManager.Detection
 
         public static bool SelectedNonWorkOutfitConflicts(Pawn pawn, IEnumerable<ApparelRule> rules)
         {
-            var requirements = rules.Where(rule => rule != null).ToList();
+            var requirements = rules.Where(rule => rule != null &&
+                !ChildAreaAccessPolicy.IsChild(pawn)).ToList();
             var selectedRules = requirements.Where(rule => rule.IsNonWork &&
                 !UsesSavedNonWorkOutfit(pawn, rule)).ToList();
             if (selectedRules.Count == 0)
@@ -354,7 +360,8 @@ namespace AutomaticOutfitManager.Detection
 
         public static bool SavedNonWorkOutfitConflicts(Pawn pawn, IEnumerable<ApparelRule> rules)
         {
-            List<ApparelRule> requirements = rules.Where(rule => rule != null).ToList();
+            List<ApparelRule> requirements = rules.Where(rule => rule != null &&
+                !ChildAreaAccessPolicy.IsChild(pawn)).ToList();
             if (!requirements.Any(rule => UsesSavedNonWorkOutfit(pawn, rule)))
                 return false;
             var component = AutomaticOutfitManagerGameComponent.Current;
@@ -379,6 +386,7 @@ namespace AutomaticOutfitManager.Detection
 
         public static List<ThingDef> MissingRequiredApparel(Pawn pawn, ApparelRule rule)
         {
+            if (ChildAreaAccessPolicy.IsChild(pawn)) return new List<ThingDef>();
             if (UsesSavedNonWorkOutfit(pawn, rule))
                 return NonWorkOutfitPolicy.Target(pawn, rule)
                     .Apparel.Where(item => item != null && !item.Destroyed &&
@@ -396,6 +404,7 @@ namespace AutomaticOutfitManager.Detection
 
         public static bool HasMissingRequiredApparel(Pawn pawn, ApparelRule rule)
         {
+            if (ChildAreaAccessPolicy.IsChild(pawn)) return false;
             if (UsesSavedNonWorkOutfit(pawn, rule))
                 return !NonWorkOutfitPolicy.Target(pawn, rule).ApparelSatisfied(pawn);
             if (pawn?.apparel == null || rule?.RequiredApparel == null)
@@ -424,15 +433,17 @@ namespace AutomaticOutfitManager.Detection
         }
 
         public static bool HasMissingRequiredGear(Pawn pawn, ApparelRule rule) =>
-            (!UsesSavedNonWorkOutfit(pawn, rule) && NonWorkFallbackPolicy.FirstConflict(rule,
+            !ChildAreaAccessPolicy.IsChild(pawn) &&
+            ((!UsesSavedNonWorkOutfit(pawn, rule) && NonWorkFallbackPolicy.FirstConflict(rule,
                 AutomaticOutfitManagerGameComponent.Current?.Rules) != null) ||
             NeedsNonWorkGearReturn(pawn, rule) || HasMissingRequiredApparel(pawn, rule) ||
             (AutomaticOutfitManagerGameComponent.Current?
                  .StateFor(pawn)?.WeaponRuleOverrideExplicit != true &&
-             HasMissingRequiredWeapon(pawn, rule));
+             HasMissingRequiredWeapon(pawn, rule)));
 
         public static bool HasMissingRequiredWeapon(Pawn pawn, ApparelRule rule)
         {
+            if (ChildAreaAccessPolicy.IsChild(pawn)) return false;
             if (UsesSavedNonWorkOutfit(pawn, rule))
                 return !NonWorkOutfitPolicy.Target(pawn, rule).WeaponSatisfied(pawn);
             if (rule?.HasWeaponRequirement != true)
@@ -512,7 +523,8 @@ namespace AutomaticOutfitManager.Detection
 
             foreach (ApparelRule rule in rules ?? Enumerable.Empty<ApparelRule>())
             {
-                if (rule?.HasWeaponRequirement != true || UsesSavedNonWorkOutfit(pawn, rule))
+                if (ChildAreaAccessPolicy.IsChild(pawn) ||
+                    rule?.HasWeaponRequirement != true || UsesSavedNonWorkOutfit(pawn, rule))
                     continue;
 
                 requirement.HasRequirement = true;
@@ -613,6 +625,7 @@ namespace AutomaticOutfitManager.Detection
 
         public static bool RuleCanApplyToPawn(Pawn pawn, ApparelRule rule)
         {
+            if (ChildAreaAccessPolicy.IsChild(pawn)) return true;
             if (UsesSavedNonWorkOutfit(pawn, rule))
                 return pawn?.RaceProps?.Humanlike == true && pawn.apparel != null &&
                     NonWorkOutfitPolicy.Target(pawn, rule)

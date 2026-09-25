@@ -22,7 +22,7 @@ namespace AutomaticOutfitManager.Patches
             Component?.NonWorkMealTrips.FirstOrDefault(trip => trip?.Pawn == pawn);
 
         private static bool NativeOverride(Pawn pawn, Job job, PawnApparelState state) =>
-            pawn == null || !pawn.Spawned || pawn.Dead || pawn.Downed || pawn.Drafted ||
+            ChildAreaAccessPolicy.IsChild(pawn) || pawn == null || !pawn.Spawned || pawn.Dead || pawn.Downed || pawn.Drafted ||
             pawn.InMentalState || PawnAccessClassifier.IsNativeCustodyEscapeActive(pawn) ||
             PawnJobTracker_StartJob_Patch.IsNativeEmergencySafetyJob(job) ||
             PawnJobTracker_StartJob_Patch.IsMapDepartureJob(job) ||

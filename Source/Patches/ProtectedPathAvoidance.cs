@@ -222,6 +222,7 @@ namespace AutomaticOutfitManager.Patches
             List<ApparelRule> restricted = null;
             foreach (ApparelRule rule in mapRules)
             {
+                if (ChildAreaAccessPolicy.BypassesAdultRules(pawn, rule)) continue;
                 // Never surround a pawn with an impassable custom grid. This
                 // preserves egress for animals, mechs, guests, and geared
                 // workers that already occupy the rule while still allowing

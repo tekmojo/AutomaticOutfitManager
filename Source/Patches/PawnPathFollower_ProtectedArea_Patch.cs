@@ -107,7 +107,7 @@ namespace AutomaticOutfitManager.Patches
             bool blockedByActivity = false;
             foreach (ApparelRule candidate in rules)
             {
-                if (!candidate.Area[nextCell])
+                if (!candidate.Area[nextCell] || ChildAreaAccessPolicy.BypassesAdultRules(pawn, candidate))
                     continue;
 
                 // Only the exact owned exit may traverse its occupied area.

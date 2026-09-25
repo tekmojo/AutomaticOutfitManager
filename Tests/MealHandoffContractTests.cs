@@ -166,6 +166,16 @@ partial class MealHandoffContractTests
   Check(loaded.Meal==food&&loaded.Pawn==p&&loaded.JobLoadId==trip.JobLoadId&&loaded.SourceRuleId==source.Id&&loaded.DiningCell==trip.DiningCell,"save record restores exact meal identity, stage context, and destination");
   Check(!typeof(NonWorkMealTrip).GetFields().Any(f=>typeof(Job).IsAssignableFrom(f.FieldType)),"persisted handoff has no duplicated native Job owner");
   AccessRevocationTests();
+  Setup();p.DevelopmentalStage=DevelopmentalStage.Child;dest.AllowChildren=true;
+  LocalTargetInfo childDining=new LocalTargetInfo(4);
+  Check(NonWorkMealHandoff.BeforePath(p,ref childDining,PathEndMode.OnCell) && childDining.Cell==(IntVec3)4 && c.NonWorkMealTrips.Count==0,
+      "child keeps native dining destination without outfit detour");
+  c.State=null;dest.ReturnTaskBuffer=3;p.Position=4;
+  NonWorkBufferTracker.Begin(p,dest);
+  Check(NonWorkBufferTracker.For(p)==null,"child does not acquire adult outfit buffer");
+  c.NonWorkOutfitBuffers.Add(new NonWorkOutfitBuffer{Pawn=p,Map=p.Map,RuleId=dest.Id});
+  NonWorkBufferTracker.Refresh(p);
+  Check(NonWorkBufferTracker.For(p)==null,"legacy child buffer clears without an outfit change");
   BufferTests();
   RuleBufferDisplayTests();
   ChildcareTests();
@@ -223,7 +233,7 @@ namespace HarmonyLib {
  public class HarmonyPostfix:Attribute{} public static class AccessTools{public delegate V FieldRef<T,V>(T obj);public static FieldRef<T,V> FieldRefAccess<T,V>(string field)=>obj=>default(V);}
 }
 namespace AutomaticOutfitManager.Rules {
- public class ApparelRule{public int ReturnTaskBuffer;public string Id;public Area Area,ChangingArea;public bool IsNonWork,WorkAreaPaused,HasWeaponRequirement;public bool ActivitiesAllowed=true;public bool Enabled=true,DefaultToSavedPersonalOutfit=true;public List<ThingDef> RequiredApparel=new List<ThingDef>();public bool Allows(Apparel a)=>true;}
+ public class ApparelRule{public bool AllowChildren;public int ReturnTaskBuffer;public string Id;public Area Area,ChangingArea;public bool IsNonWork,WorkAreaPaused,HasWeaponRequirement;public bool ActivitiesAllowed=true;public bool Enabled=true,DefaultToSavedPersonalOutfit=true;public List<ThingDef> RequiredApparel=new List<ThingDef>();public bool Allows(Apparel a)=>true;}
 }
 namespace AutomaticOutfitManager.State {
  public enum ApparelTransition{Active,ReturningToChangingArea,Restoring,Preparing}

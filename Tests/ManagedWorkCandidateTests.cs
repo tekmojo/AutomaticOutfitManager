@@ -143,7 +143,10 @@ class ManagedWorkCandidateTests
 }
 namespace Verse
 {
-    public class Map { }
+    public class Map { public Dictionary<IntVec3, Building> Buildings = new Dictionary<IntVec3, Building>(); }
+    public class Building : Thing { public ThingDef def = new ThingDef(); }
+    public class ThingDef { public RimWorld.BuildingProperties building = new RimWorld.BuildingProperties(); }
+    public static class GridsUtility { public static Building GetEdifice(this IntVec3 cell, Map map) => map.Buildings.TryGetValue(cell, out var b) ? b : null; }
     public struct IntVec3
     {
         int value; public IntVec3(int v) { value = v; } public bool IsValid => value != -1000;
@@ -179,7 +182,7 @@ class QueueTracker
     public Queue<Job> Queue = new Queue<Job>();
     public void ClearQueuedJobs(bool unused) => Queue.Clear();
 }
-namespace RimWorld { public static class JobDefOf { public static JobDef HaulToCell = new JobDef { defName = "HaulToCell" }; } }
+namespace RimWorld { public class BuildingProperties { public bool multiSittable, isSittable; } public static class JobDefOf { public static JobDef HaulToCell = new JobDef { defName = "HaulToCell" }; } }
 namespace AutomaticOutfitManager.State
 {
     public enum ApparelTransition { Preparing, Active, Restoring }

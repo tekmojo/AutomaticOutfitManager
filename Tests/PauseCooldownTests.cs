@@ -68,16 +68,29 @@ class PauseCooldownTests
                 UnavailableWorkRegistry.BlockDeniedActivity(pawn,rule,job);UnavailableWorkRegistry.ResetForLoadedGame();
                 Check(!UnavailableWorkRegistry.ShouldReject(pawn,job),"load reset clears transient pause retry");
             }
+            {
+                var map=new Map();var c=AutomaticOutfitManagerGameComponent.Current=new AutomaticOutfitManagerGameComponent();
+                var rule=new ApparelRule{Id="child",Area=new Area{Map=map},AllowChildren=false};c.Rules.Add(rule);
+                var pawn=new Pawn{thingIDNumber=81,Map=map,DevelopmentalStage=DevelopmentalStage.Child};
+                var job=new Job{def=new JobDef(),targetA=new LocalTargetInfo(new Thing{MapHeld=map})};
+                UnavailableWorkRegistry.Block(pawn,rule,job);
+                Check(UnavailableWorkRegistry.ShouldReject(pawn,job),"unchecked child retains old denial");
+                rule.AllowChildren=true;
+                Check(!UnavailableWorkRegistry.ShouldReject(pawn,job),"checking Allow Children expires old clothing and access denial immediately");
+                Check(!UnavailableWorkRegistry.HasActiveRuleBlock(pawn,rule),"allowed child loses stale rule shortage without waiting");
+            }
             Console.WriteLine(passed+" pause cooldown checks passed.");return 0;
         }catch(Exception e){Console.Error.WriteLine(e);return 1;}
     }
 }
 namespace Verse {
+ public static class DevelopmentalStage {public const int Child=2;}
+ public class RaceProperties {public bool Humanlike=true;}
  public class Map {}
  public struct IntVec3 {public int x;public bool IsValid=>x>=0;public bool InBounds(Map m)=>IsValid;public static IntVec3 Invalid=>new IntVec3{x=-1};}
  public class Thing {public Map MapHeld;public IntVec3 PositionHeld;public bool Destroyed;}
  public struct LocalTargetInfo {public Thing Thing;public IntVec3 Cell;public bool HasThing=>Thing!=null;public bool IsValid=>HasThing||Cell.IsValid;public LocalTargetInfo(Thing t){Thing=t;Cell=IntVec3.Invalid;}}
- public class Pawn {public int thingIDNumber;public Map Map;public Pawn_JobTracker jobs=new Pawn_JobTracker();}
+ public class Pawn {public RaceProperties RaceProps=new RaceProperties();public int DevelopmentalStage;public int thingIDNumber;public Map Map;public Pawn_JobTracker jobs=new Pawn_JobTracker();}
  public class Area {public Map Map;public bool this[IntVec3 cell]=>true;}
  public class JobDef {}
  public class TickManager {public int TicksGame;}
@@ -87,7 +100,7 @@ namespace Verse.AI {
  public class Job {public JobDef def;public LocalTargetInfo targetA,targetB=new LocalTargetInfo(null),targetC=new LocalTargetInfo(null);public List<LocalTargetInfo> targetQueueA,targetQueueB;}
  public class Pawn_JobTracker {public Job curJob;}
 }
-namespace AutomaticOutfitManager.Rules {public class ApparelRule {public string Id;public Area Area;public bool Enabled=true,WorkAreaPaused,IsNonWork;}}
+namespace AutomaticOutfitManager.Rules {public class ApparelRule {public bool AllowChildren;public string Id;public Area Area;public bool Enabled=true,WorkAreaPaused,IsNonWork;}}
 namespace AutomaticOutfitManager.State {public class PawnApparelState {public Pawn Pawn;public bool RecallRequested;public List<string> PauseRecallRuleIds=new List<string>();}}
 namespace AutomaticOutfitManager.Core {
  public class AutomaticOutfitManagerGameComponent {

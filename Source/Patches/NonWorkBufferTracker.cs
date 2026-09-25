@@ -27,7 +27,7 @@ namespace AutomaticOutfitManager.Patches
 
         internal static void Begin(Pawn pawn, ApparelRule rule)
         {
-            if (Component == null || rule?.IsNonWork != true || rule.ReturnTaskBuffer <= 0 ||
+            if (ChildAreaAccessPolicy.IsChild(pawn) || Component == null || rule?.IsNonWork != true || rule.ReturnTaskBuffer <= 0 ||
                 !rule.Enabled || rule.WorkAreaPaused || rule.Area?.Map != pawn?.Map ||
                 !PawnAccessClassifier.IsApparelEligibleHuman(pawn) || NativeOverride(pawn, pawn.CurJob) ||
                 Component.StateFor(pawn) != null || RuleEvaluator.HasMissingRequiredGear(pawn, rule)) return;
@@ -43,6 +43,7 @@ namespace AutomaticOutfitManager.Patches
         internal static void Refresh(Pawn pawn)
         {
             if (Component == null || pawn == null) return;
+            if (ChildAreaAccessPolicy.IsChild(pawn)) { Clear(pawn); return; }
             var buffer = For(pawn);
             Job job = pawn.CurJob;
             if (ChildcareContinuation.Admit(pawn, job)) return;
