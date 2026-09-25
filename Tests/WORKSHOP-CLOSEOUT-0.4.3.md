@@ -1,6 +1,6 @@
 # Workshop 0.4.3 closeout — 2026-09-24
 
-This records the initial upload. A later [punctuation correction](PUNCTUATION-CORRECTION-0.4.3.md) changes the DLL and ZIP hashes and awaits replacement upload; the initial public/subscriber checks below are not proof of that replacement.
+The sections below preserve the initial upload. The corrected replacement is now verified in the final closeout section; the initial hashes remain historical evidence.
 
 The maintainer uploaded the package through RimWorld and updated the description and change notes. Read-only verification confirms the public result and refreshed subscriber package. Steam's update timestamp is **2026-09-25T04:50:18Z**, or **2026-09-24 22:50:18 MDT**.
 
@@ -28,3 +28,15 @@ The ZIP was created directly from the audited stage. Its entry set and all decom
 The downloaded package is verified byte for byte; subscriber-only gameplay was not run. The maintainer's upload and public verification do not establish a dedicated tooltip/UI smoke, full post-ceremony adult return, additional ritual type, child permission edge, or interruption/save-load pass. Earlier gameplay evidence and remaining checks stay recorded in [readiness](NEXT-UPDATE-READINESS.md) and the [release checklist](../RELEASE-CHECKLIST.md). The previous simple-meal loop and other older scoped follow-ups are not claimed fixed.
 
 Evidence is preserved under `C:/GitHub/AutomaticOutfitManager/.codex-audit/release-copy-0.4.3/`: public API/page/change-note snapshots, public-verification.json, subscriber-files.json, published text, restored-junction.json, live About backup, ZIP/checksum and github-asset-prepared.json. The unchanged audited stage remains at `work/workshop-staging-0.4.3/AutomaticOutfitManager` inside the RC worktree.
+
+## Final corrected replacement
+
+The replacement was published at **2026-09-25T05:08:59Z** (**2026-09-24 23:08:59 MDT**). Public content handle and refreshed subscriber manifest: **8379366355831222618**. Every one of the twelve subscriber paths, lengths and SHA-256 values matches the corrected stage and the GitHub ZIP: **1,053,123 bytes** in total.
+
+Corrected DLL SHA-256: `FB5F15960E286091A24CFB50E39989C5C1BDDDCA706E17924E17F7CDE7AA4BA9`. Corrected ZIP SHA-256: `48E3086B5AA8E8CA3E2505D1CC92AEA1C20623AC4D69B41613D447548617F56A` (620,364 bytes). See [GitHub closeout](GITHUB-CLOSEOUT-0.4.3.md).
+
+The latest rendered note is “0.4.3 — Interface text correction” followed by “Corrected garbled punctuation in interface labels and gear ranges. No gameplay changes.” The preceding detailed 0.4.3 note remains intact.
+
+RimWorld was closed for final restoration. The installed junction now targets `C:/GitHub/AutomaticOutfitManager`; the corrected DLL was deployed with the normal helper and candidate/live/installed hashes match. The earlier 0.4.3 DLL remains backed up in the initial stage. About metadata remains 0.4.3. No new game launch or gameplay pass is claimed.
+
+Final public API, rendered change notes, subscriber file manifest, verification and restored-runtime evidence are under the `punctuation-github` subdirectory of the evidence root above. The fixed release tag stays at `442cbd428cdbe07a7f7a195e65a3104f498190f7`; later documentation commits record closeout only.

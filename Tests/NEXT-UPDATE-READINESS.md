@@ -5,9 +5,9 @@ Current scope: child access and Ideology ceremony gathering. Published 0.4.2 evi
 ## Runtime identity
 
 - Earlier gameplay-tested DLL: `1E9F72F40BE9CCC2A17B220C9217F23886D1C3956791200D03F431075EA562BA`. Its assembly version is 0.4.2; behavior includes the child and ritual changes.
-- Initial Workshop 0.4.3 and live-repository DLL: `149A319E8D6BDAB4494AD6727AA3607D3974DAE2BC2BDE1A6526BB18A005DF1D`. Initial subscriber verification is recorded in [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.3.md).
-- Corrected public GitHub/staged DLL: `FB5F15960E286091A24CFB50E39989C5C1BDDDCA706E17924E17F7CDE7AA4BA9`. It corrects 23 garbled dash characters only. Build, package and uploaded asset checks pass; see [GitHub closeout](GITHUB-CLOSEOUT-0.4.3.md).
-- The installed junction selects the corrected upload stage while RimWorld runs. Replacement Workshop upload/subscriber verification and later restoration/deployment to the live repository remain pending. Neither a dedicated UI smoke nor subscriber-only gameplay is established by publication.
+- Historical initial Workshop 0.4.3 DLL: `149A319E8D6BDAB4494AD6727AA3607D3974DAE2BC2BDE1A6526BB18A005DF1D`. Initial subscriber verification is recorded in [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.3.md).
+- Corrected public GitHub/Workshop, subscriber and live/installed DLL: `FB5F15960E286091A24CFB50E39989C5C1BDDDCA706E17924E17F7CDE7AA4BA9`. It corrects 23 garbled dash characters only. Build, package and uploaded asset checks pass; see [GitHub closeout](GITHUB-CLOSEOUT-0.4.3.md).
+- Replacement Workshop manifest `8379366355831222618` and all twelve subscriber files match the corrected GitHub ZIP. With RimWorld closed, the installed junction was restored to the live repository and the corrected runtime deployed. Neither a dedicated UI smoke nor subscriber-only gameplay is established by publication.
 
 ## Observed in-game
 

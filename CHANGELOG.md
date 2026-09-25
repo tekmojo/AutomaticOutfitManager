@@ -2,7 +2,7 @@
 
 ## 0.4.3 — 2026-09-24
 
-Published on [GitHub](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.3) with corrected interface punctuation. The initial 0.4.3 package is on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788); replacement upload/subscriber verification remains pending. See [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.3.md) and the initial [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.3.md).
+Published on [GitHub](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.3) and [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) with corrected interface punctuation. All twelve refreshed subscriber files match the GitHub ZIP and corrected stage. See [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.3.md) and the initial [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.3.md).
 
 ### Added
 

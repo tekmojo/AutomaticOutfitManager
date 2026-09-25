@@ -18,6 +18,8 @@ Released DLL SHA-256: **FB5F15960E286091A24CFB50E39989C5C1BDDDCA706E17924E17F7CD
 
 ## Workshop and local installation
 
+**Final state:** replacement Workshop content handle/subscriber manifest `8379366355831222618` is verified, and all twelve downloaded files match the corrected GitHub ZIP. The correction note is live and the previous detailed note is preserved. RimWorld subsequently closed; the development junction and corrected live DLL are restored and verified. See the final section of [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.3.md). The following paragraphs record the earlier state at GitHub publication.
+
 At GitHub publication, Workshop item [3792731788](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) still reports content handle **818263818669951996** and update time **2026-09-25T04:50:18Z**. The subscriber folder still contains the initial 0.4.3 DLL `149A319E8D6BDAB4494AD6727AA3607D3974DAE2BC2BDE1A6526BB18A005DF1D`; only that DLL differs from the corrected stage. The byte count is unchanged, so size alone cannot verify this replacement. Initial publication evidence remains in [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.3.md).
 
 The maintainer renewed authorization to proceed with GitHub after the corrected draft was prepared. GitHub is published; replacement Workshop upload and subscriber refresh remain pending. RimWorld is running, so the installed junction remains on `work/workshop-staging-0.4.3-punctuation/AutomaticOutfitManager`. Do not restore it or replace the live runtime while the game is running. After the replacement upload and game shutdown, verify Steam's new manifest and file hashes, restore the development junction and deploy the corrected DLL to the live repository.

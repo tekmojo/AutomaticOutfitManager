@@ -175,6 +175,16 @@ Original source and documentation use the MIT License. Third-party software and 
 Portions of the materials used to create this content/mod are trademarks and/or copyrighted works of Ludeon Studios Inc. All rights reserved by Ludeon. This content/mod is not official and is not endorsed by Ludeon.
 ```
 
+## Latest correction note
+
+```text
+[b]0.4.3 — Interface text correction[/b]
+
+Corrected garbled punctuation in interface labels and gear ranges. No gameplay changes.
+```
+
+Verified on the latest Workshop entry; the detailed note below remains on the preceding entry.
+
 ## Version 0.4.3 published change note
 
 ```text
