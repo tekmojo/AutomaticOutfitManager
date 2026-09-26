@@ -1,29 +1,41 @@
-# 0.4.3 maintenance readiness
+# Final 0.4.3 bug-fix readiness
 
-The September 25 published maintenance update corrects presentation only: Task Buffer minus sign, concise About description and adult/child wording for selected Non-Work outfits. Version remains 0.4.3. No gameplay logic or saved data changes. Use the [release checklist](../RELEASE-CHECKLIST.md) for the in-game Mods-menu upload workflow and [maintenance preflight](MAINTENANCE-PREFLIGHT-0.4.3.md) for build evidence.
+**Published through the Mods menu; public copy and downloaded files verified.** Current release `85AD264B6CF071229DEFE128B6342D460776C37E7D5A6ED6CAFC9C85BB861D04` is built, locally deployed and gameplay-tested within the scope below. RC/live/installed hashes match. This preparation changes documentation and audit guidance only; the gameplay-tested DLL remains unchanged. Version stays **0.4.3**.
 
-| State | DLL SHA-256 |
-|---|---|
-| Published maintenance; stage, subscriber and installed hashes match; About card observed | `4CA32704045B015AB50A6FA20AFA236A72E717E90DDF812F785830CB1A0E9B32` |
-| Prior published/subscriber baseline audited September 25 | `FB5F15960E286091A24CFB50E39989C5C1BDDDCA706E17924E17F7CDE7AA4BA9` |
+The earlier published text-only maintenance state is preserved in [archived readiness](READINESS-0.4.3-TEXT-MAINTENANCE.md) and [maintenance closeout](MAINTENANCE-CLOSEOUT-0.4.3.md). Its published DLL is `4CA32704045B015AB50A6FA20AFA236A72E717E90DDF812F785830CB1A0E9B32`; do not call it the current installed candidate or imply this gameplay update is already on Steam.
 
-## September 25 session evidence
+## Scope
 
-The supplied 3,927-line excerpt has 108 AOM messages matching the full process log's later `GooseButter_03_ALL_MODS` load. Current-tick anchors span 51,333,900–51,343,237; the newly saved `GooseButter_ANOM_ALL_MODS` is at 51,343,736. The earlier `GooseButter_04_ALL_MODS` load is a separate interval. Saving the new file is not a demonstrated reload.
+- Ordinary and buffered travel through Work Areas with no outfit requirement respects access without unnecessary protected-route avoidance.
+- Adjacent construction delivery/finishing positions are recognized.
+- Child boundary construction uses consistent selection/runtime approach checks, including remaining pickups and queued recipients.
+- No save keys, defaults, metadata version or About/loading copy changes.
 
-- Oto, Schmurda and Gonzalez complete personal restoration. Four weapon and 14 apparel step endings succeed, with no failed outfit endings. Two isolated locker recoveries and seven wait continuations resolve; no repeated post-completion restoration is shown.
-- Schmurda's exact saved weapon is released from another pawn's inventory, hauled and successfully restored. Gonzalez receives buffer credit after successful deliveries and adopts a replacement robe only after successful wear.
-- Moto finishes Radiation Zone preparation and resumes the exact Rimatomics machining-table DoBill. Actual bill completion and Moto's later full return are not established.
-- Arakis has 12 rapid-job warnings for the same crib. The end save shows a 10.69-year-old still assigned that crib, with no AOM outfit state; pawn and crib endpoints are outside configured areas. Test a normal-bed assignment before attributing cause. This candidate does not fix or conceal that loop.
-- Full-log compatibility concerns include a missing Fortified map component, 39 apparel initialization error headlines with expanded traces into Layered Apparel, and a missing trench component type. These are not represented as AOM fixes.
-- The saved Anomaly Work rule has no selected gear. Anomaly study, psychic rituals, pit travel and new-save reload have not been demonstrated by this excerpt. Ideology gathering coverage does not establish Anomaly psychic-ritual coverage.
+## Evidence on the current candidate
 
-Detailed evidence: `C:/GitHub/AutomaticOutfitManager/.codex-audit/anomaly-text-2026-09-25/AUDIT.md`. These observations apply to the baseline DLL, not newly repeated candidate gameplay tests.
+The [implementation record](CHILD-DELIVERY-ADMISSION-2026-09-25.md) records 888 passing checks, two expected-failing negative controls and native-picker execution limits. The [routing record](ACCESS-ONLY-ROUTING-2026-09-25.md) and [initial child-access record](CONSTRUCTION-CHILD-ACCESS-2026-09-25.md) preserve the earlier candidate history.
 
-## Candidate checks and carry-forward coverage
+[Latest session evidence](FINAL-BUGFIX-SESSIONS-2026-09-25.md) distinguishes separate replays:
 
-Build and whole compiled-text verification apply to the candidate. The supplied Mods-menu screenshot verifies the concise About card, title, preview and version. Task Buffer controls for both rule kinds, the selected-outfit tooltip and one normal restoration remain unverified in-game. No broad gameplay-suite rerun is claimed for a string-only edit.
+| Case | Observed result |
+| --- | --- |
+| LSjayPrfzv | Turoksen and Loto construction deliveries Succeeded. Allow Children off at 3:47–3:48 produces safe exits after completion. 23 construction successes; no forced construction interruption/path error. |
+| RKbtGCQ9Gy | Turoksen supplies the final concrete to the wall (9 to 10), then cleans and continues other movement. Its native ending is Incompletable, not a successful buffer task. 18 other construction successes; no forced construction interruption/path error. Late toggle follows his departure. |
+| Gonzo, both replays | Full buffer and exact saved gear restoration; no renewed restoration loop after snapshot clearing. |
+| No-outfit Anomaly work | Adults/robots and allowed children continue ordinary construction, hauling and activity. No Anomaly-specific outfit requirement was configured. |
 
-The [published 0.4.3 readiness](READINESS-0.4.3-PUBLISHED.md) preserves child/role-ceremony gathering and earlier automated checks. Full post-ceremony returns, child exit/overlap/pause edges, another ritual type, fresh preparation save/load, cancellation and legacy child-session restoration remain distinct follow-ups. [0.4.2 readiness](READINESS-0.4.2.md) retains older meal/bill, mental-state save/load and snapshot-cleanup cases; this session does not close them.
+Earlier cancellation attribution is limited by user toggles: the initial current-candidate audit cannot establish the precise setting at every interruption. Latest evidence does not justify another speculative AOM fix. Do not count an accepted job without a matching ending as completed.
 
-The [maintenance deployment](MAINTENANCE-DEPLOYMENT-0.4.3.md) verifies matching candidate/live/staged/subscriber/installed hashes, the public maintenance note, manifest 2204596392603111389 and restoration of the live junction. Additional UI/gameplay smoke remains unverified. See [maintenance closeout](MAINTENANCE-CLOSEOUT-0.4.3.md) for source and download records.
+## Remaining checks and separate concerns
+
+Held-off exterior boundary delivery, blocked/queued pickup/recipient gameplay cases, the exact earlier cooler route, and fresh transition save/load remain unverified. The latest recordings do not establish Anomaly study, psychic ritual or pit travel, complete post-ceremony restoration, or all overlap/pause edges. Earlier meal/bill, mental-state and legacy-child follow-ups stay in [published 0.4.3 readiness](READINESS-0.4.3-PUBLISHED.md) and [0.4.2 readiness](READINESS-0.4.2.md).
+
+The two latest logs contain 54 and 51 missing faction-relation errors respectively. DBH's toilet-driver exception affects Rodion in one replay and Sullivan in the next, on different toilets. These are separate investigations without established AOM causation. Older crib/load issues are preserved in archived records and are not claimed resolved by their absence here.
+
+## Publication and closeout
+
+The final package was uploaded on September 25 at 18:48:28 America/Denver (September 26 at 00:48:28 UTC). Workshop item 3792731788 retains its title, creator, visibility and Harmony dependency. The streamlined description matches the public text after newline normalization, and the separate bug-fix note is verified.
+
+Steam manifest/content handle: **4781208902276209270**. All twelve downloaded files match the stage by path, size and SHA-256 (1,061,488 bytes total). The installed junction is restored to the live repository with the tested DLL verified; source changes there remain preserved. Subscriber-only gameplay smoke and the scoped gameplay gaps above remain unclaimed.
+
+[Final preflight](FINAL-BUGFIX-PREFLIGHT-0.4.3.md) and [upload handoff](FINAL-BUGFIX-DEPLOYMENT-0.4.3.md) preserve preparation history. [Final closeout](FINAL-BUGFIX-CLOSEOUT-0.4.3.md) records publication and the matching GitHub asset work. The original version tag remains unchanged.

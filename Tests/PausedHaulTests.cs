@@ -50,7 +50,7 @@ namespace RimWorld {
  public class WorkGiver_Refuel:WorkGiver_Scanner{}
 }
 namespace AutomaticOutfitManager.Rules {
- public class ApparelRule {public bool AllowChildren=>Children;public string Id="ship";public string Name=>Id;public Area Area;public bool Enabled=true,WorkAreaPaused=true,Hauling=true,Wandering,Activities=true,Children=true,IsNonWork,MissingGear,SavedPersonal,MustReturnWork;public int ReturnTaskBuffer=3;}
+ public class ApparelRule {public bool IsAccessOnlyWork;public bool AllowChildren=>Children;public string Id="ship";public string Name=>Id;public Area Area;public bool Enabled=true,WorkAreaPaused=true,Hauling=true,Wandering,Activities=true,Children=true,IsNonWork,MissingGear,SavedPersonal,MustReturnWork;public int ReturnTaskBuffer=3;}
 }
 namespace AutomaticOutfitManager.State {
  public static class NonWorkOutfitPolicy {public static bool ShouldReturn(Pawn p,ApparelRule r,ThingWithComps t)=>r.MustReturnWork;}
@@ -95,6 +95,12 @@ namespace AutomaticOutfitManager.Detection {
  }
 }
 namespace AutomaticOutfitManager.Patches {
+ // These fixtures cover general pause/haul rules. Boundary-child integration
+ // executes the real helper in ConstructionChildAccessTests.
+ internal static class ConstructionChildAccess {
+  internal static bool TryGetRouteRestriction(Pawn p,Job j,out ApparelRule denied){denied=null;return false;}
+ }
+
  internal static class AutomaticOutfitManagerJobDefOf {internal static JobDef AutomaticOutfitManager_LockerReturn=new JobDef{defName="AOM_LockerReturn"};}
  public static class AccessExitJobs {public static bool IsOwned(Pawn p,Job j)=>false;}
  internal static partial class PawnJobTracker_StartJob_Patch {
@@ -147,6 +153,11 @@ partial class PausedHaulTests {
  }
  static void Pulse(Pawn p,ApparelRule r)=>AutomaticOutfitManagerGameComponent.Current.Pulse(p,r);
  static void ChildCheckboxCases(){
+  var transitPawn=Setup(out var transitState,out var accessRule);
+  accessRule.WorkAreaPaused=false;accessRule.IsAccessOnlyWork=true;
+  var outsideJob=new Job{def=new JobDef{defName="FinishFrame"},Targets=false,targetA=new LocalTargetInfo{Cell=3}};
+  Check(!PausedAreaWorkFilter.MatchesProtectedTransitRule(transitPawn,outsideJob,accessRule),
+    "access-only Work transit does not create an outfit session");
   foreach(bool paused in new[]{false,true}) {
    var p=Setup(out var s,out var r);p.Child=true;r.WorkAreaPaused=paused;
    r.Children=true;r.Activities=false;r.Hauling=false;r.Wandering=false;

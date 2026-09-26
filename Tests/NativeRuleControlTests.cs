@@ -136,7 +136,8 @@ static class NativeRuleControlTests
 }
 namespace Verse
 {
-    public class Pawn { public bool Dead,Downed,Drafted,InMentalState,CustodyEscape,Compliant; public Map Map=new Map(); public Pawn_JobTracker jobs; public Job CurJob=>jobs?.curJob; public int thingIDNumber=1; public string LabelShortCap=>"Ocag"; public IntVec3 Position; }
+    public enum DevelopmentalStage {Adult,Child,Baby} public class RaceProperties { public bool Humanlike=true; }
+    public class Pawn { public RaceProperties RaceProps=new RaceProperties();public DevelopmentalStage DevelopmentalStage=DevelopmentalStage.Adult; public bool Dead,Downed,Drafted,InMentalState,CustodyEscape,Compliant; public Map Map=new Map(); public Pawn_JobTracker jobs; public Job CurJob=>jobs?.curJob; public int thingIDNumber=1; public string LabelShortCap=>"Ocag"; public IntVec3 Position; }
     public class Map { }
     public struct IntVec3 { public int Value; public bool IsValid=>Value>=0; public bool InBounds(Map m)=>m!=null; public static IntVec3 Invalid=>new IntVec3 {Value=-1}; }
     public class Area { public HashSet<int> Cells; public bool this[IntVec3 cell]=>Cells==null||Cells.Contains(cell.Value); }
@@ -177,7 +178,7 @@ namespace Verse.AI
         }
     }
 }
-namespace AutomaticOutfitManager.Rules { public class ApparelRule {public string Id="kitchen",Name="Kitchen"; public bool IsNonWork,WorkAreaPaused,Allows=true; public Area Area=new Area();} }
+namespace AutomaticOutfitManager.Rules { public class ApparelRule {public bool Enabled=true,AllowChildren;public string Id="kitchen",Name="Kitchen"; public bool IsNonWork,WorkAreaPaused,Allows=true; public Area Area=new Area();} }
 namespace AutomaticOutfitManager.State
 {
     public enum ApparelTransition {Preparing,Active,ReturningToChangingArea,Restoring}

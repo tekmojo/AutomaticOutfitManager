@@ -18,6 +18,7 @@ class SessionAuditFixTests
     static int Main()
     {
         try {
+            AccessOnlyConstruction();
             var map = new Map();
             var dining = new ApparelRule { Id="dining", Area=new Area { Map=map } };
             var work = new ApparelRule { Id="work", Area=new Area { Map=map } };
@@ -102,6 +103,50 @@ class SessionAuditFixTests
     }
     class CustomIngest : JobDriver_Ingest {}
     class CustomReading : JobDriver_Reading {}
+
+    static void AccessOnlyConstruction()
+    {
+        var map=new Map();
+        var access=new ApparelRule{Id="access",IsNonWork=false};
+        access.Area=new Area{Map=map}; access.Area.Cells.Add(8);
+        var ppe=new ApparelRule{Id="ppe",IsNonWork=false};
+        ppe.RequiredApparel.Add(new ThingDef()); ppe.Area=new Area{Map=map};ppe.Area.Cells.Add(5);
+        RuleEvaluator.Rules=new List<ApparelRule>{access,ppe};
+        var pawn=new Pawn{Map=map,Position=1,Faction=Faction.OfPlayerSilentFail};
+        var frame=new Frame{MapHeld=map,Cell=9};
+        var job=new Job{def=JobDefOf.HaulToContainer,targetA=new Thing{MapHeld=map,Cell=1},targetB=frame};
+        pawn.CurJob=job;
+        Func<IReadOnlyList<ApparelRule>> route=()=>ProtectedPathAvoidance.RestrictedTransitRules(pawn,job,new LocalTargetInfo(8));
+        Check(access.IsAccessOnlyWork,"empty Work rule is access-only");
+        Check(route().SequenceEqual(new[]{ppe}),"allowed empty Work rule does not block construction or transit");
+        access.Allowed=false; Check(route().Contains(access),"denied empty Work rule remains restricted");access.Allowed=true;
+        access.WorkAreaPaused=true;Check(route().Contains(access),"paused construction remains restricted");access.WorkAreaPaused=false;
+        pawn.Child=true;Check(route().Contains(access),"child denied by checkbox remains restricted");access.AllowChildren=true;
+        Check(!route().Contains(access),"allowed child keeps existing bypass");pawn.Child=false;access.AllowChildren=false;
+        access.IsNonWork=true;Check(route().Contains(access),"empty Non-Work selections retain saved-outfit obligations");access.IsNonWork=false;
+        access.RequiredWeapon=WeaponRequirement.Ranged;Check(!access.IsAccessOnlyWork && route().Contains(access),"legacy weapon category is a real requirement");access.RequiredWeapon=WeaponRequirement.None;
+        access.RequiredWeapons.Add(new ThingDef{IsWeapon=true});Check(!access.IsAccessOnlyWork,"exact weapon selection is a real requirement");access.RequiredWeapons.Clear();
+        access.RequiredApparel.Add(new ThingDef());Check(!access.IsAccessOnlyWork,"apparel selection is a real requirement");
+        pawn.carryTracker.CarriedThing=job.targetA.Thing; pawn.pather.Destination=new LocalTargetInfo(8);
+        Check(route().SequenceEqual(new[]{ppe}),"current adjacent delivery destination reaches boundary with PPE rule retained elsewhere");
+        access.Missing=true;Check(!route().Contains(access),"missing construction gear reaches boundary preparation rather than failing path");access.Missing=false;
+        access.Allowed=false;Check(route().Contains(access),"construction destination cannot override denied activity");access.Allowed=true;
+        pawn.pather.Destination=new LocalTargetInfo(7);Check(route().Contains(access),"speculative cell is not the current construction destination");pawn.pather.Destination=new LocalTargetInfo(8);
+        pawn.carryTracker.CarriedThing=null;Check(route().Contains(access),"pickup phase cannot claim frame delivery route");pawn.carryTracker.CarriedThing=job.targetA.Thing;
+        frame.Cell=20;Check(route().Contains(access),"unrelated distant destination cannot exempt a construction route");frame.Cell=9;
+        frame.Spawned=false;Check(route().Contains(access),"destroyed or despawned frame cannot exempt entry");frame.Spawned=true;
+        frame.MapHeld=new Map();Check(route().Contains(access),"frame on another map cannot exempt entry");frame.MapHeld=map;
+        pawn.CurJob=new Job();Check(route().Contains(access),"stale construction job cannot exempt entry");pawn.CurJob=job;
+        job.targetB=new Thing{MapHeld=map,Cell=9};Check(route().Contains(access),"ordinary container is not construction");job.targetB=frame;
+        job.targetB=new Blueprint{MapHeld=map,Cell=9};Check(!route().Contains(access),"current blueprint delivery is recognized");
+        job.def=JobDefOf.FinishFrame;job.targetA=frame;pawn.carryTracker.CarriedThing=null;
+        Check(!route().Contains(access),"actual adjacent FinishFrame work cell is recognized");
+        job.targetA=new Blueprint{MapHeld=map,Cell=9};Check(route().Contains(access),"FinishFrame must target a live frame");job.targetA=frame;
+        PawnPathFollower_ProtectedArea_Patch.TransitionJob=true;
+        Check(route().Contains(access),"owned outfit transitions cannot borrow construction exemption");
+        PawnPathFollower_ProtectedArea_Patch.TransitionJob=false;
+        Check(!ConstructionDestination.IsCurrentDestination(pawn,job,(LocalTargetInfo)frame,access.Area),"thing query does not masquerade as a chosen work cell");
+    }
 }
 namespace Verse {
     public class Map { public DestinationManager pawnDestinationReservationManager=new DestinationManager(); }
@@ -114,7 +159,10 @@ namespace Verse {
         public static implicit operator IntVec3(int n)=>new IntVec3{Value=n};
     }
     public class Book : Thing {}
-    public class Thing { public Map MapHeld; public IntVec3 Cell; }
+    public class ThingDef { public bool IsWeapon; }
+    public struct CellRect { public int Center,Radius;public CellRect ExpandedBy(int n)=>new CellRect{Center=Center,Radius=Radius+n};public bool Contains(IntVec3 c)=>Math.Abs(c.Value-Center)<=Radius; }
+    public class Thing { public Map MapHeld; public Map Map=>MapHeld;public bool Spawned=true; public IntVec3 Cell;public CellRect OccupiedRect()=>new CellRect{Center=Cell.Value}; }
+    public class Pawn_PathFollower { public LocalTargetInfo Destination; }
     public struct LocalTargetInfo {
         public Thing Thing; IntVec3 cell; public LocalTargetInfo(int n){Thing=null;cell=n;}
         public bool HasThing=>Thing!=null; public IntVec3 Cell=>Thing?.Cell??cell; public bool IsValid=>Cell.IsValid;
@@ -123,7 +171,7 @@ namespace Verse {
     public class Area { public Map Map; public HashSet<int> Cells=new HashSet<int>(); public bool this[IntVec3 c]=>Cells.Contains(c.Value); }
     public class RaceProperties { public bool Animal,Humanlike; }
     public class CarryTracker { public Thing CarriedThing; }
-    public class Pawn { public Map Map;public Faction Faction;public IntVec3 Position;public Job CurJob;public bool Drafted,Downed,Dead,InMentalState,CustodyEscape;public RaceProperties RaceProps=new RaceProperties();public CarryTracker carryTracker=new CarryTracker(); }
+    public class Pawn { public bool Child;public Pawn_PathFollower pather=new Pawn_PathFollower(); public Map Map;public Faction Faction;public IntVec3 Position;public Job CurJob;public bool Drafted,Downed,Dead,InMentalState,CustodyEscape;public RaceProperties RaceProps=new RaceProperties();public CarryTracker carryTracker=new CarryTracker(); }
 }
 namespace Verse.AI {
     public class ThinkNode {}
@@ -132,6 +180,7 @@ namespace Verse.AI {
     public class Job { public JobDef def;public LocalTargetInfo targetA,targetB,targetC;public bool playerForced;public ThinkNode jobGiver;public WorkGiverDef workGiverDef; }
 }
 namespace RimWorld {
+    public class Frame:Thing {} public class Blueprint:Thing {}
     public class JobDriver_Ingest {}
     public class JobDriver_Reading {}
     public class WorkTypeDef { public string defName; }
@@ -140,18 +189,19 @@ namespace RimWorld {
     public static class JobDefOf {
         public static JobDef Reading=new JobDef{defName="Reading",driverClass=typeof(JobDriver_Reading)};
         public static JobDef Ingest=new JobDef{defName="Ingest",driverClass=typeof(JobDriver_Ingest)}, LayDown=new JobDef{defName="LayDown"},
-            Wait=new JobDef(),Wait_MaintainPosture=new JobDef(),Goto=new JobDef(),HaulToCell=new JobDef(),HaulToContainer=new JobDef();
+            Wait=new JobDef(),Wait_MaintainPosture=new JobDef(),Goto=new JobDef(),HaulToCell=new JobDef(),HaulToContainer=new JobDef(),FinishFrame=new JobDef();
     }
 }
 namespace AutomaticOutfitManager.State { public enum ApparelTransition{Active,Preparing} public class PawnApparelState { public ApparelTransition Transition;public bool IdleReselectionAttempted,RecallRequested; } }
-namespace AutomaticOutfitManager.Rules { public class ApparelRule { public string Id;public bool Enabled=true,Allowed=true,Missing;public Area Area; } }
+namespace AutomaticOutfitManager.Rules { public enum WeaponRequirement{None,Ranged} public partial class ApparelRule { public string Id;public bool IsNonWork=true,AllowChildren,WorkAreaPaused;public List<ThingDef> RequiredApparel=new List<ThingDef>(),RequiredWeapons=new List<ThingDef>();public WeaponRequirement RequiredWeapon;public bool Enabled=true,Allowed=true,Missing;public Area Area; } }
 namespace AutomaticOutfitManager.Core { public class AutomaticOutfitManagerGameComponent { public static AutomaticOutfitManagerGameComponent Current=new AutomaticOutfitManagerGameComponent();public AutomaticOutfitManager.State.PawnApparelState State;public AutomaticOutfitManager.State.PawnApparelState StateFor(Pawn p)=>State; } }
 namespace AutomaticOutfitManager.Detection {
     public static class RuleEvaluator {public static IReadOnlyList<ApparelRule> Rules;public static IReadOnlyList<ApparelRule> EnabledRulesForMap(Map m)=>Rules;public static bool JobTargetsArea(Job j,Area a)=>j.targetA.IsValid && a[j.targetA.Cell];public static bool HasMissingRequiredGear(Pawn p,ApparelRule r)=>r.Missing;}
     public static class PawnAccessClassifier { public static bool IsNativeCustodyEscapeActive(Pawn p)=>p?.CustodyEscape==true; public static bool IsHostedGuest(Pawn p)=>false;public static bool IsColonyPrisoner(Pawn p)=>false; }
 }
 namespace AutomaticOutfitManager.Patches {
-    public static class PausedAreaWorkFilter { public static bool ActivityAllowedAtRuleBoundary(Pawn p,Job j,ApparelRule r)=>r.Allowed; }
+    public static class ChildAreaAccessPolicy {public static bool BypassesAdultRules(Pawn p,ApparelRule r)=>p.Child && r.AllowChildren;}
+    public static class PausedAreaWorkFilter { public static bool ActivityAllowedAtRuleBoundary(Pawn p,Job j,ApparelRule r)=>r.Allowed && !r.WorkAreaPaused && (!p.Child || r.AllowChildren); }
     public static class PawnJobTracker_StartJob_Patch { public static bool IsNativeMentalActivity(Pawn p,Job j)=>p?.InMentalState==true; public static bool IsNativeEmergencySafetyJob(Job j)=>false; }
     public static class PawnPathFollower_ProtectedArea_Patch {
         public static bool TransitionJob;public static ApparelRule Owned;

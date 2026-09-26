@@ -54,6 +54,8 @@ namespace AutomaticOutfitManager.Core {
  }
 }
 namespace AutomaticOutfitManager.Detection {
+ // Construction routing has its own production-policy suite; these fixtures exercise pause behavior.
+ public static class ConstructionDestination {public static bool IsCurrentDestination(Pawn p,Job j,LocalTargetInfo? d,Area a)=>false;}
  public static class ReadingDestination {public static bool IsCurrentDestination(Pawn p,Job j,LocalTargetInfo? d,Area a)=>false;}
  public static class EatingDestination {public static bool IsCurrentMealDestination(Pawn p,Job j,LocalTargetInfo? d,Area a)=>false;}
 }

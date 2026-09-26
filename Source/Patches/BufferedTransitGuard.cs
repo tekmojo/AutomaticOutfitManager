@@ -32,7 +32,10 @@ namespace AutomaticOutfitManager.Patches
             if (!buffered) return false;
             var destination = pawn.pather.Destination;
             if (!destination.IsValid || !destination.Cell.InBounds(pawn.Map)) return false;
-            var rules = RuleEvaluator.EnabledRulesForMap(pawn.Map);
+            var rules = RuleEvaluator.EnabledRulesForMap(pawn.Map)
+                .Where(rule => !rule.IsAccessOnlyWork ||
+                    !PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(pawn, job, rule))
+                .ToList();
             // Late-bound dining seats and native job destinations are real task
             // targets too. Egress is always allowed; only unrelated entry is checked.
             bool crossing = rules.Any(rule => !rule.IsNonWork && rule.Area[next] &&

@@ -23,6 +23,10 @@ namespace AutomaticOutfitManager.Rules
         public string CustomDescription;
         public AreaRuleKind Kind;
         public bool IsNonWork => Kind == AreaRuleKind.NonWork;
+        // Empty Work rules control access only. Non-Work rules may still restore
+        // saved personal outfits or return borrowed stock with empty selections.
+        public bool IsAccessOnlyWork => !IsNonWork &&
+            RequiredApparel?.Any(def => def != null) != true && !HasWeaponRequirement;
         public bool DefaultToSavedPersonalOutfit = true;
         public bool RemoveAllWorkOutfits = true;
         public List<string> WorkOutfitsToRemove = new List<string>();

@@ -1,39 +1,47 @@
-# Automatic Outfit Manager — September 25 maintenance closeout
+# Final 0.4.3 bug-fix update — closeout
 
-Uploaded through the Mods menu on September 25. The public change note is verified; all twelve downloaded files match the maintenance stage. The installed junction is restored to the live repository with the maintenance DLL verified. Keep version **0.4.3** for these small corrections, as requested. Update existing Workshop item **3792731788** through **RimWorld's in-game Mods menu**. Preserve its identity and public visibility. Prior publication is archived in [0.4.3 release history](RELEASE-HISTORY-0.4.3.md), [published Workshop copy](WORKSHOP-PUBLISHED-0.4.3.md) and [published readiness](Tests/READINESS-0.4.3-PUBLISHED.md).
+**Published through the Mods menu; public copy and all twelve downloaded files verified. The installed junction is restored to the live repository.** Keep version **0.4.3** and existing Workshop item **3792731788**. Upload through **RimWorld's in-game Mods menu** as usual. Preserve the concise About/loading description, item identity and public visibility.
 
-## Prepared scope
+The previous published text-only maintenance update is archived in [its release record](RELEASE-HISTORY-0.4.3-TEXT-MAINTENANCE.md), [Workshop reference copy](WORKSHOP-PUBLISHED-0.4.3-TEXT-MAINTENANCE.md) and [readiness](Tests/READINESS-0.4.3-TEXT-MAINTENANCE.md). Its DLL is not this candidate.
 
-- [x] Correct the Task Buffer minus sign using an explicit Unicode escape.
-- [x] Restore the exact pre-0.4.3 concise About/loading description, retaining current metadata/version.
-- [x] Correct stale child-wearability guidance in the player guide and clarify the selected Non-Work outfit tooltip for adults.
-- [x] Preserve gameplay logic, save keys, rule defaults, package ID and version identifiers.
-- [x] Prepare a compact Workshop update and separate maintenance change note in [Workshop copy](WORKSHOP.md).
-- [x] Archive prior publication records and preserve their hashes and test limits.
-- [x] Build the candidate and scan source/XML plus all compiled user strings. See [maintenance preflight](Tests/MAINTENANCE-PREFLIGHT-0.4.3.md).
+## Prepared scope and evidence
 
-## Short remaining validation
+- [x] Access-only Work Area transit and buffered-travel correction.
+- [x] Actual adjacent construction destination recognition.
+- [x] Child construction selection/runtime route agreement, remaining pickups and queued recipients.
+- [x] Existing automated validation: 888 checks and two expected-failing negative controls; see [implementation record](Tests/CHILD-DELIVERY-ADMISSION-2026-09-25.md).
+- [x] Current candidate gameplay: permitted child deliveries, no-outfit ordinary work, intentional disable-and-exit, saved-outfit restoration. See [session evidence](Tests/FINAL-BUGFIX-SESSIONS-2026-09-25.md).
+- [x] Guide, design, changelog, Workshop draft and current readiness aligned. Existing player tooltips and short About text retained.
+- [x] Version, XML, compiled-text, assets, local links and package-input preflight. Results: [final preflight](Tests/FINAL-BUGFIX-PREFLIGHT-0.4.3.md).
 
-- [x] Deploy the candidate DLL to the live repository, create the twelve-file stage and verify the installed upload source.
-- [ ] Check Task Buffer at 0, 1 and 20 for both rule kinds; verify readable minus/plus, decrement to Immediate and the existing upper limit.
-- [x] Inspect the concise About card, title, preview and version in the maintainer's Mods-menu screenshot.
-- [ ] Inspect the selected-outfit tooltip at normal UI scale, then load the intended save and perform one outfit return.
-- [ ] Independently check Arakis with an appropriate normal bed; the audit found a persistent crib loop. This text-only candidate does not claim a fix.
+Candidate/live/installed DLL: `85AD264B6CF071229DEFE128B6342D460776C37E7D5A6ED6CAFC9C85BB861D04`.
 
-The [current readiness record](Tests/NEXT-UPDATE-READINESS.md) preserves healthy restoration evidence and separates older ceremony, meal/bill, save/load and Anomaly cases. Do not restart the whole gameplay matrix for these text-only changes. The existing public gallery remains a legacy example; new marketing images are not required for this correction.
+Earlier published text-only maintenance DLL: `4CA32704045B015AB50A6FA20AFA236A72E717E90DDF812F785830CB1A0E9B32`.
 
-## Mod-menu Workshop handoff
+## Remaining validation limits
 
-1. Stage when requested, using `package-workshop.ps1` and a distinct maintenance output directory. Verify the twelve-file runtime allowlist, version 0.4.3, metadata, assets and new DLL hash. Preserve `About/PublishedFileId.txt` (`3792731788`).
-2. While RimWorld is closed, verify the installed mod junction. Retarget to the audited upload stage only with authorization, then compare installed About, Workshop ID, preview and DLL with the stage **before** asking the maintainer to launch.
-3. The maintainer launches manually through Steam. Verify the staged About card in the Mods menu: concise description, title, preview and version 0.4.3. Use that menu to update the existing Workshop item with the prepared note; do not create a new item or switch to a CLI uploader.
-4. Verify the public update and note, then compare every downloaded file with the audited stage after the subscriber cache refreshes. Public byte count alone does not verify the subscriber copy.
-5. With RimWorld closed, restore any temporary upload junction to the live repository and verify the intended runtime. Record upload time, manifest/content handle, metadata and DLL hashes, and any unperformed downloaded-copy smoke.
+- [ ] A complete exterior-accessible boundary delivery with Allow Children held off throughout, including blocked/queued pickup and recipient cases.
+- [ ] Exact earlier cooler route and fresh preparation/save-reload continuity.
+- [ ] Earlier ceremony/meal compatibility follow-ups remain as recorded; no full matrix pass is claimed.
 
-The maintenance closeout is complete. Workshop and subscriber-file verification pass, the installed junction is restored, and source commit `d35ca0f` is pushed to `main` and `codex/workshop-release-prep`. The dated maintenance ZIP and checksum are published on the existing GitHub 0.4.3 release with matching remote sizes and digests. The original version tag and older assets are preserved. This later documentation commit records publication; see [maintenance closeout](Tests/MAINTENANCE-CLOSEOUT-0.4.3.md). The unperformed gameplay checks above remain follow-ups.
+These are disclosed unperformed cases, not reproduced defects in the latest recordings. Faction-relation spam and Dubs Bad Hygiene's toilet exception remain separate concerns, not claimed fixes. Current scope and evidence are in [readiness](Tests/NEXT-UPDATE-READINESS.md).
 
-Candidate SHA-256: `4CA32704045B015AB50A6FA20AFA236A72E717E90DDF812F785830CB1A0E9B32`.
+## Mods-menu workflow used
 
-Prior published/subscriber baseline SHA-256: `FB5F15960E286091A24CFB50E39989C5C1BDDDCA706E17924E17F7CDE7AA4BA9`.
+1. Close RimWorld before changing its installed upload source. Preparation does not close the running game.
+2. Run `package-workshop.ps1` into a distinct final-bugfix stage. Verify the twelve-file runtime allowlist, 0.4.3 metadata, preview/icons, `About/PublishedFileId.txt` (`3792731788`) and candidate DLL hash. Do not reuse the old text-maintenance stage as proof of this update.
+3. Verify the installed mod is the expected junction. When the upload handoff is authorized, point it at the audited stage and compare installed About, Workshop ID, preview and DLL before the maintainer's manual launch.
+4. In the Mods menu, verify title, preview, short description and version, then update the existing item using the **Final bug-fix change note** from [Workshop copy](WORKSHOP.md). The compact Latest update block is a separate description field; keep the About text unchanged.
+5. Verify the public change note and content identity; compare every Steam-downloaded file with the stage after the subscriber cache refreshes. Record any unperformed downloaded-copy gameplay smoke honestly.
+6. With RimWorld closed, restore any temporary stage junction to the live repository and verify its DLL. Source-control and GitHub closeout remain later operations; keep the existing version tag and historical assets intact.
 
-Upload-source record: [maintenance deployment](Tests/MAINTENANCE-DEPLOYMENT-0.4.3.md). Candidate, live, staged, subscriber and installed DLL hashes match. Junction restoration is complete. Steam manifest: 2204596392603111389. Additional in-game UI and downloaded-copy smoke checks remain unclaimed.
+## Current operation state
+
+- [x] Public item identity, Harmony dependency, shortened description and separate final bug-fix note verified.
+- [x] Refreshed Steam manifest **4781208902276209270** and all twelve downloaded files match the stage (1,061,488 bytes).
+- [x] With RimWorld closed, temporary upload junction restored to the live repository; DLL verified and dirty live source preserved.
+- [x] Matching twelve-file ZIP and checksum built directly from the audited stage.
+- [ ] Publish and verify the new dated GitHub assets; preserve the original tag and older assets.
+- [ ] Commit and push the final source and closeout records.
+
+See [final closeout](Tests/FINAL-BUGFIX-CLOSEOUT-0.4.3.md). Publication does not mark the unperformed gameplay checks above as passed.

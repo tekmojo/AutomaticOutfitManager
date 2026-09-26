@@ -256,7 +256,9 @@ namespace AutomaticOutfitManager.Patches
                 // blocking that destination here produces failed meal routes.
                 if (!managedTransitionJob && PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(
                         pawn, job, rule) &&
-                    (RuleEvaluator.JobTargetsArea(job, rule.Area) ||
+                    (rule.IsAccessOnlyWork ||
+                     RuleEvaluator.JobTargetsArea(job, rule.Area) ||
+                     ConstructionDestination.IsCurrentDestination(pawn, job, destination, rule.Area) ||
                      ReadingDestination.IsCurrentDestination(pawn, job, destination, rule.Area) ||
                      EatingDestination.IsCurrentMealDestination(pawn, job, destination, rule.Area)))
                 {

@@ -33,7 +33,7 @@ ThinkNode jobGiver=null;JobTag? tag=null;ThinkTreeDef thinkTree=null;
     $fixture+='namespace AutomaticOutfitManager.Core {public partial class AutomaticOutfitManagerGameComponent {'+(Read-Block $core 'internal bool UpdateNativeRuleSuspension(')+'}}'
     $file=Join-Path $testDir 'Fixture.cs';Set-Content -LiteralPath $file -Value $fixture
     $exe=Join-Path $testDir 'Tests.exe'
-    & $compiler /nologo /target:exe /langversion:latest /warn:0 "/out:$exe" $file (Join-Path $PSScriptRoot 'NativeRuleControlTests.cs') (Join-Path $rcRoot 'Source/Patches/NativeRuleControl.cs')
+    & $compiler /nologo /target:exe /langversion:latest /warn:0 "/out:$exe" $file (Join-Path $PSScriptRoot 'NativeRuleControlTests.cs') (Join-Path $rcRoot 'Source/Patches/NativeRuleControl.cs') (Join-Path $rcRoot 'Source/Detection/ChildAreaAccessPolicy.cs')
     if($LASTEXITCODE -ne 0){throw 'Native rule-control compilation failed'}
     $oldPreference=$ErrorActionPreference
     try{$ErrorActionPreference='Continue';$output=& $exe 2>&1;$result=$LASTEXITCODE}finally{$ErrorActionPreference=$oldPreference}

@@ -403,6 +403,12 @@ namespace AutomaticOutfitManager.Patches
             if (directRule != null)
                 return directRule;
 
+            // Keep direct target/occupancy restrictions above. For child boundary
+            // construction, use the same exact approach decision as the scanner,
+            // including the phase where the pickup is already carried.
+            if (ConstructionChildAccess.TryGetRouteRestriction(pawn, job, out ApparelRule childDenied))
+                return childDenied;
+
             List<ApparelRule> crossedRules = restrictedRules.Where(rule =>
                 ProtectedPathAvoidance.JobPathCrossesArea(
                     pawn, job, rule.Area)).ToList();
@@ -1035,7 +1041,7 @@ namespace AutomaticOutfitManager.Patches
         {
             if (pawn?.Map == null || job == null || rule == null ||
                 ChildAreaAccessPolicy.IsChild(pawn) || !PawnAccessClassifier.IsApparelEligibleHuman(pawn) ||
-                pawn.Drafted || !rule.Enabled || rule.WorkAreaPaused ||
+                pawn.Drafted || !rule.Enabled || rule.WorkAreaPaused || rule.IsAccessOnlyWork ||
                 rule.Area?.Map != pawn.Map ||
                 !RuleEvaluator.RuleCanApplyToPawn(pawn, rule) ||
                 !ActivityAllowedAtRuleBoundary(pawn, job, rule))
@@ -1135,7 +1141,7 @@ namespace AutomaticOutfitManager.Patches
         {
             if (pawn?.Map == null || job == null || rule == null ||
                 ChildAreaAccessPolicy.IsChild(pawn) || !PawnAccessClassifier.IsApparelEligibleHuman(pawn) || pawn.Drafted || !rule.Enabled ||
-                rule.WorkAreaPaused || rule.Area?.Map != pawn.Map ||
+                rule.WorkAreaPaused || rule.IsAccessOnlyWork || rule.Area?.Map != pawn.Map ||
                 !RuleEvaluator.RuleCanApplyToPawn(pawn, rule))
             {
                 return false;
@@ -1593,7 +1599,7 @@ namespace AutomaticOutfitManager.Patches
             (!ChildAreaAccessPolicy.Disallows(pawn, rule) &&
              AreaActivityPermissions.Allows(rule, PermissionGroup(pawn), AccessActivity.Wandering));
 
-        private static bool IsManagedPawn(Pawn pawn)
+        internal static bool IsManagedPawn(Pawn pawn)
         {
             Faction playerFaction = Faction.OfPlayerSilentFail;
             return (playerFaction != null && pawn?.Faction == playerFaction) ||

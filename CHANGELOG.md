@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.3 final bug-fix update — 2026-09-25
+
+- Fix unnecessary route blocking through Work Areas with no outfit requirements, including travel during an outfit buffer. Area access permissions still apply.
+- Correct construction delivery and frame-finishing routes at area edges by checking the pawn's actual adjacent work position.
+- Improve child construction delivery checks so reachable, permitted approaches remain available and blocked pickup/recipient routes are checked before materials are collected. Keep selection and runtime checks consistent after pickup.
+- Preserve safe exit when Allow Children is turned off, along with adult outfit checks and overlapping-area restrictions.
+
+Published through RimWorld's Mods menu. The public description and change note are verified, all twelve downloaded files match the stage, and the installed junction is restored to the live repository. [Closeout](Tests/FINAL-BUGFIX-CLOSEOUT-0.4.3.md) records identities and remaining limits. Version remains 0.4.3; save format, rule defaults and Workshop identity are unchanged. The previous interface corrections remain included. Current testing confirms allowed-child deliveries, ordinary work in an area with no outfit requirement, safe exit after a deliberate toggle and complete saved-outfit restoration. Held-off exterior delivery and the exact earlier cooler route remain separate validation limits; see [current readiness](Tests/NEXT-UPDATE-READINESS.md). This update does not claim to fix faction-relation or Dubs Bad Hygiene errors.
+
 ## 0.4.3 maintenance update — 2026-09-25
 
 - Correct the garbled minus sign on the Task Buffer button.

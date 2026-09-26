@@ -51,6 +51,14 @@ partial class MealHandoffContractTests
   Check(restored.Completed==1&&restored.RuleId==dest.Id&&restored.Apparel.Single()==shirt,"retention save record restores count, source and exact outfit references");
   p.Position=6;p.pather.Destination=new LocalTargetInfo(8);p.jobs.curJob=JobMaker.MakeJob(JobDefOf.HaulToCell,new LocalTargetInfo(8));
   BufferedTransitGuard.Reset();
+  var accessOnly=c.Rules.Single(r=>r.Id=="otherWork");accessOnly.IsAccessOnlyWork=true;
+  Check(!BufferedTransitGuard.BlockUnnecessaryEntry(p,p.CurJob,5)&&p.pather.Repaths==0&&p.jobs.Ends==0,
+    "buffered task crosses allowed access-only Work rule without reroute or cancellation");
+  accessOnly.ActivitiesAllowed=false;
+  Check(BufferedTransitGuard.BlockUnnecessaryEntry(p,p.CurJob,5)&&p.pather.Repaths==1,
+    "empty Work rule still routes around denied access during buffer");
+  accessOnly.ActivitiesAllowed=true;accessOnly.IsAccessOnlyWork=false;
+  BufferedTransitGuard.Reset();p.pather.Repaths=0;
   Check(BufferedTransitGuard.BlockUnnecessaryEntry(p,p.CurJob,5)&&p.pather.Repaths==1&&p.jobs.Ends==0,"buffered shortcut reroutes before unrelated Work Area entry");
   Check(BufferedTransitGuard.BlockUnnecessaryEntry(p,p.CurJob,5)&&p.jobs.Ends==1&&b.Completed==1,"repeated shortcut fails without task credit or another outfit");
   p.jobs.curJob=JobMaker.MakeJob(JobDefOf.HaulToCell,new LocalTargetInfo(5));p.pather.Destination=5;
@@ -233,7 +241,7 @@ namespace HarmonyLib {
  public class HarmonyPostfix:Attribute{} public static class AccessTools{public delegate V FieldRef<T,V>(T obj);public static FieldRef<T,V> FieldRefAccess<T,V>(string field)=>obj=>default(V);}
 }
 namespace AutomaticOutfitManager.Rules {
- public class ApparelRule{public bool AllowChildren;public int ReturnTaskBuffer;public string Id;public Area Area,ChangingArea;public bool IsNonWork,WorkAreaPaused,HasWeaponRequirement;public bool ActivitiesAllowed=true;public bool Enabled=true,DefaultToSavedPersonalOutfit=true;public List<ThingDef> RequiredApparel=new List<ThingDef>();public bool Allows(Apparel a)=>true;}
+ public class ApparelRule{public bool IsAccessOnlyWork;public bool AllowChildren;public int ReturnTaskBuffer;public string Id;public Area Area,ChangingArea;public bool IsNonWork,WorkAreaPaused,HasWeaponRequirement;public bool ActivitiesAllowed=true;public bool Enabled=true,DefaultToSavedPersonalOutfit=true;public List<ThingDef> RequiredApparel=new List<ThingDef>();public bool Allows(Apparel a)=>true;}
 }
 namespace AutomaticOutfitManager.State {
  public enum ApparelTransition{Active,ReturningToChangingArea,Restoring,Preparing}
@@ -261,5 +269,5 @@ namespace AutomaticOutfitManager.Patches {
  public static class ProtectedPathAvoidance{public static bool Fail;public static bool SegmentAvoidsRules(Pawn p,IntVec3 s,LocalTargetInfo d,List<ApparelRule> r,Predicate<IntVec3> unsafeCell=null,PathEndMode? exactEndMode=null)=>!Fail&&!r.Any(x=>x.Area[d.Cell])&&unsafeCell?.Invoke(d.Cell)!=true;}
  public static class PawnJobTracker_StartJob_Patch{public static bool IsBufferableJob(Job j)=>j.def!=JobDefOf.Wait&&j.def!=JobDefOf.Goto&&j.def!=JobDefOf.Wear&&j.def!=JobDefOf.Equip;public static bool CanCountBufferedTask(Pawn p,Job j)=>!p.Drafted&&!p.Downed&&!p.InMentalState&&!j.playerForced&&IsBufferableJob(j);public static Job MakeChangingAreaTravelJob(IntVec3 c)=>JobMaker.MakeJob(JobDefOf.Goto,c); public static bool PendingWorkJobIsViable(Pawn p,Job j,out string reason){reason=null;return j?.def!=null&&j.targetA.Thing?.Destroyed!=true;}public static bool IsNativeEmergencySafetyJob(Job j)=>false;public static bool IsMapDepartureJob(Job j)=>false;public static bool TryFindSafeTransitionCell(Pawn p,Area a,IEnumerable<ApparelRule>r,out IntVec3 cell,PawnApparelState s){cell=2;return true;}public static Job MakeSafeWaitJob(Pawn p,int t)=>JobMaker.MakeJob(JobDefOf.Wait,p);}
  public static class PawnPathFollower_ProtectedArea_Patch{public static bool IsManagedTransitionJob(Pawn p,Job j,PawnApparelState s)=>s!=null&&(j?.def==JobDefOf.Wear||j?.def==JobDefOf.Equip);}
- public static class PausedAreaWorkFilter{public static bool WorkAllowedFor(ApparelRule r,Pawn p)=>r.ActivitiesAllowed;public static bool IsEssentialPersonalJob(Job j)=>false;public static bool ActivityAllowedAtRuleBoundary(Pawn p,Job j,ApparelRule r)=>true;public static bool IsHaulingJob(Job j)=>j?.def==JobDefOf.HaulToCell;}
+ public static class PausedAreaWorkFilter{public static bool WorkAllowedFor(ApparelRule r,Pawn p)=>r.ActivitiesAllowed;public static bool IsEssentialPersonalJob(Job j)=>false;public static bool ActivityAllowedAtRuleBoundary(Pawn p,Job j,ApparelRule r)=>r.ActivitiesAllowed;public static bool IsHaulingJob(Job j)=>j?.def==JobDefOf.HaulToCell;}
 }

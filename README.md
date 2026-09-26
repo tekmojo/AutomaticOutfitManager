@@ -14,11 +14,11 @@ Requires **RimWorld 1.6** and **Harmony**. Vanilla and modded apparel and primar
 2. Open **Automatic Outfit Manager** and select **Add Work Area Rule**.
 3. Name the rule and select its **Work Area**.
 4. Optionally select a **Locker Room** with storage for the gear.
-5. Choose apparel and primary weapons. **Every selected garment must be worn together; weapons are alternatives, so a pawn equips one.** Empty categories add no requirement.
+5. Choose apparel and primary weapons. **Every selected garment must be worn together; weapons are alternatives, so a pawn equips one.** Empty categories add no requirement. Leave both empty to use the Work Area only for access control.
 6. Set **Condition**, **Quality**, **Task Buffer** and access permissions.
 7. Provide reachable gear. For dedicated locker storage, enable the matching automatic outfit filters and assign capable haulers.
 
-Eligible humanlike pawns save their personal outfit, collect the required gear and continue their task. The requirements apply while inside or necessarily passing through the area, including eating, recreation and sleeping. Pawns prefer an outside route when an unrelated area can be avoided.
+Eligible humanlike pawns save their personal outfit, collect the required gear and continue their task. The requirements apply while inside or necessarily passing through the area, including eating, recreation and sleeping. Pawns prefer an outside route when an unrelated area with outfit requirements can be avoided. A Work Area with no selected apparel or weapons allows ordinary and buffered travel when its access permissions allow it. An empty Non-Work selection still follows its saved-outfit and Work-outfit removal settings.
 
 After leaving, they keep the Work outfit for any allowed follow-up tasks, then return borrowed items and restore saved personal gear. Sleeping outside the applicable area, a different required outfit, Recall or Pause activities can end the buffer early.
 
@@ -53,7 +53,7 @@ Buffers allow **0–20 successful follow-up tasks**. They do not assign jobs or 
 - **Non-Work buffer:** retain the saved personal or selected outfit, including permitted Work items, during compatible follow-up tasks. A new task needing a different outfit ends the allowance early: the pawn leaves safely, obtains the new outfit and continues that task if it remains valid.
 - **Immediate:** no additional follow-up allowance. Ending a personal-outfit buffer does not strip personal clothes; temporary fallback items still follow their normal return.
 
-Only successful tasks count. Travel, brief waits, failed tasks and interrupted tasks do not. The current task is shown separately from the completed count. Unrelated Work Areas are avoided where possible, even while buffering.
+Only successful tasks count. Travel, brief waits, failed tasks and interrupted tasks do not. The current task is shown separately from the completed count. Unrelated Work Areas with outfit requirements are avoided where possible, even while buffering. Areas with no outfit requirements permit travel when access is allowed.
 
 ## Access and activity lists
 
@@ -65,7 +65,7 @@ Only successful tasks count. Travel, brief waits, failed tasks and interrupted t
 | **Hauling** | Carrying items into, out of or through the area. This permits hauling; it does not change work priorities. |
 | **Wandering** | Idle wandering and autonomous robot cleaning. Required robot charging duties keep their normal behavior. |
 
-**Allow Children** takes precedence over the adult permissions and pause behavior described here. It directly controls ordinary child activity and transit. When checked, children bypass this area's clothing and weapon requirements, outfit changes, task buffers, adult group permissions and pause. Every overlapping area must allow children. Native age and job eligibility still apply. Babies and carried pawns are unaffected. Pawns already inside retain a safe way out. Direct player orders, drafting, emergencies and necessary outfit returns keep their normal exceptions.
+**Allow Children** takes precedence over the adult permissions and pause behavior described here. It directly controls ordinary child activity and transit. When checked, children bypass this area's clothing and weapon requirements, outfit changes, task buffers, adult group permissions and pause. Every overlapping area must allow children. Native age and job eligibility still apply. Babies and carried pawns are unaffected. Turning this off while a child is inside stops disallowed activity and lets the child leave safely. Construction near an area edge uses a permitted approach where one is reachable; the checkbox does not grant access to a restricted material pickup or another overlapping area. Direct player orders, drafting, emergencies and necessary outfit returns keep their normal exceptions.
 
 Humanlike pawns change outfits. Animals, mechs and robots follow access permissions without changing outfits. Guests, slaves and prisoners use the same activity categories, subject to the jobs the game and their other mods permit.
 

@@ -221,6 +221,12 @@ namespace AutomaticOutfitManager.Detection {
  public static class RuleEvaluator {public static IEnumerable<ApparelRule> ActiveRulesForMap(Map m)=>EnabledRulesForMap(m).Where(r=>!r.WorkAreaPaused);public static IEnumerable<ApparelRule> MatchingRules(Pawn p,Job j)=>EnabledRulesForMap(p.Map).Where(r=>JobTargetsArea(j,r.Area));public static IReadOnlyList<ApparelRule> EnabledRulesForMap(Map m)=>AutomaticOutfitManagerGameComponent.Current.Rules.Where(r=>r.Enabled&&r.Area.Map==m).ToList();public static bool JobTargetsArea(Job j,Area a)=>a[j.targetA.Cell];public static bool HasMissingRequiredGear(Pawn p,ApparelRule r)=>false;}
 }
 namespace AutomaticOutfitManager.Patches {
+ // These fixtures cover general pause/haul rules. Boundary-child integration
+ // executes the real helper in ConstructionChildAccessTests.
+ internal static class ConstructionChildAccess {
+  internal static bool TryGetRouteRestriction(Pawn p,Job j,out ApparelRule denied){denied=null;return false;}
+ }
+
  // Animal nursing is exercised with the production policy in PauseControlTests.
  internal static class AnimalNursingPolicy {internal static bool Allowed(Pawn p,Job j,ApparelRule r)=>false;}
  // Rest continuation is exercised with the production policy in RestAndSupplyTests.
