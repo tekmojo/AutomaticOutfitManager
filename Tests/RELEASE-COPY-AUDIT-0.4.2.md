@@ -7,7 +7,7 @@ Prepared in the authoritative `codex/workshop-release-prep` RC worktree, startin
 - Align About, project, assembly and package-script version expectations at 0.4.2. Keep package identity, Workshop item, dependency, supported game version and license unchanged.
 - Clarify the saved-personal preference tooltip: unchecked selected gear is equipped before entry, an inside mismatch leaves safely before changing, and unavailable/unwearable gear allows other reachable tasks outside. The empty saved-outfit dialog now says selected gear rather than calling every selection fallback.
 - Update README, changelog, About gameplay summary, design documentation, and separate draft Workshop description/compact update/full change note. No claim that the earlier Ocagobrei simple-meal loop is fixed.
-- Archive the completed [0.4.1 closeout](../RELEASE-HISTORY-0.4.1.md), [readiness](READINESS-0.4.1.md) and [published Workshop copy](../WORKSHOP-PUBLISHED-0.4.1.md) before replacing current status.
+- Archive the completed [0.4.1 closeout](../docs/releases/history/RELEASE-HISTORY-0.4.1.md), [readiness](READINESS-0.4.1.md) and [published Workshop copy](../docs/workshop/history/WORKSHOP-PUBLISHED-0.4.1.md) before replacing current status.
 - Refresh [readiness](NEXT-UPDATE-READINESS.md) with the latest small/large-map evidence and explicit remaining cases. Mark the existing gallery as legacy and prepare [optional captures](../Screenshots/CAPTURE-PLAN-0.4.2.md).
 - Install and hash-verify three narrow skill additions: session/save evidence boundaries, selected Non-Work exit and native path ordering, and the matching release test matrix. Backups and proposed files are kept outside the runtime/package tree; original files were checked for intervening changes before replacement.
 
@@ -33,7 +33,7 @@ The stock skill validator cannot start under the available Python because PyYAML
 
 ## Remaining steps
 
-The [release checklist](../RELEASE-CHECKLIST.md) lists the unresolved Ocagobrei reproduction, Roboto/Zendaya ingredient-to-bill completion, unwearable-child alternate activity, and new transition save/reload. Mental-state save/load and inactive shared-snapshot cleanup remain carry-forward limits. A UI/load smoke is needed after an authorized deployment of this copy/version build.
+The [release checklist](../docs/releases/CHECKLIST.md) lists the unresolved Ocagobrei reproduction, Roboto/Zendaya ingredient-to-bill completion, unwearable-child alternate activity, and new transition save/reload. Mental-state save/load and inactive shared-snapshot cleanup remain carry-forward limits. A UI/load smoke is needed after an authorized deployment of this copy/version build.
 
 No deployment, staging, upload, publication, commit/tag/push, junction change or game launch was performed. The live and installed runtime remain on the gameplay-tested hash above.
 

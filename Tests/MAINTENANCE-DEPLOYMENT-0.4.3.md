@@ -16,7 +16,7 @@ The first retarget attempt stopped at its read-only target check because PowerSh
 
 ## User handoff
 
-Launch manually through Steam. Verify the concise About card and normal-scale Task Buffer minus/plus and selected-outfit tooltip, then use the Mods menu to update the existing item. The prepared maintenance note is in [Workshop copy](../WORKSHOP.md); a paste-ready text file is saved at `C:/GitHub/AutomaticOutfitManager/.codex-audit/maintenance-0.4.3-2026-09-25/Workshop-maintenance-note.txt`.
+Launch manually through Steam. Verify the concise About card and normal-scale Task Buffer minus/plus and selected-outfit tooltip, then use the Mods menu to update the existing item. The prepared maintenance note is in [Workshop copy](../docs/workshop/README.md); a paste-ready text file is saved at `C:/GitHub/AutomaticOutfitManager/.codex-audit/maintenance-0.4.3-2026-09-25/Workshop-maintenance-note.txt`.
 
 No game launch, in-game visual smoke, upload, public metadata edit, subscriber refresh, commit, tag or GitHub asset update is claimed. Keep the active stage frozen. After upload, verify public and subscriber results separately, close RimWorld, then restore the installed junction to `C:/GitHub/AutomaticOutfitManager` and verify the deployed DLL through that path.
 

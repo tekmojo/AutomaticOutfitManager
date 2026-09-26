@@ -6,7 +6,7 @@
 
 - [Workshop item 3792731788](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788): Automatic Outfit Manager by tekmojo, creator `76561197960452376`, public visibility. Harmony remains linked.
 - Public update time: **2026-09-26 16:19:24 UTC / 10:19:24 America/Denver**.
-- The full public description matches `WORKSHOP-DESCRIPTION.txt` after whitespace normalization. The separate rendered [change note](https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788) matches `WORKSHOP-CHANGE-NOTE-0.4.4.txt`.
+- The full public description matches `docs/workshop/DESCRIPTION.txt` after whitespace normalization. The separate rendered [change note](https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788) matches `docs/workshop/change-notes/0.4.4.txt`.
 - Public package size: **1,064,050 bytes**. Public content handle and refreshed subscriber manifest: `5064348609564101396`.
 - All twelve downloaded files match the audited stage by relative path, size and SHA-256; no missing or extra files.
 - RC, stage, live, subscriber and restored installed DLL SHA-256: `ED72D9E73C80344960E1090FE3E46BD20973FB4D5B7E733B500A013974784609`.

@@ -15,6 +15,6 @@ Current stage target: `C:\GitHub\AutomaticOutfitManager\work\radiation-any-weapo
 
 Restore target after upload, with RimWorld closed: `C:\GitHub\AutomaticOutfitManager`. Restore only the junction, never delete either target directory.
 
-The maintainer can now launch manually and use the Mods menu. Verify the About card and use the **Final bug-fix change note** in [Workshop copy](../WORKSHOP.md). This dated handoff is superseded by [final closeout](FINAL-BUGFIX-CLOSEOUT-0.4.3.md): public upload and subscriber comparison pass, and the junction is restored. Downloaded-copy gameplay smoke remains unclaimed. Historical readiness gaps remain as recorded in [current readiness](NEXT-UPDATE-READINESS.md).
+The maintainer can now launch manually and use the Mods menu. Verify the About card and use the **Final bug-fix change note** in [Workshop copy](../docs/workshop/README.md). This dated handoff is superseded by [final closeout](FINAL-BUGFIX-CLOSEOUT-0.4.3.md): public upload and subscriber comparison pass, and the junction is restored. Downloaded-copy gameplay smoke remains unclaimed. Historical readiness gaps remain as recorded in [current readiness](NEXT-UPDATE-READINESS.md).
 
 Per-file identities, parsed installed metadata and restore target: `C:/GitHub/AutomaticOutfitManager/.codex-audit/final-bugfix-prep-0.4.3/upload-handoff.json`.

@@ -71,6 +71,6 @@ All **29 existing negative-control variants** in the affected fixture families a
 
 The maintainer confirmed the large-map robe warning disappeared after correcting storage condition. That finding is resolved without a code change. See [readiness](NEXT-UPDATE-READINESS.md) for the recent small/large-map outcomes and their limits.
 
-Protected saved-item recovery in the actual blocked cell, mental-state save/load, inactive shared-item migration, and the rebuilt candidate's UI/load smoke remain focused checks. Gallery refresh and publication are later steps in [the release checklist](../RELEASE-CHECKLIST.md).
+Protected saved-item recovery in the actual blocked cell, mental-state save/load, inactive shared-item migration, and the rebuilt candidate's UI/load smoke remain focused checks. Gallery refresh and publication are later steps in [the release checklist](../docs/releases/CHECKLIST.md).
 
 Local before snapshots, initial and corrected test logs, negative controls, skill backups and JSON manifests are under `C:/GitHub/AutomaticOutfitManager/work/release-prep/2026-09-07-0.4.1/`; they are excluded from package inputs.

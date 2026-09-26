@@ -1,10 +1,10 @@
 # Automatic Outfit Manager — 0.4.3 release status
 
-Corrected GitHub and Workshop 0.4.3 are published and verified. All twelve subscriber files match the GitHub ZIP and corrected stage; the local development setup is restored. See [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.3.md). See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.3.md). Child access and Ideology ceremony preparation are included. Existing Workshop item: `3792731788`. Published 0.4.2 closeout is preserved in [release history](RELEASE-HISTORY-0.4.2.md), [published Workshop copy](WORKSHOP-PUBLISHED-0.4.2.md) and [readiness](Tests/READINESS-0.4.2.md). Workshop publication date: 2026-09-24 (America/Denver).
+Corrected GitHub and Workshop 0.4.3 are published and verified. All twelve subscriber files match the GitHub ZIP and corrected stage; the local development setup is restored. See [GitHub closeout](../../../Tests/GITHUB-CLOSEOUT-0.4.3.md). See [Workshop closeout](../../../Tests/WORKSHOP-CLOSEOUT-0.4.3.md). Child access and Ideology ceremony preparation are included. Existing Workshop item: `3792731788`. Published 0.4.2 closeout is preserved in [release history](RELEASE-HISTORY-0.4.2.md), [published Workshop copy](../../workshop/history/WORKSHOP-PUBLISHED-0.4.2.md) and [readiness](../../../Tests/READINESS-0.4.2.md). Workshop publication date: 2026-09-24 (America/Denver).
 
 ## Corrected package verified
 
-The GitHub source review found corrupted dash characters in the initial 0.4.3 interface. The maintainer requested a correction. The [replacement package](Tests/PUNCTUATION-CORRECTION-0.4.3.md) changes only those strings. Both releases now contain the corrected DLL. Workshop content handle and subscriber manifest `8379366355831222618`, all twelve files and the latest correction note are verified. The previous detailed change note remains intact.
+The GitHub source review found corrupted dash characters in the initial 0.4.3 interface. The maintainer requested a correction. The [replacement package](../../../Tests/PUNCTUATION-CORRECTION-0.4.3.md) changes only those strings. Both releases now contain the corrected DLL. Workshop content handle and subscriber manifest `8379366355831222618`, all twelve files and the latest correction note are verified. The previous detailed change note remains intact.
 
 ## Prepared locally
 
@@ -13,7 +13,7 @@ The GitHub source review found corrupted dash characters in the initial 0.4.3 in
 - [x] Correct adult-permission and pause tooltips to agree with Allow Children.
 - [x] Record the deployed gameplay evidence without promoting other ritual types or save/load cases to passed.
 - [x] Prepare focused screenshot guidance; the existing eight-image gallery remains legacy material.
-- [x] Complete static/build verification and installed skill-guidance verification in [copy preflight](Tests/RELEASE-COPY-AUDIT-0.4.3.md).
+- [x] Complete static/build verification and installed skill-guidance verification in [copy preflight](../../../Tests/RELEASE-COPY-AUDIT-0.4.3.md).
 
 ## Shortest remaining gameplay checks
 
@@ -22,17 +22,17 @@ The GitHub source review found corrupted dash characters in the initial 0.4.3 in
 3. **Fresh save/load and native interruption.** Save during adult ritual preparation, reload that new file, and verify continued gathering/ownership. Exercise one cancellation or mental-state interruption and one additional ritual type, preferably conversion. A loaded legacy child outfit session must return borrowed gear safely; this is separate from a newly admitted child spectator.
 4. **Candidate UI/load smoke after a separately requested deployment.** Check child, Activities/Hauling/Wandering and Pause/Resume hovers at normal UI scale, plus the 0.4.3 version/About text. Copy/version changes preserve unrelated gameplay evidence from the tested live hash.
 
-[Current readiness](Tests/NEXT-UPDATE-READINESS.md) distinguishes automated checks, deployed behavior and unexercised cases. Successful attendance without outfit intervention is supported by video, not merely an absence of child log messages.
+[Current readiness](../../../Tests/NEXT-UPDATE-READINESS.md) distinguishes automated checks, deployed behavior and unexercised cases. Successful attendance without outfit intervention is supported by video, not merely an absence of child log messages.
 
 ## Older follow-up coverage
 
-The earlier Ocagobrei Kitchen/Dining simple-meal loop, Roboto/Zendaya exact ingredient-to-bill completion, mental-state save/load and inactive shared-snapshot cleanup remain scoped follow-ups from [0.4.2 readiness](Tests/READINESS-0.4.2.md). This candidate does not claim their resolution. The old unwearable-child denial test is superseded by checkbox-only access; retain its historical evidence and use child exit/overlap checks above.
+The earlier Ocagobrei Kitchen/Dining simple-meal loop, Roboto/Zendaya exact ingredient-to-bill completion, mental-state save/load and inactive shared-snapshot cleanup remain scoped follow-ups from [0.4.2 readiness](../../../Tests/READINESS-0.4.2.md). This candidate does not claim their resolution. The old unwearable-child denial test is superseded by checkbox-only access; retain its historical evidence and use child exit/overlap checks above.
 
 ## Release gates still open
 
 - [x] Review the accumulated gameplay/source diff and freeze the corrected build inputs. The punctuation fault found in review is corrected.
 - [ ] Focused gameplay checks remain as disclosed above; publication does not mark them passed.
-- [ ] Review or explicitly retain the legacy screenshot gallery; [capture plan](Screenshots/CAPTURE-PLAN-0.4.3.md).
+- [ ] Review or explicitly retain the legacy screenshot gallery; [capture plan](../../../Screenshots/CAPTURE-PLAN-0.4.3.md).
 - [x] Stage with package-workshop.ps1 and verify the twelve-file runtime package, metadata, assets and hashes.
 - [x] Preserve PublishedFileId and verify the installed uploader source. The maintainer uploaded the update; public content and subscriber hashes are verified.
 - [x] Verify refreshed subscriber manifest and every downloaded file against the stage.

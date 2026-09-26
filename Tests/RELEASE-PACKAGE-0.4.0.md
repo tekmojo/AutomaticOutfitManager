@@ -45,7 +45,7 @@ The [eight replacement images](../Screenshots/README.md) retain their original b
 
 The public Workshop page was read directly: **Automatic Outfit Manager**, creator **tekmojo**, ID **3792731788**, public, Harmony required, latest update **0.3.8**. GitHub's latest published release is **v0.3.8**. Neither surface was modified.
 
-Ready-to-copy Workshop description, short description and full change note are alongside the ZIP. The [Workshop source](../WORKSHOP.md) and [changelog](../CHANGELOG.md) remain candidate drafts until publication. New screenshots replace all older gameplay images when the public galleries are updated; the branded cover stays separate.
+Ready-to-copy Workshop description, short description and full change note are alongside the ZIP. The [Workshop source](../docs/workshop/README.md) and [changelog](../CHANGELOG.md) remain candidate drafts until publication. New screenshots replace all older gameplay images when the public galleries are updated; the branded cover stays separate.
 
 The installed mod junction still targets the live repository. Before an upload-session launch, retarget it to the audited stage only when authorized and verify its About card and hashes. The staged package's load/UI smoke, Steam-downloaded package, public gallery, and remote release asset digest remain unverified. No CPU/TPS benchmark or broad performance improvement is claimed.
 

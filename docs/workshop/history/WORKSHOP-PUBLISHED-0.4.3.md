@@ -1,6 +1,6 @@
-# Steam Workshop copy — 0.4.3 maintenance update
+# Steam Workshop copy — 0.4.3 published
 
-The maintenance package and separate change note were published September 25 through RimWorld's in-game Mods menu, retaining version 0.4.3. The longer description below is prepared reference copy; publication of that entire field is not claimed by this closeout. The prior public fields and notes are preserved in [published 0.4.3 copy](WORKSHOP-PUBLISHED-0.4.3.md) and [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.3.md). See [release status](RELEASE-CHECKLIST.md) for the upload-source checks and remaining steps.
+Published by the maintainer and verified on 2026-09-24 (America/Denver). The public description and separate rendered change note are archived in [Workshop closeout](../../../Tests/WORKSHOP-CLOSEOUT-0.4.3.md). The unchanged 0.4.2 publication fields are preserved in [the published copy](WORKSHOP-PUBLISHED-0.4.2.md) and its [closeout](../../../Tests/WORKSHOP-CLOSEOUT-0.4.2.md). See [release status](../../releases/CHECKLIST.md) for remaining tests and publication gates.
 
 - Existing item: `3792731788` — Automatic Outfit Manager. Preserve its identity and visibility.
 - Supported version: RimWorld 1.6. Harmony required; Ideology optional for ceremony integration.
@@ -32,7 +32,7 @@ Choose outfits and access permissions for RimWorld map areas. Work Area Rules pr
 
 [quote][b]Latest update — 0.4.3[/b]
 
-Fixed the Task Buffer minus sign, shortened the loading description and clarified adult outfit guidance. Version remains 0.4.3; gameplay is unchanged.
+Children can use allowed areas without adult outfit restrictions. Ideology ceremonies in AOM-designated areas wait for eligible participants to finish available outfit changes before progressing.
 
 [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788]Read the full change notes[/url][/quote]
 
@@ -175,17 +175,15 @@ Original source and documentation use the MIT License. Third-party software and 
 Portions of the materials used to create this content/mod are trademarks and/or copyrighted works of Ludeon Studios Inc. All rights reserved by Ludeon. This content/mod is not official and is not endorsed by Ludeon.
 ```
 
-## Maintenance change note — published September 25
+## Latest correction note
 
 ```text
-[b]0.4.3 — Small interface corrections[/b]
+[b]0.4.3 — Interface text correction[/b]
 
-Fixed the garbled minus sign on the Task Buffer button, restored the shorter loading-screen description and clarified that selected Non-Work outfits apply to adults. Children continue to use Allow Children independently.
-
-Version remains 0.4.3. No gameplay or save-format changes.
+Corrected garbled punctuation in interface labels and gear ranges. No gameplay changes.
 ```
 
-This note was verified on the public change-note page after the maintainer updated it. Preserve earlier Workshop change notes. The historical feature note below is reference only; do not paste it again as this maintenance update's note.
+Verified on the latest Workshop entry; the detailed note below remains on the preceding entry.
 
 ## Version 0.4.3 published change note
 
@@ -213,8 +211,8 @@ Updated tooltips explain child access, adult permissions and pause behavior. Har
 
 ## Screenshots
 
-The existing eight-image gallery remains a legacy UI example and needs no new gallery assets for this text-only correction. See [0.4.3 capture plan](Screenshots/CAPTURE-PLAN-0.4.3.md). No public fields or images were changed during preparation.
+The existing eight-image gallery remains a legacy UI example. See [0.4.3 capture plan](../../../Screenshots/CAPTURE-PLAN-0.4.3.md). The description and change note were updated; the existing eight-image gallery is unchanged.
 
 ## Historical publication text
 
-Published notes are preserved in [0.4.3 Workshop copy](WORKSHOP-PUBLISHED-0.4.3.md), [0.4.2 Workshop copy](WORKSHOP-PUBLISHED-0.4.2.md), [0.4.1 Workshop copy](WORKSHOP-PUBLISHED-0.4.1.md) and [the changelog](CHANGELOG.md).
+Published notes are preserved in [0.4.2 Workshop copy](WORKSHOP-PUBLISHED-0.4.2.md), [0.4.1 Workshop copy](WORKSHOP-PUBLISHED-0.4.1.md) and [the changelog](../../../CHANGELOG.md).

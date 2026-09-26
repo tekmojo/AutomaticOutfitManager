@@ -6,7 +6,7 @@ The maintainer uploaded through RimWorld's Mods menu, saved the separate change 
 
 - [Workshop item 3792731788](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788): Automatic Outfit Manager by tekmojo, creator 76561197960452376, public visibility. Harmony remains listed.
 - Public update timestamp: **2026-09-26 00:48:28 UTC**, **2026-09-25 18:48:28 America/Denver**. [Separate change note](https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788) is verified.
-- The public full description matches [the streamlined copy](../WORKSHOP-DESCRIPTION.txt) after newline normalization. The cumulative Latest update block is included; About/loading copy is unchanged.
+- The public full description matches [the streamlined copy](../docs/workshop/DESCRIPTION.txt) after newline normalization. The cumulative Latest update block is included; About/loading copy is unchanged.
 - Subscriber manifest and public content handle: **4781208902276209270**. Steam's downloaded twelve-file set matches the frozen stage by paths, bytes and hashes: **1,061,488 bytes** total.
 - RC/live/stage/subscriber/restored installed DLL: `85AD264B6CF071229DEFE128B6342D460776C37E7D5A6ED6CAFC9C85BB861D04`.
 - With RimWorld closed, the installed upload junction was restored to `C:/GitHub/AutomaticOutfitManager`. Both targets were preserved. The live source checkout remains intentionally dirty and separate from release source.

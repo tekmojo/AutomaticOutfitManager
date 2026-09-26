@@ -1,15 +1,15 @@
 # Automatic Outfit Manager — 0.4.2 release closeout
 
-Published on Workshop and GitHub **2026-09-08** (America/Denver). Public copy, all twelve downloaded Workshop files and both GitHub asset digests are verified. The development junction is restored. See [0.4.2 Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.2.md) and [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.2.md). The [0.4.1 closeout](RELEASE-HISTORY-0.4.1.md), [published Workshop copy](WORKSHOP-PUBLISHED-0.4.1.md) and [0.4.1 readiness](Tests/READINESS-0.4.1.md) are preserved. Item identity remains 3792731788.
+Published on Workshop and GitHub **2026-09-08** (America/Denver). Public copy, all twelve downloaded Workshop files and both GitHub asset digests are verified. The development junction is restored. See [0.4.2 Workshop closeout](../../../Tests/WORKSHOP-CLOSEOUT-0.4.2.md) and [GitHub closeout](../../../Tests/GITHUB-CLOSEOUT-0.4.2.md). The [0.4.1 closeout](RELEASE-HISTORY-0.4.1.md), [published Workshop copy](../../workshop/history/WORKSHOP-PUBLISHED-0.4.1.md) and [0.4.1 readiness](../../../Tests/READINESS-0.4.1.md) are preserved. Item identity remains 3792731788.
 
 ## Current preparation
 
 - [x] Preserve existing gameplay fixes and archived release records.
 - [x] Align version metadata, About, Non-Work tooltip, player guide, changelog and separate draft Workshop fields at 0.4.2.
 - [x] Refresh design, test guidance and current evidence without promoting unexercised cases to passed.
-- [x] Complete and record build, 3,502 checks across 30 contract suites, seven focused negative controls and static checks in [copy preflight](Tests/RELEASE-COPY-AUDIT-0.4.2.md).
+- [x] Complete and record build, 3,502 checks across 30 contract suites, seven focused negative controls and static checks in [copy preflight](../../../Tests/RELEASE-COPY-AUDIT-0.4.2.md).
 - [x] Install and hash-verify the three reviewed AOM skill-guidance updates, preserving backups and unchanged frontmatter/discovery settings.
-- [x] Deploy 0.4.2 and prepare the existing-item in-game upload workflow as authorized. All twelve installed files matched the audited stage before upload. The temporary link has since been restored; see [package preparation](Tests/RELEASE-PACKAGE-0.4.2.md) and [closeout](Tests/WORKSHOP-CLOSEOUT-0.4.2.md).
+- [x] Deploy 0.4.2 and prepare the existing-item in-game upload workflow as authorized. All twelve installed files matched the audited stage before upload. The temporary link has since been restored; see [package preparation](../../../Tests/RELEASE-PACKAGE-0.4.2.md) and [closeout](../../../Tests/WORKSHOP-CLOSEOUT-0.4.2.md).
 - [ ] After an authorized deployment, inspect the 0.4.2 option tooltip and perform a load/UI smoke. Only text/version changes were added during this preparation; preserve unrelated gameplay evidence from the preceding tested hash.
 
 ## Focused gameplay still needed
@@ -23,17 +23,17 @@ The maintainer proceeded with publication. These remain follow-up coverage and a
 
 ## Carry-forward coverage
 
-Exact protected saved-item recovery now has concrete completion evidence: Jono via Bowman on the released 0.4.1 hash, and Ocagobrei via Jonah on the latest gameplay hash. Keep these passes scoped to their actual items, routes and builds. [Current readiness](Tests/NEXT-UPDATE-READINESS.md) records details.
+Exact protected saved-item recovery now has concrete completion evidence: Jono via Bowman on the released 0.4.1 hash, and Ocagobrei via Jonah on the latest gameplay hash. Keep these passes scoped to their actual items, routes and builds. [Current readiness](../../../Tests/NEXT-UPDATE-READINESS.md) records details.
 
 Mental-state save/load and inactive shared-snapshot cleanup remain unverified from 0.4.1. Neither is closed by normal post-load restoration. A subscriber-only launch also remains distinct from downloaded-package byte verification.
 
 ## Publication and source-control closeout
 
 - [x] Preserve the final DLL hash and 117 source/package input hashes. This records released content; the focused gameplay findings above remain open.
-- [x] Retain and verify the existing eight-image gallery. [Optional replacements](Screenshots/CAPTURE-PLAN-0.4.2.md) remain suggestions, not completed captures.
+- [x] Retain and verify the existing eight-image gallery. [Optional replacements](../../../Screenshots/CAPTURE-PLAN-0.4.2.md) remain suggestions, not completed captures.
 - [x] Stage with package-workshop.ps1 and validate the exact twelve-file runtime allowlist, metadata, image limits and manifest.
 - [x] Preserve PublishedFileId and verify the installed uploader source against the audited stage before launch. The maintainer completed the in-game update.
 - [x] Verify the public 0.4.2 item, full description, compact update, separate change note, dependency, gallery and byte count. A visual UI/load smoke remains unverified above.
 - [x] Verify Steam's refreshed subscriber manifest and all twelve files against the stage. Restore the development junction with RimWorld closed and verify the installed 0.4.2 DLL.
 - [x] Create the matching twelve-file GitHub ZIP from the audited stage and publish 0.4.2 as the latest release. Verify uploaded ZIP/checksum asset sizes and SHA-256 values.
-- [x] Commit the released content, tag it v0.4.2 and fast-forward/push main and the RC branch as authorized. Release commit: `a7aec6865d0dbeb5b1140538143b73501e5644ba`. A later documentation closeout records publication evidence without moving the tag. [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.2.md) records hashes, timestamps and validation limits.
+- [x] Commit the released content, tag it v0.4.2 and fast-forward/push main and the RC branch as authorized. Release commit: `a7aec6865d0dbeb5b1140538143b73501e5644ba`. A later documentation closeout records publication evidence without moving the tag. [GitHub closeout](../../../Tests/GITHUB-CLOSEOUT-0.4.2.md) records hashes, timestamps and validation limits.

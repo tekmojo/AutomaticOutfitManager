@@ -9,8 +9,8 @@ Prepared in `C:/GitHub/AutomaticOutfitManager/work/radiation-any-weapon`, branch
 - Correct child-access, adult Activities/Hauling/Wandering, selected Non-Work gear and Pause/Resume tooltips. UI comparison against the start of this preparation has identical code tokens after string literals and whitespace are removed.
 - Align About, project, assembly and package-script expectations at 0.4.3. Package ID, Workshop ID, Harmony dependency, supported RimWorld 1.6 version, English-only scope, existing assets and MIT/third-party notices remain unchanged.
 - Update the player guide, current design, changelog and separate About/Workshop description/compact update/full change note. Describe native ritual participation and the scope of child exceptions without claiming new native jobs or broad meal fixes.
-- Archive exact previous contents as [0.4.2 closeout](../RELEASE-HISTORY-0.4.2.md), [0.4.2 published copy](../WORKSHOP-PUBLISHED-0.4.2.md) and [0.4.2 readiness](READINESS-0.4.2.md).
-- Refresh [current readiness](NEXT-UPDATE-READINESS.md), [release checklist](../RELEASE-CHECKLIST.md) and [capture plan](../Screenshots/CAPTURE-PLAN-0.4.3.md). No screenshots are represented as new approved gallery assets.
+- Archive exact previous contents as [0.4.2 closeout](../docs/releases/history/RELEASE-HISTORY-0.4.2.md), [0.4.2 published copy](../docs/workshop/history/WORKSHOP-PUBLISHED-0.4.2.md) and [0.4.2 readiness](READINESS-0.4.2.md).
+- Refresh [current readiness](NEXT-UPDATE-READINESS.md), [release checklist](../docs/releases/CHECKLIST.md) and [capture plan](../Screenshots/CAPTURE-PLAN-0.4.3.md). No screenshots are represented as new approved gallery assets.
 - Install four narrow skill-guidance updates covering checkbox-only child rules, native ritual gathering, positive attendance evidence and the matching test/copy boundaries. Original files and staged candidates are backed up; before/after hashes were checked. Frontmatter and discovery settings were preserved.
 
 ## Candidate versus tested installation

@@ -22,6 +22,6 @@ The same twelve files are published under Workshop item [3792731788](https://ste
 
 The release build passed **3,502 checks across 30 contract suites** plus seven focused previous-decision negative controls. Packaging and publication added no gameplay evidence and did not require a rebuild. The final text/version build remains distinct from gameplay-tested hash `F634D86039F215FC98FD883C667701DFB66F8E990A2221AD60292CFD5ACF2FD5`.
 
-The earlier Ocagobrei simple-meal loop remains unresolved and is not claimed fixed. Original bill completion, child activity after unavailable-gear denial, a newly created transition save/reload, mental-state save/load, inactive shared-snapshot cleanup, final UI/load smoke and subscriber-only gameplay remain scoped follow-ups in the [release checklist](../RELEASE-CHECKLIST.md).
+The earlier Ocagobrei simple-meal loop remains unresolved and is not claimed fixed. Original bill completion, child activity after unavailable-gear denial, a newly created transition save/reload, mental-state save/load, inactive shared-snapshot cleanup, final UI/load smoke and subscriber-only gameplay remain scoped follow-ups in the [release checklist](../docs/releases/CHECKLIST.md).
 
 Local evidence is in `C:/GitHub/AutomaticOutfitManager/work/releases/0.4.2-closeout/`: ZIP/checksum, package verification, release notes, staged paths, release commit, GitHub draft/public/latest responses, final checks and final Git state including the later closeout commit. These records remain outside the runtime package.

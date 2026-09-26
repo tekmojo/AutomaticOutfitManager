@@ -25,7 +25,7 @@ The ZIP was created directly from the audited stage. Its entry set and all decom
 
 ## Validation limits
 
-The downloaded package is verified byte for byte; subscriber-only gameplay was not run. The maintainer's upload and public verification do not establish a dedicated tooltip/UI smoke, full post-ceremony adult return, additional ritual type, child permission edge, or interruption/save-load pass. Earlier gameplay evidence and remaining checks stay recorded in [readiness](NEXT-UPDATE-READINESS.md) and the [release checklist](../RELEASE-CHECKLIST.md). The previous simple-meal loop and other older scoped follow-ups are not claimed fixed.
+The downloaded package is verified byte for byte; subscriber-only gameplay was not run. The maintainer's upload and public verification do not establish a dedicated tooltip/UI smoke, full post-ceremony adult return, additional ritual type, child permission edge, or interruption/save-load pass. Earlier gameplay evidence and remaining checks stay recorded in [readiness](NEXT-UPDATE-READINESS.md) and the [release checklist](../docs/releases/CHECKLIST.md). The previous simple-meal loop and other older scoped follow-ups are not claimed fixed.
 
 Evidence is preserved under `C:/GitHub/AutomaticOutfitManager/.codex-audit/release-copy-0.4.3/`: public API/page/change-note snapshots, public-verification.json, subscriber-files.json, published text, restored-junction.json, live About backup, ZIP/checksum and github-asset-prepared.json. The unchanged audited stage remains at `work/workshop-staging-0.4.3/AutomaticOutfitManager` inside the RC worktree.
 

@@ -1,6 +1,6 @@
 # 0.4.0 focused readiness plan
 
-The [release checklist](../RELEASE-CHECKLIST.md) is the current status. The [historical audit log](NEXT-UPDATE-HISTORY-2026-09-06.md) preserves older tests and superseded findings.
+The [release checklist](../docs/releases/CHECKLIST.md) is the current status. The [historical audit log](NEXT-UPDATE-HISTORY-2026-09-06.md) preserves older tests and superseded findings.
 
 The latest small- and large-map normal-flow sessions are healthy for their observed scope on DLL `98BC3B34BCEFF8443174D7472BB27908FCE090B5249411FDA98733FA0096A4E0`. The 0.4.0 copy/inspection candidate is a new build; its [copy audit](RELEASE-COPY-AUDIT-0.4.0.md) records validation. Retain prior gameplay evidence unless a later change affects it.
 

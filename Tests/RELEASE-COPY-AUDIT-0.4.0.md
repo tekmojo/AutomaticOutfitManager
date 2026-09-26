@@ -39,9 +39,9 @@ This pass does not change outfit planning, actual job admission, route/access po
 
 ## Documentation and Workshop preparation
 
-Rewrote the [player guide](../README.md), updated the [design document](../PROJECT-DESIGN.md), and added the [0.4.0 changelog entry](../CHANGELOG.md). The [Workshop file](../WORKSHOP.md) contains a short description, full BBCode description, **433-character compact Latest update block**, and a separate **1,368-character full change note**. The main description is **7,090 characters**, with balanced formatting tags. All are local drafts; no public description was changed.
+Rewrote the [player guide](../README.md), updated the [design document](../PROJECT-DESIGN.md), and added the [0.4.0 changelog entry](../CHANGELOG.md). The [Workshop file](../docs/workshop/README.md) contains a short description, full BBCode description, **433-character compact Latest update block**, and a separate **1,368-character full change note**. The main description is **7,090 characters**, with balanced formatting tags. All are local drafts; no public description was changed.
 
-The [release checklist](../RELEASE-CHECKLIST.md) and [readiness plan](NEXT-UPDATE-READINESS.md) now separate current gates from archived troubleshooting. Older audit text and dated Workshop change notes remain intact, with historical UI notes identified as such. Local documentation targets were checked; external publication state was not changed or newly certified.
+The [release checklist](../docs/releases/CHECKLIST.md) and [readiness plan](NEXT-UPDATE-READINESS.md) now separate current gates from archived troubleshooting. Older audit text and dated Workshop change notes remain intact, with historical UI notes identified as such. Local documentation targets were checked; external publication state was not changed or newly certified.
 
 The current cover was visually reviewed and retained: **640×360, 369,895 bytes**. The mod and main-tab icons are transparent **64×64** PNGs. Eight new captures are now preserved under [Screenshots/README.md](../Screenshots/README.md) with captions and an asset manifest. The maintainer requests replacing all previous gameplay screenshots at publication. The old local gallery remains historical until that step; no public images were changed by preparing the new set.
 

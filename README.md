@@ -4,7 +4,7 @@
 
 Automatic Outfit Manager lets you choose outfits and access permissions for RimWorld map areas. Use **Work Area Rules** for protective clothing, uniforms or primary weapons. Use **Non-Work Area Rules** to return work outfits before entering a dining room, lounge or bedroom.
 
-**0.4.4 published on Steam Workshop and GitHub** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [Download 0.4.4](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.4) · [Changelog](CHANGELOG.md) · [Release status](RELEASE-CHECKLIST.md)
+**0.4.4 published on Steam Workshop and GitHub** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [Download 0.4.4](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.4) · [Changelog](CHANGELOG.md) · [Release status](docs/releases/CHECKLIST.md)
 
 Requires **RimWorld 1.6** and **Harmony**. Vanilla and modded apparel and primary weapons are supported. Radiation equipment inspired the original mod, but Rimatomics is not required. You choose the areas and gear; AOM does not create rules from detected hazards.
 
@@ -173,7 +173,7 @@ Non-Work Areas for saved personal or selected outfits:
 
 With RimWorld 1.6 and Harmony installed, run `build.ps1`; use `-RimWorldDir "D:\SteamLibrary\steamapps\common\RimWorld"` for another install location. The DLL is written to `1.6/Assemblies/AutomaticOutfitManager.dll`.
 
-`package-workshop.ps1` builds an allowlisted local package under `work/workshop-staging`; it does not publish it. Enable Harmony before AOM when installing the mod folder in RimWorld's Mods directory. See [project design](PROJECT-DESIGN.md), [release checklist](RELEASE-CHECKLIST.md), [Workshop copy](WORKSHOP.md) and the [screenshot gallery](Screenshots/README.md).
+`package-workshop.ps1` builds an allowlisted local package under `work/workshop-staging`; it does not publish it. Enable Harmony before AOM when installing the mod folder in RimWorld's Mods directory. See [project design](PROJECT-DESIGN.md), [release documentation](docs/releases/README.md), [Workshop copy](docs/workshop/README.md) and the [screenshot gallery](Screenshots/README.md).
 
 ## License and notices
 

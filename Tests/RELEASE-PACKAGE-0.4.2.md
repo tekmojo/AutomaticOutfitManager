@@ -9,7 +9,7 @@ The maintainer authorized deployment and preparation for updating the existing m
 - Steam public API confirmed the existing title and creator tekmojo's Steam ID `76561197960452376`, public visibility, and the prior 0.4.1 content handle `2399755163012728719`. This is a pre-upload baseline, not 0.4.2 publication evidence.
 - The original PublishedFileId is backed up. The source/package hash record covers 117 inputs; source remains uncommitted. Full Workshop description and separate change note were extracted from the reviewed draft into copy-ready text files outside the runtime package.
 
-No game launch, upload, public/subscriber verification, GitHub release or source-control operation was performed. The user launches through Steam and checks the staged About card before updating. The [focused gameplay cases](../RELEASE-CHECKLIST.md) remain unverified; preparation does not turn them into passes.
+No game launch, upload, public/subscriber verification, GitHub release or source-control operation was performed. The user launches through Steam and checks the staged About card before updating. The [focused gameplay cases](../docs/releases/CHECKLIST.md) remain unverified; preparation does not turn them into passes.
 
 After upload, verify the public description, full note, update time/content handle and package byte count. Then verify Steam's refreshed subscriber file set and hashes separately. When RimWorld is closed, restore the normal development junction and verify its deployed DLL. The restoration helper is prepared but not executed.
 

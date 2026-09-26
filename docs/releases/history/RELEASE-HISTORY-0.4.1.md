@@ -1,11 +1,11 @@
 # Automatic Outfit Manager — 0.4.1 release closeout
 
-Released on Workshop **2026-09-08**. Public copy and downloaded package verification are complete, and the normal development junction is restored. The matching [GitHub release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.1) is public and latest; [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.1.md) records the tag and asset verification. [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.1.md) records the evidence; [0.4.0 history](RELEASE-HISTORY-0.4.0.md) remains unchanged.
+Released on Workshop **2026-09-08**. Public copy and downloaded package verification are complete, and the normal development junction is restored. The matching [GitHub release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.1) is public and latest; [GitHub closeout](../../../Tests/GITHUB-CLOSEOUT-0.4.1.md) records the tag and asset verification. [Workshop closeout](../../../Tests/WORKSHOP-CLOSEOUT-0.4.1.md) records the evidence; [0.4.0 history](RELEASE-HISTORY-0.4.0.md) remains unchanged.
 
 ## Completed preparation and Workshop release
 
 - [x] Align versions, player copy, About, documentation, Workshop fields and troubleshooting skills.
-- [x] Release build reproduces `B8C1A1DAED38FF2AAC4BEBDA27DDED08A7466BCF60F0B2B0977677C8C5F47894`. Validate **3,431 checks across 29 suites**, plus 29 negative-control variants. See [copy preflight](Tests/RELEASE-COPY-AUDIT-0.4.1.md).
+- [x] Release build reproduces `B8C1A1DAED38FF2AAC4BEBDA27DDED08A7466BCF60F0B2B0977677C8C5F47894`. Validate **3,431 checks across 29 suites**, plus 29 negative-control variants. See [copy preflight](../../../Tests/RELEASE-COPY-AUDIT-0.4.1.md).
 - [x] Deploy and stage the exact twelve-file package; inspect XML, version, IDs, asset limits and manifests.
 - [x] Maintainer updates the existing Workshop item, description and change notes; verify all public copy and the downloaded package against the stage.
 - [x] Retain the existing eight screenshots for 0.4.1 at the maintainer's request. Future capture suggestions are deferred, not a release gate.

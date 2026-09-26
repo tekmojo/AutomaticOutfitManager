@@ -1,6 +1,6 @@
 # Steam Workshop copy — 0.4.1
 
-Published on the existing Workshop item on 2026-09-08. The public description and full change note match the prepared text, and the downloaded package matches the audited stage. The current eight-image gallery is retained. See [0.4.1 Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.1.md) and the [release checklist](RELEASE-CHECKLIST.md).
+Published on the existing Workshop item on 2026-09-08. The public description and full change note match the prepared text, and the downloaded package matches the audited stage. The current eight-image gallery is retained. See [0.4.1 Workshop closeout](../../../Tests/WORKSHOP-CLOSEOUT-0.4.1.md) and the [release checklist](../../releases/CHECKLIST.md).
 
 - Existing item: `3792731788` — Automatic Outfit Manager. Preserve its identity and visibility.
 - Supported version: RimWorld 1.6. Required item: Harmony.
@@ -128,9 +128,9 @@ Existing Work rules remain Work rules. Non-Work rules are optional additions.
 
 ## Screenshots
 
-The published 0.4.0 gallery remains the active gallery for 0.4.1, as requested by the maintainer. No screenshots were changed. The [capture plan](Screenshots/CAPTURE-PLAN-0.4.1.md) is deferred for a future refresh.
+The published 0.4.0 gallery remains the active gallery for 0.4.1, as requested by the maintainer. No screenshots were changed. The [capture plan](../../../Screenshots/CAPTURE-PLAN-0.4.1.md) is deferred for a future refresh.
 
-At 0.4.0 closeout, all eight [0.4.0 gallery images](Screenshots/README.md) were verified live on Workshop in the listed order, replacing the older gameplay gallery. Their public Steam image identifiers match the local originals; the branded cover remains separate. Every original is under 1,000,000 bytes. The same eight images form 0.4.0's [GitHub gallery](Screenshots/README.md).
+At 0.4.0 closeout, all eight [0.4.0 gallery images](../../../Screenshots/README.md) were verified live on Workshop in the listed order, replacing the older gameplay gallery. Their public Steam image identifiers match the local originals; the branded cover remains separate. Every original is under 1,000,000 bytes. The same eight images form 0.4.0's [GitHub gallery](../../../Screenshots/README.md).
 
 ## Historical change notes
 

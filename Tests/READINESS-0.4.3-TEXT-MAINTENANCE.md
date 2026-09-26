@@ -1,6 +1,6 @@
 # 0.4.3 maintenance readiness
 
-The September 25 published maintenance update corrects presentation only: Task Buffer minus sign, concise About description and adult/child wording for selected Non-Work outfits. Version remains 0.4.3. No gameplay logic or saved data changes. Use the [release checklist](../RELEASE-CHECKLIST.md) for the in-game Mods-menu upload workflow and [maintenance preflight](MAINTENANCE-PREFLIGHT-0.4.3.md) for build evidence.
+The September 25 published maintenance update corrects presentation only: Task Buffer minus sign, concise About description and adult/child wording for selected Non-Work outfits. Version remains 0.4.3. No gameplay logic or saved data changes. Use the [release checklist](../docs/releases/CHECKLIST.md) for the in-game Mods-menu upload workflow and [maintenance preflight](MAINTENANCE-PREFLIGHT-0.4.3.md) for build evidence.
 
 | State | DLL SHA-256 |
 |---|---|

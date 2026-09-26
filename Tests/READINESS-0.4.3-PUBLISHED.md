@@ -1,6 +1,6 @@
 # 0.4.3 release validation
 
-Current scope: child access and Ideology ceremony gathering. Published 0.4.2 evidence is preserved in [READINESS-0.4.2.md](READINESS-0.4.2.md). The [release checklist](../RELEASE-CHECKLIST.md) is the current action list.
+Current scope: child access and Ideology ceremony gathering. Published 0.4.2 evidence is preserved in [READINESS-0.4.2.md](READINESS-0.4.2.md). The [release checklist](../docs/releases/CHECKLIST.md) is the current action list.
 
 ## Runtime identity
 
@@ -29,4 +29,4 @@ These checks establish production policy/callback contracts; they do not replace
 
 ## Remaining
 
-Use the short ordered checklist in [RELEASE-CHECKLIST.md](../RELEASE-CHECKLIST.md). Keep the older meal/bill and native suspension follow-ups scoped to their original findings. Neither missing logs nor one completed restoration proves an unobserved outcome.
+Use the short ordered checklist in [CHECKLIST.md](../docs/releases/CHECKLIST.md). Keep the older meal/bill and native suspension follow-ups scoped to their original findings. Neither missing logs nor one completed restoration proves an unobserved outcome.

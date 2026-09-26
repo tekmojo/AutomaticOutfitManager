@@ -1,6 +1,6 @@
 # Steam Workshop copy — 0.4.2 published
 
-Published on the existing item on 2026-09-08 (America/Denver). The public description and full note match this text, and Steam's downloaded files match the audited stage. The eight-image gallery is unchanged. See [0.4.2 Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.2.md) and [release status](RELEASE-CHECKLIST.md). The [published 0.4.1 copy](WORKSHOP-PUBLISHED-0.4.1.md) remains history.
+Published on the existing item on 2026-09-08 (America/Denver). The public description and full note match this text, and Steam's downloaded files match the audited stage. The eight-image gallery is unchanged. See [0.4.2 Workshop closeout](../../../Tests/WORKSHOP-CLOSEOUT-0.4.2.md) and [release status](../../releases/CHECKLIST.md). The [published 0.4.1 copy](WORKSHOP-PUBLISHED-0.4.1.md) remains history.
 
 - Existing item: `3792731788` — Automatic Outfit Manager. Preserve its identity and visibility.
 - Supported version: RimWorld 1.6. Required item: Harmony.
@@ -143,9 +143,9 @@ Existing Work rules remain Work rules. Non-Work rules are optional additions.
 
 ## Screenshots
 
-The existing gallery was retained for published 0.4.1. Its older labels are legacy examples for this candidate. No images have been changed; [0.4.2 capture suggestions](Screenshots/CAPTURE-PLAN-0.4.2.md) identify the useful replacements. The earlier retention decision is not a claim that new captures are complete.
+The existing gallery was retained for published 0.4.1. Its older labels are legacy examples for this candidate. No images have been changed; [0.4.2 capture suggestions](../../../Screenshots/CAPTURE-PLAN-0.4.2.md) identify the useful replacements. The earlier retention decision is not a claim that new captures are complete.
 
-At 0.4.0 closeout, all eight [0.4.0 gallery images](Screenshots/README.md) were verified live on Workshop in the listed order, replacing the older gameplay gallery. Their public Steam image identifiers match the local originals; the branded cover remains separate. Every original is under 1,000,000 bytes. The same eight images form 0.4.0's [GitHub gallery](Screenshots/README.md).
+At 0.4.0 closeout, all eight [0.4.0 gallery images](../../../Screenshots/README.md) were verified live on Workshop in the listed order, replacing the older gameplay gallery. Their public Steam image identifiers match the local originals; the branded cover remains separate. Every original is under 1,000,000 bytes. The same eight images form 0.4.0's [GitHub gallery](../../../Screenshots/README.md).
 
 ## Historical change notes
 

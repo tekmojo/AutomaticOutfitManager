@@ -38,7 +38,7 @@ Before uploading, recheck actual file sizes and the active Workshop uploader's f
 - [x] Verify Workshop image identities and ordering. The table captions remain local descriptive copy; individual public caption text is not certified.
 - [x] Verify the published GitHub gallery: all eight images load in order at their original dimensions, with the documented captions; nine previous active gallery files are retired. See [GitHub closeout](../Tests/GITHUB-CLOSEOUT-0.4.0.md).
 
-The screenshots show portions of the new interface. They do not by themselves certify save/load continuity, Delete confirmation, completed recovery jobs or measured performance. Those checks remain in the [release checklist](../RELEASE-CHECKLIST.md). The current set shows All Work Outfits enabled, not a selective-removal example; it shows conflicts and source names, but no [Retained] row. Captions deliberately describe what is visible.
+The screenshots show portions of the new interface. They do not by themselves certify save/load continuity, Delete confirmation, completed recovery jobs or measured performance. Those checks remain in the [release checklist](../docs/releases/CHECKLIST.md). The current set shows All Work Outfits enabled, not a selective-removal example; it shows conflicts and source names, but no [Retained] row. Captions deliberately describe what is visible.
 
 ## Retired gallery
 

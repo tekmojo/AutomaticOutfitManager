@@ -11,8 +11,8 @@ About/project/package expectation and DLL product version agree on **0.4.3**; as
 ## Copy changes
 
 - Current checklist, readiness, guide, design, changelog and test index describe access-only Work travel and construction boundary fixes.
-- Prior text-only publication records are archived in [release history](../RELEASE-HISTORY-0.4.3-TEXT-MAINTENANCE.md), [Workshop reference history](../WORKSHOP-PUBLISHED-0.4.3-TEXT-MAINTENANCE.md) and [readiness history](READINESS-0.4.3-TEXT-MAINTENANCE.md). The previous two complete working documents are byte-preserved; readiness is preserved from HEAD before unpublished candidate edits.
-- [Workshop copy](../WORKSHOP.md) has a separate compact Latest update block and a 595-character final bug-fix change note, both marked draft. Main description is 7990 characters. Older notes remain dated history.
+- Prior text-only publication records are archived in [release history](../docs/releases/history/RELEASE-HISTORY-0.4.3-TEXT-MAINTENANCE.md), [Workshop reference history](../docs/workshop/history/WORKSHOP-PUBLISHED-0.4.3-TEXT-MAINTENANCE.md) and [readiness history](READINESS-0.4.3-TEXT-MAINTENANCE.md). The previous two complete working documents are byte-preserved; readiness is preserved from HEAD before unpublished candidate edits.
+- [Workshop copy](../docs/workshop/README.md) has a separate compact Latest update block and a 595-character final bug-fix change note, both marked draft. Main description is 7990 characters. Older notes remain dated history.
 - About/loading text stays concise and unchanged. Existing Work access-only summary, Allow Children tooltip, safe-exit text and buffer wording already fit the implementation. No extra tooltip text or new gallery assets were needed. Existing gallery images remain labeled legacy.
 - The scope does not claim to repair faction-relation errors, DBH toilet exceptions or unexercised Anomaly features. Held-off delivery and save/load limits remain explicit.
 
@@ -33,7 +33,7 @@ The bundled skill validator cannot import PyYAML on this host. Direct checks ver
 
 ## Next handoff
 
-Preparation is complete. Stage the candidate and verify the installed upload source when proceeding, then upload through RimWorld's **Mods menu** to the existing item. Keep the version and existing tag unchanged. This pass did not stage, deploy, upload, commit, tag, push or publish a GitHub asset. The [release checklist](../RELEASE-CHECKLIST.md) retains publication and subscriber checks separately.
+Preparation is complete. Stage the candidate and verify the installed upload source when proceeding, then upload through RimWorld's **Mods menu** to the existing item. Keep the version and existing tag unchanged. This pass did not stage, deploy, upload, commit, tag, push or publish a GitHub asset. The [release checklist](../docs/releases/CHECKLIST.md) retains publication and subscriber checks separately.
 
 Local evidence directory: `C:/GitHub/AutomaticOutfitManager/.codex-audit/final-bugfix-prep-0.4.3/`.
 
@@ -42,4 +42,4 @@ Local evidence directory: `C:/GitHub/AutomaticOutfitManager/.codex-audit/final-b
 
 After the maintainer reported the package upload and a failed description save, the main description was condensed from 7,990 to 5,407 characters (32.3% shorter). The expanded standalone update block would have pushed the earlier local draft above 8,000; the exact browser form text was not captured, so that remains the likely explanation rather than a confirmed server diagnosis.
 
-Current replacement copy: [WORKSHOP-DESCRIPTION.txt](../WORKSHOP-DESCRIPTION.txt), also embedded in [Workshop copy](../WORKSHOP.md). It contains the cumulative latest-update summary, core behavior and legal notice. BBCode tag nesting is balanced; UTF-8 size is 5,407 bytes with LF or 5,464 with CRLF. No runtime files or staged package contents changed. Public description save remains unverified.
+Current replacement copy: [DESCRIPTION.txt](../docs/workshop/DESCRIPTION.txt), also embedded in [Workshop copy](../docs/workshop/README.md). It contains the cumulative latest-update summary, core behavior and legal notice. BBCode tag nesting is balanced; UTF-8 size is 5,407 bytes with LF or 5,464 with CRLF. No runtime files or staged package contents changed. Public description save remains unverified.

@@ -8,7 +8,7 @@
 
 Published through RimWorld's Mods menu. Public description/change note and all twelve Steam-downloaded files match the audited package; the development junction is restored. [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.4.md) records hashes and remaining validation limits. The matching [GitHub release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.4) is published; [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.4.md) records the source tag and verified asset digests.
 
-Validation and remaining gameplay checks: [release status](RELEASE-CHECKLIST.md), [repair validation](Tests/REPAIR-COMPONENT-CLAIMS-0.4.4.md), and [nonhuman routing](Tests/NONHUMAN-TRANSIT-0.4.4.md).
+Validation and remaining gameplay checks: [release status](docs/releases/CHECKLIST.md), [repair validation](Tests/REPAIR-COMPONENT-CLAIMS-0.4.4.md), and [nonhuman routing](Tests/NONHUMAN-TRANSIT-0.4.4.md).
 
 ## 0.4.3 final bug-fix update — 2026-09-25
 
@@ -25,7 +25,7 @@ Published through RimWorld's Mods menu. The public description and change note a
 - Restore the shorter About/loading-screen description.
 - Clarify selected Non-Work outfit guidance: adults follow outfit requirements; children use Allow Children independently.
 
-Version remains 0.4.3. No gameplay logic, save keys or rule defaults change. This update does not claim to fix the Arakis crib loop or other mods' loading errors. Published through the in-game Mods menu; all twelve Steam-downloaded files match the verified package. Closeout and remaining checks are tracked in [release status](RELEASE-CHECKLIST.md).
+Version remains 0.4.3. No gameplay logic, save keys or rule defaults change. This update does not claim to fix the Arakis crib loop or other mods' loading errors. Published through the in-game Mods menu; all twelve Steam-downloaded files match the verified package. Closeout and remaining checks are tracked in [release status](docs/releases/CHECKLIST.md).
 
 ## 0.4.3 — 2026-09-24
 
@@ -61,7 +61,7 @@ Published on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails
 
 - Clarify selected Non-Work outfit entry, safe exit and saved-personal behavior in the option tooltip, player guide and Workshop description.
 
-No save keys or rule defaults change. [Release status](RELEASE-CHECKLIST.md) records tested cases and remaining checks; the earlier Ocagobrei simple-meal loop is not claimed fixed by this update.
+No save keys or rule defaults change. [Release status](docs/releases/CHECKLIST.md) records tested cases and remaining checks; the earlier Ocagobrei simple-meal loop is not claimed fixed by this update.
 
 ## 0.4.1 — 2026-09-08
 
@@ -84,11 +84,11 @@ No save keys or rule defaults change. [Release status](RELEASE-CHECKLIST.md) rec
 - Improve raid/departure handoffs, pause enforcement and valid job continuation so obsolete tasks do not repeatedly restart outfit changes. Preserve exact saved-gear continuation across temporary waits and allow safe essential rest while retrieval is blocked.
 - Reduce unnecessary Work-outfit preparation for unrelated locker hauling, preserve legitimate PPE-protected supply collection, and keep failed or interrupted jobs from consuming task-buffer progress.
 
-Existing rules and filter identities are retained. The existing screenshot gallery is unchanged. [Release status and validation limits](RELEASE-HISTORY-0.4.1.md) distinguish published results from remaining focused gameplay checks.
+Existing rules and filter identities are retained. The existing screenshot gallery is unchanged. [Release status and validation limits](docs/releases/history/RELEASE-HISTORY-0.4.1.md) distinguish published results from remaining focused gameplay checks.
 
 ## 0.4.0 — 2026-09-06
 
-Published on Steam Workshop with the eight replacement screenshots. The downloaded 12-file package matches the audited stage. The GitHub package uses the same audited files. See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.0.md) for verification and the [release checklist](RELEASE-CHECKLIST.md) for publication status.
+Published on Steam Workshop with the eight replacement screenshots. The downloaded 12-file package matches the audited stage. The GitHub package uses the same audited files. See [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.0.md) for verification and the [release checklist](docs/releases/CHECKLIST.md) for publication status.
 
 ### Added
 

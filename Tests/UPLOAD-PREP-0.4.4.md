@@ -25,7 +25,7 @@ Prepared and installed for the maintainer's existing-item upload through RimWorl
 
 ## Maintainer handoff
 
-Launch RimWorld manually. In Mods, select Automatic Outfit Manager and verify the 0.4.4 About card, expected preview and concise description, then update the existing Workshop item. Use [the separate change note](../WORKSHOP-CHANGE-NOTE-0.4.4.txt); [the full description](../WORKSHOP-DESCRIPTION.txt) is a separate field. Do not replace the concise About text with the change note.
+Launch RimWorld manually. In Mods, select Automatic Outfit Manager and verify the 0.4.4 About card, expected preview and concise description, then update the existing Workshop item. Use [the separate change note](../docs/workshop/change-notes/0.4.4.txt); [the full description](../docs/workshop/DESCRIPTION.txt) is a separate field. Do not replace the concise About text with the change note.
 
 The live repository's About metadata still reflects its separate published checkout; the installed path deliberately points at the verified 0.4.4 stage during this upload session. After upload and game closure, restore the junction to the live repository through the release workflow. Preserve the stage for public/subscriber verification.
 

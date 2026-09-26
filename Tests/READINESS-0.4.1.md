@@ -1,6 +1,6 @@
 # 0.4.1 validation record — post-0.4.0
 
-Updated 2026-09-08. Workshop publication and downloaded-package verification are complete; the existing screenshots are retained. Unexercised gameplay cases below remain unverified follow-up coverage, not passed tests. Current closeout status is in the [release checklist](../RELEASE-CHECKLIST.md). The previous current-status document is preserved as [0.4.0 readiness](READINESS-0.4.0.md); its broader chronology remains in [historical readiness](NEXT-UPDATE-HISTORY-2026-09-06.md).
+Updated 2026-09-08. Workshop publication and downloaded-package verification are complete; the existing screenshots are retained. Unexercised gameplay cases below remain unverified follow-up coverage, not passed tests. Current closeout status is in the [release checklist](../docs/releases/CHECKLIST.md). The previous current-status document is preserved as [0.4.0 readiness](READINESS-0.4.0.md); its broader chronology remains in [historical readiness](NEXT-UPDATE-HISTORY-2026-09-06.md).
 
 ## Build and evidence boundary
 

@@ -9,4 +9,4 @@ Preserve the existing eight images and branded cover. The old gallery was retain
 
 Capture after the candidate's UI/load smoke. Keep ordinary player views free of debug overlays and unrelated hovers. Preserve source captures; keep upload derivatives separate. Gallery JPG/PNG files must each be under 1,000,000 bytes and readable at display size. The separate About preview remains 16:9 and under that limit; 64×64 transparent icons are unchanged.
 
-Record final filenames, captions, order, dimensions, byte sizes and hashes before replacing links or uploading. See [the existing gallery](README.md) and [release checklist](../RELEASE-CHECKLIST.md).
+Record final filenames, captions, order, dimensions, byte sizes and hashes before replacing links or uploading. See [the existing gallery](README.md) and [release checklist](../docs/releases/CHECKLIST.md).

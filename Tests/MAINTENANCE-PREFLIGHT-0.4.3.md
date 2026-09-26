@@ -34,6 +34,6 @@ Five reviewed files across the release-copy, release-RC and session-audit skill 
 
 The candidate is built, not deployed, staged, uploaded or gameplay-smoked. The local About description was already restored at the maintainer's earlier request; the installed DLL remains the published baseline.
 
-After a deployment request, check Task Buffer controls at 0, 1 and 20 for both rule kinds, the selected-outfit tooltip and About card, then one load/restoration smoke. Stage only when requested and verify the installed upload source before a manual Steam launch. Use the existing Workshop item and the in-game Mods menu, with the draft maintenance note from [Workshop copy](../WORKSHOP.md). Preserve the version tag and existing GitHub assets unless separately instructed.
+After a deployment request, check Task Buffer controls at 0, 1 and 20 for both rule kinds, the selected-outfit tooltip and About card, then one load/restoration smoke. Stage only when requested and verify the installed upload source before a manual Steam launch. Use the existing Workshop item and the in-game Mods menu, with the draft maintenance note from [Workshop copy](../docs/workshop/README.md). Preserve the version tag and existing GitHub assets unless separately instructed.
 
 Broader gameplay findings remain in [current readiness](NEXT-UPDATE-READINESS.md); previous release evidence is archived separately. No source-control or public publication operations were performed.

@@ -23,6 +23,6 @@ The byte-identical tested source retains three pre-existing doubled carriage-ret
 
 Workshop item `3792731788`, creator tekmojo, remains public with Harmony required. Subscriber manifest `1496049653910862886` matches the twelve-file package. [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.0.md) records that verification and the restored installed junction.
 
-The separate dirty live development checkout was preserved. Native subscriber-loaded gameplay smoke, the full candidate UI/load matrix and an optional measured performance baseline are not claimed by publication checks; see the [release checklist](../RELEASE-CHECKLIST.md).
+The separate dirty live development checkout was preserved. Native subscriber-loaded gameplay smoke, the full candidate UI/load matrix and an optional measured performance baseline are not claimed by publication checks; see the [release checklist](../docs/releases/CHECKLIST.md).
 
 Local evidence is under `C:/GitHub/AutomaticOutfitManager/work/releases/0.4.0-rc1/github-update/`: source-freeze record, verified draft/public release JSON, final notes and retired-gallery backups. The final closeout commit identity is recorded there after committing this document.

@@ -19,7 +19,7 @@ Published through the Mods menu; the public fields and twelve downloaded files a
 
 ## Published 0.4.3 maintenance update — September 25 interface text
 
-This published same-version maintenance update corrects the Task Buffer minus sign, restores the concise About/loading description and clarifies that selected Non-Work outfits apply to adults. It changes no gameplay logic, saved data or defaults. Version remains 0.4.3 at the maintainer's request. Published through RimWorld's Mods menu to existing Workshop item `3792731788`; all twelve subscriber files match the verified stage. Current evidence is tracked in [release readiness](Tests/NEXT-UPDATE-READINESS.md); the prior published 0.4.3 state is archived in [its release record](RELEASE-HISTORY-0.4.3.md).
+This published same-version maintenance update corrects the Task Buffer minus sign, restores the concise About/loading description and clarifies that selected Non-Work outfits apply to adults. It changes no gameplay logic, saved data or defaults. Version remains 0.4.3 at the maintainer's request. Published through RimWorld's Mods menu to existing Workshop item `3792731788`; all twelve subscriber files match the verified stage. Current evidence is tracked in [release readiness](Tests/NEXT-UPDATE-READINESS.md); the prior published 0.4.3 state is archived in [its release record](docs/releases/history/RELEASE-HISTORY-0.4.3.md).
 
 ## Child access and Ideology ritual gathering
 
@@ -31,7 +31,7 @@ This published same-version maintenance update corrects the Task Buffer minus si
 
 ## 0.4.2 — selected Non-Work gear and boundary movement
 
-Published Workshop verification and remaining evidence are in [the release checklist](RELEASE-CHECKLIST.md) and [validation record](Tests/NEXT-UPDATE-READINESS.md). The [0.4.1 release record](RELEASE-HISTORY-0.4.1.md) remains dated history.
+Published Workshop verification and remaining evidence are in [the release checklist](docs/releases/CHECKLIST.md) and [validation record](Tests/NEXT-UPDATE-READINESS.md). The [0.4.1 release record](docs/releases/history/RELEASE-HISTORY-0.4.1.md) remains dated history.
 
 - With saved-personal preference unchecked, occupied Non-Work mismatch is handled before ordinary gear preparation, including moving/working pawns. Safe exit precedes changing even when selected gear is available. Checked preference continues to use the effective saved-personal source; a dormant fallback edit alone does not invalidate it.
 - Unavailable or unwearable selected gear blocks the exact autonomous task and rule temporarily, clears obsolete boundary retries and releases the managed claim so other reachable native tasks can proceed. Requirements edits clear rule-wide unavailable state, including stateless pawns. This does not manufacture alternate jobs or allow protected entry without usable gear.
@@ -41,7 +41,7 @@ Published Workshop verification and remaining evidence are in [the release check
 
 ## 0.4.1 — transition stability and storage clarity
 
-The post-0.4.0 update consolidates pause, hauling, sleep, native-control and saved-outfit recovery changes. Its published status and evidence are preserved in [0.4.1 closeout](RELEASE-HISTORY-0.4.1.md) and [0.4.1 readiness](Tests/READINESS-0.4.1.md).
+The post-0.4.0 update consolidates pause, hauling, sleep, native-control and saved-outfit recovery changes. Its published status and evidence are preserved in [0.4.1 closeout](docs/releases/history/RELEASE-HISTORY-0.4.1.md) and [0.4.1 readiness](Tests/READINESS-0.4.1.md).
 
 - `NativeRuleControl` must agree across job admission, path boundaries, component ticks and activity rows. Mental, incapacitated and native emergency states suspend intervention while retaining exact saved ownership. Remove only obsolete AOM continuations; do not interrupt native mental behavior. Normal sleep, hunger and fatigue do not grant this exemption.
 - Pause activities blocks ordinary work, meals, recreation and learning. Allowed hauling, sleep/bed rest, nursing and wandering retain access and PPE checks. The supply exception is transport-only, accepts any item type, and requires all delivery recipients outside the paused source area; queued recipients and building footprints count. It does not authorize processing jobs or avoidable protected transit.
@@ -303,4 +303,4 @@ Activities replaces the Work permission label while preserving serialized Work b
 - Active session ownership, observed activity and permission classification are separate. Workers/Occupants show eligible humanlike participants; nonhuman animals and robots remain in Haulers/Wanderers. A transition observed from another rule uses the owning status without borrowing its Recall action or buffer. Successful actual jobs advance their own Work/Non-Work and applicable nested counters; failed, interrupted, internal outfit and connective jobs do not.
 - Purposeful humanlike activity includes eating, rest, recreation and learning. Children use their own area allow/disallow checkbox without adult outfit or activity gates; changing permission mid-meal must exit safely without re-entering a native job-ending callback. Childcare carry continuity should finish safe placement before changing outfits.
 
-The candidate's public wording is shorter; logging detail is not removed. Quiet, Basic and Detailed remain available without requiring Developer Mode. This copy pass does not change admission, routing, storage filters, ownership, buffer credit or recovery timing. The two latest normal-flow audits cover the previously deployed runtime. Candidate UI/load smoke and precise remaining gameplay cases are tracked in [the release checklist](RELEASE-CHECKLIST.md); historical findings are not current open defects by default.
+The candidate's public wording is shorter; logging detail is not removed. Quiet, Basic and Detailed remain available without requiring Developer Mode. This copy pass does not change admission, routing, storage filters, ownership, buffer credit or recovery timing. The two latest normal-flow audits cover the previously deployed runtime. Candidate UI/load smoke and precise remaining gameplay cases are tracked in [the release checklist](docs/releases/CHECKLIST.md); historical findings are not current open defects by default.

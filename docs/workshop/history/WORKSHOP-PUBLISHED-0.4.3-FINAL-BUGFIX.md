@@ -1,6 +1,6 @@
 # Steam Workshop copy — final 0.4.3 bug-fix update (verified)
 
-The final bug-fix package was uploaded through RimWorld's in-game Mods menu. **The streamlined description, separate change note and all twelve downloaded files are verified.** Version stays 0.4.3 on the existing item. See [final closeout](Tests/FINAL-BUGFIX-CLOSEOUT-0.4.3.md). The earlier text-only maintenance copy is preserved in [its dated archive](WORKSHOP-PUBLISHED-0.4.3-TEXT-MAINTENANCE.md); publication of that archive's complete long-description field was not claimed. See [release status](RELEASE-CHECKLIST.md) for the upload handoff.
+The final bug-fix package was uploaded through RimWorld's in-game Mods menu. **The streamlined description, separate change note and all twelve downloaded files are verified.** Version stays 0.4.3 on the existing item. See [final closeout](../../../Tests/FINAL-BUGFIX-CLOSEOUT-0.4.3.md). The earlier text-only maintenance copy is preserved in [its dated archive](WORKSHOP-PUBLISHED-0.4.3-TEXT-MAINTENANCE.md); publication of that archive's complete long-description field was not claimed. See [release status](../../releases/CHECKLIST.md) for the upload handoff.
 
 - Existing item: `3792731788` — Automatic Outfit Manager. Preserve its identity and visibility.
 - Supported version: RimWorld 1.6. Harmony required; Ideology optional for ceremony integration.
@@ -125,8 +125,8 @@ Updated tooltips explain child access, adult permissions and pause behavior. Har
 
 ## Screenshots
 
-The existing eight-image gallery remains a legacy UI example and needs no new gallery assets for these routing fixes. See [0.4.3 capture plan](Screenshots/CAPTURE-PLAN-0.4.3.md). No public fields or images were changed during preparation.
+The existing eight-image gallery remains a legacy UI example and needs no new gallery assets for these routing fixes. See [0.4.3 capture plan](../../../Screenshots/CAPTURE-PLAN-0.4.3.md). No public fields or images were changed during preparation.
 
 ## Historical publication text
 
-Published notes are preserved in [0.4.3 Workshop copy](WORKSHOP-PUBLISHED-0.4.3.md), [0.4.2 Workshop copy](WORKSHOP-PUBLISHED-0.4.2.md), [0.4.1 Workshop copy](WORKSHOP-PUBLISHED-0.4.1.md) and [the changelog](CHANGELOG.md).
+Published notes are preserved in [0.4.3 Workshop copy](WORKSHOP-PUBLISHED-0.4.3.md), [0.4.2 Workshop copy](WORKSHOP-PUBLISHED-0.4.2.md), [0.4.1 Workshop copy](WORKSHOP-PUBLISHED-0.4.1.md) and [the changelog](../../../CHANGELOG.md).

@@ -35,7 +35,7 @@ Only the validated junction entry was replaced. Both repositories and their exis
 3. After the upload session, close RimWorld before restoring the installed junction to the live repository. Verify its DLL still matches the release hash. Do not change a junction while the game is running.
 4. Record the uploaded result and verify the public item and downloaded subscriber files separately. Steam's subscriber cache can lag behind a successful public update.
 
-Focused gameplay checks in the [release checklist](../RELEASE-CHECKLIST.md), the new gallery, UI/load confirmation and subscriber-package verification remain pending. Staging is not recorded as a pass for them.
+Focused gameplay checks in the [release checklist](../docs/releases/CHECKLIST.md), the new gallery, UI/load confirmation and subscriber-package verification remain pending. Staging is not recorded as a pass for them.
 
 ## Local recovery evidence
 

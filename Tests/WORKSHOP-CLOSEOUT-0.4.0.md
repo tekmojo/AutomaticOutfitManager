@@ -5,7 +5,7 @@ Subsequent GitHub publication is complete; see [GitHub closeout](GITHUB-CLOSEOUT
 Workshop publication is complete. The maintainer uploaded the runtime, saved the final description/change note and replaced the gameplay gallery. Read-only browser checks confirmed the public result. GitHub release publication remains pending; no release commit, tag or push was made during this closeout.
 
 - Public item: [Automatic Outfit Manager](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788), creator tekmojo, ID `3792731788`, public, Mod/1.6, Harmony required.
-- Updated display: Sep 6 @ 8:08pm. Description and change note show 0.4.0. The Choose outfits by area list omits the unwanted bold labels; the rest of the approved copy is retained in [WORKSHOP.md](../WORKSHOP.md).
+- Updated display: Sep 6 @ 8:08pm. Description and change note show 0.4.0. The Choose outfits by area list omits the unwanted bold labels; the rest of the approved copy is retained in [README.md](../docs/workshop/README.md).
 - Gallery: exactly eight new images in the [documented order](../Screenshots/README.md), replacing the old gameplay images. Local originals' SHA-1 values match Steam's public image URL identifiers. Public previews were inspected; full remote image bytes were not downloaded. The branded cover is retained separately. Individual public caption text was not certified.
 - Steam subscriber manifest: `1496049653910862886`, update timestamp `1788746925`, 981,162 bytes. The downloaded folder contains the exact 12 staged paths, with every length and SHA-256 matching the audited package and RC. Native subscriber-loaded gameplay smoke was not performed.
 - DLL SHA-256: `F00A4B06756118DBE8C6EA50681980F6A52248024F2AD1AA811761C65B08AF24`.

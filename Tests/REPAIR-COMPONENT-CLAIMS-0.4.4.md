@@ -23,7 +23,7 @@ Both patches join the existing deferred scanner installation after definitions i
 
 The native probe controls irrelevant building eligibility and world/path enumeration, native forbidden/reservation responses, claim inputs and engine job allocation. It does not run a full colony or all third-party patches. The production claim-registry suite covers actual identity/release/expiry logic separately. No current-candidate gameplay or save/reload pass is claimed.
 
-Built DLL SHA-256: `7D7E9670FC84953BCE6C6FEE13A2A452DBC78D9420E8A69149D6C57F40CC1F61`; assembly/file version `0.4.4.0`, product version `0.4.4`. Deployment completed with RimWorld closed: candidate, live and installed DLLs match this hash and product version. The previous 0.4.3 DLL is retained in the local audit directory. See the [release checklist](../RELEASE-CHECKLIST.md).
+Built DLL SHA-256: `7D7E9670FC84953BCE6C6FEE13A2A452DBC78D9420E8A69149D6C57F40CC1F61`; assembly/file version `0.4.4.0`, product version `0.4.4`. Deployment completed with RimWorld closed: candidate, live and installed DLLs match this hash and product version. The previous 0.4.3 DLL is retained in the local audit directory. See the [release checklist](../docs/releases/CHECKLIST.md).
 
 Evidence directory: `C:/GitHub/AutomaticOutfitManager/.codex-audit/repair-fix-0.4.4`. Baseline investigation: `C:/GitHub/AutomaticOutfitManager/.codex-audit/repair-selection-2026-09-25/INVESTIGATION.md`. The source worktree and installed build are separate states. The live About remains published 0.4.3 metadata under the DLL-only deployment contract; RC About/project/package versions are 0.4.4.
 
