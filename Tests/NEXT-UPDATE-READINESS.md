@@ -2,7 +2,7 @@
 
 **Published through the Mods menu; public copy and downloaded files verified.** Current release `85AD264B6CF071229DEFE128B6342D460776C37E7D5A6ED6CAFC9C85BB861D04` is built, locally deployed and gameplay-tested within the scope below. RC/live/installed hashes match. This preparation changes documentation and audit guidance only; the gameplay-tested DLL remains unchanged. Version stays **0.4.3**.
 
-The earlier published text-only maintenance state is preserved in [archived readiness](READINESS-0.4.3-TEXT-MAINTENANCE.md) and [maintenance closeout](MAINTENANCE-CLOSEOUT-0.4.3.md). Its published DLL is `4CA32704045B015AB50A6FA20AFA236A72E717E90DDF812F785830CB1A0E9B32`; do not call it the current installed candidate or imply this gameplay update is already on Steam.
+The earlier published text-only maintenance state is preserved in [archived readiness](READINESS-0.4.3-TEXT-MAINTENANCE.md) and [maintenance closeout](MAINTENANCE-CLOSEOUT-0.4.3.md). Its published DLL is `4CA32704045B015AB50A6FA20AFA236A72E717E90DDF812F785830CB1A0E9B32`; do not use that earlier hash as evidence for the current gameplay update.
 
 ## Scope
 
@@ -38,4 +38,4 @@ The final package was uploaded on September 25 at 18:48:28 America/Denver (Septe
 
 Steam manifest/content handle: **4781208902276209270**. All twelve downloaded files match the stage by path, size and SHA-256 (1,061,488 bytes total). The installed junction is restored to the live repository with the tested DLL verified; source changes there remain preserved. Subscriber-only gameplay smoke and the scoped gameplay gaps above remain unclaimed.
 
-[Final preflight](FINAL-BUGFIX-PREFLIGHT-0.4.3.md) and [upload handoff](FINAL-BUGFIX-DEPLOYMENT-0.4.3.md) preserve preparation history. [Final closeout](FINAL-BUGFIX-CLOSEOUT-0.4.3.md) records publication and the matching GitHub asset work. The original version tag remains unchanged.
+[Final preflight](FINAL-BUGFIX-PREFLIGHT-0.4.3.md) and [upload handoff](FINAL-BUGFIX-DEPLOYMENT-0.4.3.md) preserve preparation history. [Final closeout](FINAL-BUGFIX-CLOSEOUT-0.4.3.md) records verified publication, matching GitHub asset sizes and digests, and source commit `2437ae8` published to both release branches. The original version tag and all four historical GitHub assets remain unchanged.

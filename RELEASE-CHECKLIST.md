@@ -41,7 +41,7 @@ These are disclosed unperformed cases, not reproduced defects in the latest reco
 - [x] Refreshed Steam manifest **4781208902276209270** and all twelve downloaded files match the stage (1,061,488 bytes).
 - [x] With RimWorld closed, temporary upload junction restored to the live repository; DLL verified and dirty live source preserved.
 - [x] Matching twelve-file ZIP and checksum built directly from the audited stage.
-- [ ] Publish and verify the new dated GitHub assets; preserve the original tag and older assets.
-- [ ] Commit and push the final source and closeout records.
+- [x] Publish and verify the new dated GitHub assets; original tag and all four older assets preserved.
+- [x] Publish source commit `2437ae8` to `main` and `codex/workshop-release-prep`; verified closeout is recorded in this subsequent documentation commit.
 
 See [final closeout](Tests/FINAL-BUGFIX-CLOSEOUT-0.4.3.md). Publication does not mark the unperformed gameplay checks above as passed.

@@ -13,14 +13,14 @@ The maintainer uploaded through RimWorld's Mods menu, saved the separate change 
 
 ## Matching GitHub package
 
-The ZIP was created directly from the audited Workshop stage. All twelve decompressed entries match the stage and Steam subscriber files. Upload and remote digest verification are pending at this source-content checkpoint.
+The ZIP was created directly from the audited Workshop stage. All twelve decompressed entries match the stage and Steam subscriber files. Both dated assets are published on the existing GitHub release. GitHub reports the exact local sizes and SHA-256 digests below. All four historical assets retain their original IDs, sizes and digests; the published release notes match the prepared text and retain the previous notes as history.
 
 | Asset | Bytes | SHA-256 |
 | --- | ---: | --- |
-| AutomaticOutfitManager-0.4.3-final-bugfix-20260925.zip | 623,706 | `B3A189E2A71BD4E6B7E2DB3FB44BA1AC11C80772FD8A1159FF8F898B37F5984F` |
-| AutomaticOutfitManager-0.4.3-final-bugfix-20260925.zip.sha256 | 121 | `D24A0FD64ADC69AF008E4043FF8D6470710DABE3C19C10392327B618F06B1973` |
+| [AutomaticOutfitManager-0.4.3-final-bugfix-20260925.zip](https://github.com/tekmojo/AutomaticOutfitManager/releases/download/v0.4.3/AutomaticOutfitManager-0.4.3-final-bugfix-20260925.zip) | 623,706 | `B3A189E2A71BD4E6B7E2DB3FB44BA1AC11C80772FD8A1159FF8F898B37F5984F` |
+| [AutomaticOutfitManager-0.4.3-final-bugfix-20260925.zip.sha256](https://github.com/tekmojo/AutomaticOutfitManager/releases/download/v0.4.3/AutomaticOutfitManager-0.4.3-final-bugfix-20260925.zip.sha256) | 121 | `D24A0FD64ADC69AF008E4043FF8D6470710DABE3C19C10392327B618F06B1973` |
 
-Use the existing [GitHub 0.4.3 release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.3). Preserve earlier dated/undated assets and the original annotated tag object `c36f8fb5d84318d106baa6b511092b058b639bd7`, which points to original release commit `442cbd428cdbe07a7f7a195e65a3104f498190f7`. Automatic source archives for that tag remain the original release; this patch's source commit will be identified separately.
+Use the existing [GitHub 0.4.3 release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.3). Earlier dated/undated assets are preserved, as is the original annotated tag object `c36f8fb5d84318d106baa6b511092b058b639bd7`, which points to original release commit `442cbd428cdbe07a7f7a195e65a3104f498190f7`. Automatic source archives for that tag remain the original release; this patch's source commit is `2437ae8dddbbccb2c3f6cd19dfd2e00c4fb3b70b`. That source commit is published on both `main` and `codex/workshop-release-prep`; this subsequent documentation commit records verified publication. The final closeout commit and remote refs are retained in the local evidence directory.
 
 ## Validation and limits
 
