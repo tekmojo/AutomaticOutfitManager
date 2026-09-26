@@ -1,0 +1,6 @@
+[b]0.4.4 - Repair selection and mech/animal routing[/b]
+[list]
+[*]Automatic breakdown repairs skip components temporarily claimed for another pawn's prepared work and choose another eligible stack when available. Native restrictions and forced orders are preserved.
+[*]Permitted mechs, other nonhuman robots and animals no longer take outfit-related detours through Work or Non-Work Areas, including areas configured for saved personal outfits. Access and applicable pause rules still apply. Humanlike pawns retain normal outfit requirements.
+[/list]
+No save-format or rule-default changes.

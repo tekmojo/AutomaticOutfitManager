@@ -189,7 +189,30 @@ partial class PausedHaulTests {
    Check(!PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(p,transit,r),"adult remains denied by adult Activities setting");
   }
  }
+ static void NonhumanAccessTransit() {
+  foreach(bool nonWork in new[]{false,true})
+  foreach(bool animal in new[]{false,true})
+  foreach(string kind in new[]{"HaulToCell","DoBill","Goto"}) {
+   var p=Setup(out var state,out var r);var c=AutomaticOutfitManagerGameComponent.Current;c.States.Clear();
+   p.RaceProps.Humanlike=false;p.RaceProps.Animal=animal;p.Position=0;
+   r.IsNonWork=nonWork;r.WorkAreaPaused=false;r.Activities=r.Hauling=r.Wandering=true;
+   var job=new Job{def=kind=="HaulToCell"?JobDefOf.HaulToCell:new JobDef{defName=kind},targetA=new LocalTargetInfo{Cell=3},Targets=false};
+   p.jobs.curJob=job;
+   Func<bool> allowed=()=>PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(p,job,r);
+   Func<bool> avoids=()=>ProtectedPathAvoidance.RestrictedTransitRules(p,job).Contains(r);
+   Check(allowed()&&!avoids(),"permitted nonhuman category crosses Work and Non-Work without outfit cost: "+kind);
+   if(kind=="HaulToCell")r.Hauling=false;else if(kind=="Goto")r.Wandering=false;else r.Activities=false;
+   Check(!allowed()&&avoids(),"actual revoked category keeps nonhuman routing restricted: "+kind);
+   r.Activities=r.Hauling=r.Wandering=true;r.WorkAreaPaused=true;
+   Check(allowed()==(kind!="DoBill")&&avoids()==!allowed(),"nonhuman routing follows native AOM category pause policy: "+kind);
+   r.WorkAreaPaused=false;
+   var other=new ApparelRule{Id="denied",Area=r.Area,IsNonWork=nonWork,Activities=false,Hauling=false,Wandering=false};c.Rules.Add(other);
+   var restrictions=ProtectedPathAvoidance.RestrictedTransitRules(p,job);
+   Check(!restrictions.Contains(r)&&restrictions.Contains(other),"allowed nonhuman area cannot erase overlapping denied area");
+  }
+ }
  static int Main(){try{
+  NonhumanAccessTransit();
   var harmony=new Harmony("aom.tests.paused-haul");harmony.PatchAll(typeof(PreparationJobHandoff).Assembly);
   foreach(string kind in new[]{"HaulToCell","HaulToContainer"}){
    var p=Setup(out var s,out var r);s.PendingWorkJob=Haul(kind);var haul=s.PendingWorkJob;

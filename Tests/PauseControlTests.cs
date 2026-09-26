@@ -172,15 +172,16 @@ partial class PausedHaulTests
    Check(PausedAreaWorkFilter.JobMayEnterPausedRule(mother,feeding,r),"ongoing nursing agrees with pause enforcement");
    var original=feeding;MainRulesWindow.Toggle(r,c);MainRulesWindow.Toggle(r,c);c.RunRecall(1500);
    Check(mother.CurJob==original&&mother.jobs.EndCalls==0&&c.States.Count==0,"untracked animal feeding survives UI toggle without outfit state");
-   var other=new ApparelRule{Id="unrelated",Area=new Area{Map=mother.Map,Cell=2}};c.Rules.Add(other);
-   Check(ProtectedPathAvoidance.RestrictedTransitRules(mother,feeding).Contains(other),"nursing does not grant unrelated area shortcut");
+   var other=new ApparelRule{Id="unrelated",Activities=false,Area=new Area{Map=mother.Map,Cell=2}};c.Rules.Add(other);
+   Check(ProtectedPathAvoidance.RestrictedTransitRules(mother,feeding).Contains(other),"nursing does not grant denied-area shortcut");
+   other.Activities=true;Check(!ProtectedPathAvoidance.RestrictedTransitRules(mother,feeding).Contains(other),"permitted nursing animal needs no outfit detour");
    c.Rules.Remove(other);
    // Native mother driver starts YoungSuckle without a target once together.
    var suckle=new Job{def=new JobDef{defName="Zoology_YoungSuckle",driverClass=typeof(ZoologyMod.JobDriver_YoungSuckle)},NativeTargets=true};
    young.jobs.curJob=suckle;
    Check(PausedAreaWorkFilter.DeniedActivityRule(young,suckle)==null&&PausedAreaWorkFilter.DeniedPausedAreaRule(young,suckle)==null,"paired targetless suckling remains admitted during nursing");
    young.Position=0;
-   Check(ProtectedPathAvoidance.RestrictedTransitRules(young,suckle).Contains(r),"targetless nursing grants no new protected route");
+   Check(!ProtectedPathAvoidance.RestrictedTransitRules(young,suckle).Contains(r),"permitted targetless nursing needs no outfit detour");
    mother.Position=1;suckle.targetA=new LocalTargetInfo(mother);
    Check(!ProtectedPathAvoidance.RestrictedTransitRules(young,suckle).Contains(r),"young food-giver route to exact mother remains admitted");
    r.Activities=false;

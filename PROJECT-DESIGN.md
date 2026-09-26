@@ -1,8 +1,16 @@
 # Automatic Outfit Manager — Project Design
 
+## 0.4.4 candidate — repair selection and nonhuman transit
+
+Automatic native breakdown-repair acceptance and job generation share a component search. Its native candidate validator is wrapped with exact AOM prepared-work claim eligibility, inside the search so an unclaimed alternative remains discoverable. A per-thread, per-pawn scope carries automatic versus forced context across both calls and restores prior context in a Harmony finalizer, including exceptions and nesting. No claim changes or persistent data are introduced; no-claim searches retain the native predicate. The complete job rejection guard remains as a fallback. See [candidate validation](Tests/REPAIR-COMPONENT-CLAIMS-0.4.4.md).
+
+Nonhuman routing now omits outfit-only avoidance for the exact activity permitted by ActivityAllowedAtRuleBoundary. This applies to both Work and Non-Work rules, including saved-personal Non-Work configurations. Denied permissions, applicable pause restrictions, independently restricted areas and native control remain unchanged. Humanlike robots stay on the human outfit path. See [routing validation](Tests/NONHUMAN-TRANSIT-0.4.4.md).
+
+Release preparation also records successful five-adult Void provocation participation, completion and outfit restoration through ordinary movement/area boundaries. This Anomaly psychic-ritual observation does not validate the separate Ideology gathering hooks or fresh ritual save/reload. See [current evidence](Tests/NEXT-UPDATE-READINESS.md).
+
 ## Published final 0.4.3 bug-fix update — September 25 routing
 
-Published through the Mods menu; the public fields and twelve downloaded files are verified. Runtime identity and limits are recorded in [current readiness](Tests/NEXT-UPDATE-READINESS.md) and [closeout](Tests/FINAL-BUGFIX-CLOSEOUT-0.4.3.md). Version and serialized data remain unchanged; the upload route is the existing item's in-game Mods menu.
+Published through the Mods menu; the public fields and twelve downloaded files are verified. Runtime identity and limits are recorded in [0.4.3 final readiness](Tests/READINESS-0.4.3-FINAL-BUGFIX.md) and [closeout](Tests/FINAL-BUGFIX-CLOSEOUT-0.4.3.md). Version and serialized data remain unchanged; the upload route is the existing item's in-game Mods menu.
 
 - `IsAccessOnlyWork` requires a Work rule with no selected apparel or primary-weapon requirement. Such rules retain access/pause checks but do not create transit-only outfit sessions or unrelated buffered-travel avoidance. Empty Non-Work selections keep their existing restoration/removal semantics.
 - Construction delivery and frame finishing recognize the current adjacent standing destination rather than treating every footprint-adjacent route as unrelated transit. Boundary access and outfit checks remain authoritative.

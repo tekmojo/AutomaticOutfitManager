@@ -254,9 +254,13 @@ namespace AutomaticOutfitManager.Patches
                 // Ingest chooses its dining cell after pickup. It needs the
                 // same boundary opportunity even when the outfit is missing;
                 // blocking that destination here produces failed meal routes.
+                // Nonhuman pawns follow category access, not human outfits.
+                // Once this exact activity is permitted, neither Work nor
+                // Non-Work clothing/saved-outfit choices require a detour.
+                // Keep humanlike robots on the normal apparel-aware path.
                 if (!managedTransitionJob && PausedAreaWorkFilter.ActivityAllowedAtRuleBoundary(
                         pawn, job, rule) &&
-                    (rule.IsAccessOnlyWork ||
+                    (pawn.RaceProps?.Humanlike == false || rule.IsAccessOnlyWork ||
                      RuleEvaluator.JobTargetsArea(job, rule.Area) ||
                      ConstructionDestination.IsCurrentDestination(pawn, job, destination, rule.Area) ||
                      ReadingDestination.IsCurrentDestination(pawn, job, destination, rule.Area) ||

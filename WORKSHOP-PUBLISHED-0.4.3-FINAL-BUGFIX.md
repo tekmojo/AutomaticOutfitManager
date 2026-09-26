@@ -1,0 +1,132 @@
+# Steam Workshop copy — final 0.4.3 bug-fix update (verified)
+
+The final bug-fix package was uploaded through RimWorld's in-game Mods menu. **The streamlined description, separate change note and all twelve downloaded files are verified.** Version stays 0.4.3 on the existing item. See [final closeout](Tests/FINAL-BUGFIX-CLOSEOUT-0.4.3.md). The earlier text-only maintenance copy is preserved in [its dated archive](WORKSHOP-PUBLISHED-0.4.3-TEXT-MAINTENANCE.md); publication of that archive's complete long-description field was not claimed. See [release status](RELEASE-CHECKLIST.md) for the upload handoff.
+
+- Existing item: `3792731788` — Automatic Outfit Manager. Preserve its identity and visibility.
+- Supported version: RimWorld 1.6. Harmony required; Ideology optional for ceremony integration.
+- Retain the branded preview and existing gallery until replacement captures are reviewed.
+- About text, the compact Latest update block and the full change note are separate fields.
+
+## Short description
+
+Work and Non-Work Area rules for automatic outfits, saved personal gear, lockers and access permissions.
+
+## Description (Steam BBCode)
+
+```text
+[h1]Automatic Outfit Manager[/h1]
+[b]Outfits for work. Personal clothes for downtime.[/b]
+
+Choose outfits and access permissions for map areas. Equip pawns for work, then return borrowed gear and restore their personal outfits for downtime.
+
+[b]RimWorld 1.6 | Harmony required | Vanilla and modded apparel and primary weapons[/b]
+
+[quote][b]Latest update - 0.4.3[/b]
+Improved child access, Ideology ceremony preparation and construction routing. Fixed unnecessary travel blocking through areas with no outfit requirements, corrected garbled symbols, clarified outfit guidance and shortened the loading description. Version remains 0.4.3.
+[url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788]Full change notes[/url][/quote]
+
+[h1]Outfits by area[/h1]
+[list]
+[*][b]Work Areas:[/b] Require every selected garment and one of the selected primary weapons. Requirements apply during work, meals, recreation, sleep and necessary transit. Leave both categories empty for access control without outfit changes.
+[*][b]Non-Work Areas:[/b] Return all Work outfits or selected rules' gear. Prefer saved personal outfits, use selected fallback gear when no outfit is saved, or require a selected outfit for adults. Missing saved items do not trigger fallback.
+[*][b]Personal gear:[/b] Normally restore the same items, including the previous weapon or unarmed state. Suitable replacements for tattered clothing become personal gear only after successful wear. Shared outfit stock stays separate from personal snapshots.
+[*][b]Gear standards:[/b] Set condition and quality for selected gear. These limits do not filter saved personal restoration.
+[*][b]Task buffers:[/b] Keep an outfit for up to 20 compatible follow-up tasks. Only successful tasks count; interrupted or failed jobs do not. A task requiring another outfit can end the buffer early.
+[/list]
+
+[h1]Access and control[/h1]
+Activities, Hauling and Wandering have separate permissions for colonists, guests, slaves, prisoners, animals and robots. Animals and robots follow access rules without changing outfits. Activity lists show what pawns are doing; hover for details or click to find them.
+
+[b]Allow Children[/b] directly controls ordinary child access. Allowed children keep their clothes and bypass adult outfit requirements, buffers, group permissions and pause. Every overlapping area must allow them. Turning it off lets children already inside leave safely. Native age and job eligibility still apply; babies and carried pawns are unaffected.
+
+[b]Pause activities[/b] stops ordinary work, meals, recreation and learning. Allowed hauling, wandering, sleep, bed rest and animal nursing continue with access and outfit checks. Supplies may be hauled out of paused Work Areas, but processing and construction stay paused. Recall returns an individual pawn's borrowed outfit when applicable.
+
+[h1]Getting started[/h1]
+[olist]
+[*]Paint a Work Area, add a rule and choose its gear and access settings.
+[*]Provide reachable gear. Optionally assign a locker area with accepting storage and capable haulers.
+[*]Add Non-Work Areas for downtime. Start with Default to Saved Personal Outfit and All Work Outfits.
+[/olist]
+
+For dedicated lockers, use the Automatic outfit apparel/weapons filters. Storage's own item, condition and quality limits still apply, including to saved gear. Keep changing space and personal-gear storage outside Work Areas. Warnings help identify overlap and storage problems.
+
+[h1]Ideology ceremonies[/h1]
+In AOM-designated areas, eligible participants finish available, reachable outfit changes before ceremony progress begins. A ready leader does not bypass that wait, and dressing earns no ritual progress. Impossible outfits do not hold the ceremony indefinitely; native participation, cancellation and safety remain authoritative. Ideology is optional.
+
+[h1]Compatibility and limits[/h1]
+[list]
+[*]You choose the areas and gear. AOM does not create rules from hazards; it retains already-managed protection while removing it would expose a pawn or route to danger.
+[*]Overlapping areas need compatible requirements. A Work Area entirely inside a Non-Work Area is disabled until the conflict is corrected.
+[*]Mental breaks, incapacitation and native emergencies suspend outfit intervention. Drafting and direct player orders retain their normal exceptions.
+[*]Simple Sidearms memories are preserved. Gravship rules follow copied areas; hosted visitors return borrowed gear before natural departure.
+[*]Normal equipment eligibility applies; persona weapons are excluded. No ammunition, inventory-sidearm, offhand or drafted weapon-switching management. English interface only.
+[/list]
+
+[h1]Help and source[/h1]
+For persistent stalls or repeated outfit changes, enable Detailed logging in mod settings and include the affected pawn, rule and log with your report.
+
+[url=https://github.com/tekmojo/AutomaticOutfitManager]Player guide and source[/url] | [url=https://github.com/tekmojo/AutomaticOutfitManager/issues]Report an issue[/url]
+
+[h1]License and legal notice[/h1]
+Original source and documentation use the MIT License. Third-party materials retain their rights; see LICENSE and NOTICE.md.
+
+Portions of the materials used to create this content/mod are trademarks and/or copyrighted works of Ludeon Studios Inc. All rights reserved by Ludeon. This content/mod is not official and is not endorsed by Ludeon.
+```
+
+## Final bug-fix change note — published September 25
+
+```text
+0.4.3 — Routing and construction fixes
+
+- Fixed unnecessary travel blocking through Work Areas with no outfit requirements, including during outfit buffers.
+- Improved construction deliveries and building completion at area edges.
+- Improved child delivery checks for permitted approaches, material pickups and queued destinations. Access restrictions and safe exit when Allow Children is turned off remain intact.
+
+Version remains 0.4.3. No save-format or rule-default changes. Previous interface corrections remain included.
+```
+
+This note is transcribed from the verified public change-note entry. The notes below are historical; preserve them rather than reposting them.
+
+## Maintenance change note — published September 25
+
+```text
+[b]0.4.3 — Small interface corrections[/b]
+
+Fixed the garbled minus sign on the Task Buffer button, restored the shorter loading-screen description and clarified that selected Non-Work outfits apply to adults. Children continue to use Allow Children independently.
+
+Version remains 0.4.3. No gameplay or save-format changes.
+```
+
+This note was verified on the public change-note page after the maintainer updated it. Preserve earlier Workshop change notes. The historical feature note below is reference only; do not paste it again as this maintenance update's note.
+
+## Version 0.4.3 published change note
+
+```text
+[b]0.4.3 — Child access and Ideology ceremony preparation[/b]
+
+[b]Simpler child access[/b]
+Allow Children now directly controls child access in both Work and Non-Work Areas. Allowed children keep their own clothes and weapons, bypassing adult outfit requirements, task buffers, activity permissions and area pauses.
+
+Unchecked areas still deny ordinary child entry, with safe exit preserved. Every overlapping area enforces its own checkbox. Native age and job eligibility still apply.
+
+[b]Prepare outfits before ceremonies[/b]
+In AOM-designated areas, Ideology ceremonies wait at gathering for eligible participants to finish available, reachable outfit changes. A ready leader or role recipient cannot start ahead of other participants who are still preparing.
+
+Dressing time earns no ritual progress or attendance credit. Native participation, cancellation and safety decisions remain in control. Unavailable or unwearable outfits do not hold the ceremony indefinitely, and ceremonies outside designated areas retain native timing.
+
+[b]Smoother gathering[/b]
+Spectators can prepare concurrently without competing over the common ceremony focus. Ready participants keep their outfits while gathering. Allowed children can participate without an adult outfit change, subject to the ceremony’s normal eligibility rules.
+
+[b]Existing saves[/b]
+Existing child-checkbox values and the default-off setting are preserved. Older child outfit sessions return borrowed gear through normal restoration. Babies, carried pawns and native/player safety exceptions keep their normal behavior.
+
+Updated tooltips explain child access, adult permissions and pause behavior. Harmony remains required; Ideology is only needed for ceremony integration.
+```
+
+## Screenshots
+
+The existing eight-image gallery remains a legacy UI example and needs no new gallery assets for these routing fixes. See [0.4.3 capture plan](Screenshots/CAPTURE-PLAN-0.4.3.md). No public fields or images were changed during preparation.
+
+## Historical publication text
+
+Published notes are preserved in [0.4.3 Workshop copy](WORKSHOP-PUBLISHED-0.4.3.md), [0.4.2 Workshop copy](WORKSHOP-PUBLISHED-0.4.2.md), [0.4.1 Workshop copy](WORKSHOP-PUBLISHED-0.4.1.md) and [the changelog](CHANGELOG.md).

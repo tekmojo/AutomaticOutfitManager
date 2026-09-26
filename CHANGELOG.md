@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.4 — 2026-09-26
+
+- Automatic breakdown repairs skip component stacks temporarily claimed by another pawn's outfit preparation, using another eligible stack when available. This prevents the observed repair target/job mismatch while preserving native restrictions and forced orders.
+- Permitted mechs, utility robots and animals no longer take outfit-related detours through Work or Non-Work Areas. Activities, Hauling, Wandering and pause permissions still apply. Humanlike pawns retain their outfit routing.
+- No save-format, rule-default or Workshop-identity changes. This candidate does not claim to fix the separate crib/guest sleep loops.
+
+Published through RimWorld's Mods menu. Public description/change note and all twelve Steam-downloaded files match the audited package; the development junction is restored. [Workshop closeout](Tests/WORKSHOP-CLOSEOUT-0.4.4.md) records hashes and remaining validation limits. GitHub release closeout remains separate.
+
+Validation and remaining gameplay checks: [release status](RELEASE-CHECKLIST.md), [repair validation](Tests/REPAIR-COMPONENT-CLAIMS-0.4.4.md), and [nonhuman routing](Tests/NONHUMAN-TRANSIT-0.4.4.md).
+
 ## 0.4.3 final bug-fix update — 2026-09-25
 
 - Fix unnecessary route blocking through Work Areas with no outfit requirements, including travel during an outfit buffer. Area access permissions still apply.

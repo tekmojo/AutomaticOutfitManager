@@ -19,6 +19,7 @@ class SessionAuditFixTests
     {
         try {
             AccessOnlyConstruction();
+            NonhumanTransit();
             var map = new Map();
             var dining = new ApparelRule { Id="dining", Area=new Area { Map=map } };
             var work = new ApparelRule { Id="work", Area=new Area { Map=map } };
@@ -104,6 +105,48 @@ class SessionAuditFixTests
     class CustomIngest : JobDriver_Ingest {}
     class CustomReading : JobDriver_Reading {}
 
+    static void NonhumanTransit()
+    {
+        foreach (bool animal in new[] { false, true })
+        foreach (bool nonWork in new[] { false, true })
+        foreach (bool clothing in new[] { false, true })
+        {
+            var map = new Map();
+            var rule = new ApparelRule { Id="outfit", IsNonWork=nonWork, Area=new Area { Map=map } };
+            rule.Area.Cells.Add(5);
+            if (clothing) rule.RequiredApparel.Add(new ThingDef());
+            else rule.RequiredWeapon=WeaponRequirement.Ranged;
+            var other = new ApparelRule { Id="denied", IsNonWork=nonWork, Allowed=false, Area=new Area { Map=map } };
+            other.Area.Cells.Add(6);
+            RuleEvaluator.Rules=new List<ApparelRule> { rule, other };
+            var pawn=new Pawn { Map=map, Position=1, Faction=Faction.OfPlayerSilentFail };
+            pawn.RaceProps.Humanlike=false; pawn.RaceProps.Animal=animal;
+            var job=new Job { def=JobDefOf.HaulToCell, targetA=new Thing { MapHeld=map, Cell=2 }, targetB=new Thing { MapHeld=map, Cell=9 } };
+            pawn.CurJob=job;
+            Func<IReadOnlyList<ApparelRule>> route=()=>ProtectedPathAvoidance.RestrictedTransitRules(pawn,job);
+            Check(!route().Contains(rule),"permitted nonhuman transit ignores outfit area");
+            Check(route().Contains(other),"nonhuman transit preserves independently denied area");
+            rule.Allowed=false;Check(route().Contains(rule),"denied nonhuman transit stays restricted");rule.Allowed=true;
+            rule.WorkAreaPaused=true;Check(route().Contains(rule),"disallowed paused nonhuman transit stays restricted");rule.WorkAreaPaused=false;
+            pawn.RaceProps.Humanlike=true;
+            Check(route().Contains(rule),"humanlike pawn including humanoid robot retains outfit routing");
+            pawn.RaceProps.Humanlike=false;
+            rule.RequiredApparel.Clear();rule.RequiredWeapon=WeaponRequirement.None;
+            Check(!route().Contains(rule),"nonhuman also bypasses empty or saved-personal Non-Work outfit routing");
+            pawn.RaceProps.Humanlike=true;
+            Check(route().Contains(rule)==nonWork,"human saved-personal Non-Work routing remains distinct from access-only Work");
+            pawn.RaceProps.Humanlike=false;
+            rule.RequiredApparel.Add(new ThingDef());
+            job.targetA=new Thing { MapHeld=map, Cell=5 };
+            Check(!route().Contains(rule),"permitted nonhuman direct delivery remains admitted");
+            job.targetA=new Thing { MapHeld=map, Cell=2 };pawn.Position=5;rule.Allowed=false;
+            Check(!route().Contains(rule),"nonhuman inside denied area retains egress");pawn.Position=1;rule.Allowed=true;
+            PawnPathFollower_ProtectedArea_Patch.TransitionJob=true;
+            Check(route().Contains(rule),"owned outfit transition does not gain unrelated shortcut");
+            PawnPathFollower_ProtectedArea_Patch.TransitionJob=false;
+        }
+    }
+
     static void AccessOnlyConstruction()
     {
         var map=new Map();
@@ -169,7 +212,7 @@ namespace Verse {
         public static implicit operator LocalTargetInfo(Thing t)=>new LocalTargetInfo{Thing=t};
     }
     public class Area { public Map Map; public HashSet<int> Cells=new HashSet<int>(); public bool this[IntVec3 c]=>Cells.Contains(c.Value); }
-    public class RaceProperties { public bool Animal,Humanlike; }
+    public class RaceProperties { public bool Animal,Humanlike=true; }
     public class CarryTracker { public Thing CarriedThing; }
     public class Pawn { public bool Child;public Pawn_PathFollower pather=new Pawn_PathFollower(); public Map Map;public Faction Faction;public IntVec3 Position;public Job CurJob;public bool Drafted,Downed,Dead,InMentalState,CustodyEscape;public RaceProperties RaceProps=new RaceProperties();public CarryTracker carryTracker=new CarryTracker(); }
 }

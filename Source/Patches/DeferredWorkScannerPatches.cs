@@ -18,6 +18,8 @@ namespace AutomaticOutfitManager.Patches
             var harmony = new Harmony(AutomaticOutfitManagerMod.HarmonyId);
             foreach (Type patch in new[]
             {
+                typeof(RepairComponentSelectionScope_Patch),
+                typeof(RepairComponentSearch_Patch),
                 typeof(WorkGiverPausedArea_HasJobThing_Patch),
                 typeof(WorkGiverPausedArea_HasJobCell_Patch),
                 typeof(WorkGiverPausedArea_HasJobFallback_Patch),

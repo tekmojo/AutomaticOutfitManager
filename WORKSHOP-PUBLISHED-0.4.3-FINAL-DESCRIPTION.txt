@@ -5,9 +5,8 @@ Choose outfits and access permissions for map areas. Equip pawns for work, then 
 
 [b]RimWorld 1.6 | Harmony required | Vanilla and modded apparel and primary weapons[/b]
 
-[quote][b]Latest update - 0.4.4[/b]
-Improved repair selection when another pawn is changing outfits. Repairs choose available components without taking materials reserved for that pawn's prepared work.
-Permitted mechs, other nonhuman robots and animals avoid unnecessary outfit-related detours through Work and Non-Work Areas. Access and pause rules still apply.
+[quote][b]Latest update - 0.4.3[/b]
+Improved child access, Ideology ceremony preparation and construction routing. Fixed unnecessary travel blocking through areas with no outfit requirements, corrected garbled symbols, clarified outfit guidance and shortened the loading description. Version remains 0.4.3.
 [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788]Full change notes[/url][/quote]
 
 [h1]Outfits by area[/h1]
@@ -20,7 +19,7 @@ Permitted mechs, other nonhuman robots and animals avoid unnecessary outfit-rela
 [/list]
 
 [h1]Access and control[/h1]
-Activities, Hauling and Wandering have separate permissions for colonists, guests, slaves, prisoners, animals and robots. Animals, mechs and other nonhuman robots follow access rules without changing outfits. Humanlike robots follow the normal outfit requirements. Activity lists show what pawns are doing; hover for details or click to find them.
+Activities, Hauling and Wandering have separate permissions for colonists, guests, slaves, prisoners, animals and robots. Animals and robots follow access rules without changing outfits. Activity lists show what pawns are doing; hover for details or click to find them.
 
 [b]Allow Children[/b] directly controls ordinary child access. Allowed children keep their clothes and bypass adult outfit requirements, buffers, group permissions and pause. Every overlapping area must allow them. Turning it off lets children already inside leave safely. Native age and job eligibility still apply; babies and carried pawns are unaffected.
 

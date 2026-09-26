@@ -4,7 +4,7 @@
 
 Automatic Outfit Manager lets you choose outfits and access permissions for RimWorld map areas. Use **Work Area Rules** for protective clothing, uniforms or primary weapons. Use **Non-Work Area Rules** to return work outfits before entering a dining room, lounge or bedroom.
 
-**Version 0.4.3** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [Download 0.4.3](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.3) · [Changelog](CHANGELOG.md) · [Release status](RELEASE-CHECKLIST.md)
+**0.4.4 published on Steam Workshop** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [Download 0.4.4](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.4) · [Changelog](CHANGELOG.md) · [Release status](RELEASE-CHECKLIST.md)
 
 Requires **RimWorld 1.6** and **Harmony**. Vanilla and modded apparel and primary weapons are supported. Radiation equipment inspired the original mod, but Rimatomics is not required. You choose the areas and gear; AOM does not create rules from detected hazards.
 
@@ -67,7 +67,7 @@ Only successful tasks count. Travel, brief waits, failed tasks and interrupted t
 
 **Allow Children** takes precedence over the adult permissions and pause behavior described here. It directly controls ordinary child activity and transit. When checked, children bypass this area's clothing and weapon requirements, outfit changes, task buffers, adult group permissions and pause. Every overlapping area must allow children. Native age and job eligibility still apply. Babies and carried pawns are unaffected. Turning this off while a child is inside stops disallowed activity and lets the child leave safely. Construction near an area edge uses a permitted approach where one is reachable; the checkbox does not grant access to a restricted material pickup or another overlapping area. Direct player orders, drafting, emergencies and necessary outfit returns keep their normal exceptions.
 
-Humanlike pawns change outfits. Animals, mechs and robots follow access permissions without changing outfits. Guests, slaves and prisoners use the same activity categories, subject to the jobs the game and their other mods permit.
+Humanlike pawns, including humanlike robots, change outfits. Animals, mechs and other nonhuman robots follow access permissions without changing outfits. When their activity is allowed, human outfit requirements do not add detours through Work or Non-Work Areas. Guests, slaves and prisoners use the same activity categories, subject to the jobs the game and their other mods permit.
 
 Pawns in mental breaks, incapacitated states or native emergency control are omitted from the activity lists while AOM yields to that behavior. Ordinary sleep remains subject to access and outfit requirements.
 
