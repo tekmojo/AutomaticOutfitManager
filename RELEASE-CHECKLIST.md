@@ -1,6 +1,6 @@
-# 0.4.4 Workshop release status
+# 0.4.4 release status
 
-**Published and verified on Steam Workshop on 2026-09-26.** The maintainer uploaded through RimWorld's Mods menu. Public copy and all twelve subscriber files match the frozen package, and the development junction is restored. [Closeout](Tests/WORKSHOP-CLOSEOUT-0.4.4.md) records exact identities and limits. GitHub/source-control closeout remains separate.
+**Published and verified on Steam Workshop on 2026-09-26.** The maintainer uploaded through RimWorld's Mods menu. Public copy and all twelve subscriber files match the frozen package, and the development junction is restored. [Closeout](Tests/WORKSHOP-CLOSEOUT-0.4.4.md) records exact identities and limits. The matching GitHub release, source tag and verified download are complete; see [GitHub closeout](Tests/GITHUB-CLOSEOUT-0.4.4.md).
 
 ## Candidate scope
 
@@ -29,6 +29,6 @@ The installed junction has been restored to the live repository with RimWorld cl
 - [x] Steam's refreshed subscriber manifest matches the public content handle; all twelve files match the audited stage by paths, bytes and hashes.
 - [x] With RimWorld closed, restore the installed junction to the live repository and verify the published DLL hash.
 - [ ] Subscriber-only gameplay smoke. File verification is complete; launching/testing the downloaded copy remains distinct.
-- [ ] Separately requested commit, tag, push and GitHub release closeout.
+- [x] Release source committed and tagged as v0.4.4; main and release branch pushed. GitHub release published with verified ZIP/checksum. Tag remains on the release-content commit.
 
 Controlled route/access and repair/save-reload cases above remain pending. The in-game About card was not independently captured. Arakis's crib loop, Gonzalez's background sidearm/idle concern and other mods' save-reference warnings are not claimed fixed. Prior ceremony, meal and save/load limits remain in [archived readiness](Tests/READINESS-0.4.3-FINAL-BUGFIX.md).

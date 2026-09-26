@@ -15,7 +15,7 @@
 
 ## Repository and evidence status
 
-Source remains the preserved dirty RC branch `codex/workshop-release-prep`, based on `61393889a6e85c10c99083283ca59c9c4517e479`. No commit, push, tag or GitHub release was performed. The GitHub release download still refers to 0.4.3 until separately updated.
+At Workshop verification, the source was the preserved dirty RC branch based on `61393889a6e85c10c99083283ca59c9c4517e479`. Subsequent authorized GitHub closeout committed and tagged v0.4.4 at `0ba57b4fa2515f9d87465c357bb5dff184af2de4` and published the matching download; see [GitHub closeout](GITHUB-CLOSEOUT-0.4.4.md).
 
 The live repository's metadata remains its separate 0.4.3 checkout while its DLL is 0.4.4. This is expected after restoring the development junction; Steam's verified subscriber package and frozen stage have matching 0.4.4 metadata. A future upload must use a newly audited stage, not the live folder.
 

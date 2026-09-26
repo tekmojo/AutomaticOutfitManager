@@ -1,6 +1,6 @@
 # Testing and audit records
 
-Current release: [0.4.4 readiness](NEXT-UPDATE-READINESS.md), [repair-component validation](REPAIR-COMPONENT-CLAIMS-0.4.4.md), [nonhuman transit validation](NONHUMAN-TRANSIT-0.4.4.md), [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.4.md), and [release checklist](../RELEASE-CHECKLIST.md). Run `run-repair-component-claims.ps1` for production ownership decisions and `run-repair-component-native-probe.ps1` for installed native component selection. Add `-PreviousDecision` to the native runner for the expected-failing old-search control.
+Current release: [0.4.4 readiness](NEXT-UPDATE-READINESS.md), [repair-component validation](REPAIR-COMPONENT-CLAIMS-0.4.4.md), [nonhuman transit validation](NONHUMAN-TRANSIT-0.4.4.md), [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.4.md), [GitHub closeout](GITHUB-CLOSEOUT-0.4.4.md), and [release checklist](../RELEASE-CHECKLIST.md). Run `run-repair-component-claims.ps1` for production ownership decisions and `run-repair-component-native-probe.ps1` for installed native component selection. Add `-PreviousDecision` to the native runner for the expected-failing old-search control.
 
 ## Published 0.4.3 evidence
 
