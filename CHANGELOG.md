@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.5 — 2026-09-27
+
+- Clear obsolete borrowed-item tracking so returned gear does not remain incorrectly tagged as borrowed. Preserve active returns, saved personal gear and selected or retained locker stock.
+- Repair the pickup count when an outfit change interrupts an automatic installation and drops its single minified building, allowing the same valid installation to resume.
+- Keep floor-replacement selection consistent when another pawn has claimed the floor-removal task while changing outfits.
+- Resume blueprint-triggered floor removal after outfit preparation by checking the original blueprint. Cancel obsolete continuations safely if that blueprint is removed or replaced.
+
+Existing saves remain supported. A new optional saved blueprint identity defaults safely for older saves; an already-pending legacy floor job without that identity is released for normal job selection. Rule defaults and Workshop identity are unchanged.
+
+Published through RimWorld's Mods menu; public description and all twelve downloaded files match the audited package. [Closeout](Tests/WORKSHOP-CLOSEOUT-0.4.5.md) records verification and the completed change-note formatting correction. Normal floor work and small-map outfit/meal restoration passed on the gameplay-equivalent pre-version-bump DLL. Fresh save/reload during floor preparation and the exact dropped-installation scenario remain manual test limits. See [release status](docs/releases/CHECKLIST.md) and [readiness](Tests/NEXT-UPDATE-READINESS.md).
+
 ## 0.4.4 — 2026-09-26
 
 - Automatic breakdown repairs skip component stacks temporarily claimed by another pawn's outfit preparation, using another eligible stack when available. This prevents the observed repair target/job mismatch while preserving native restrictions and forced orders.

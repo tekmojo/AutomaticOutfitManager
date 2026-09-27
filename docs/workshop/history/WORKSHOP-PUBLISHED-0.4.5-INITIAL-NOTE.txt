@@ -1,0 +1,8 @@
+0.4.5 - Borrowed gear and construction fixes
+
+- Clear stale borrowed-item tags after outfit returns and when loading existing saves. Active borrowed gear, saved personal items and selected or retained locker stock remain protected.
+- Fix automatic installation pickups interrupted by outfit preparation when the pawn drops the single minified building.
+- Prevent builders from selecting floor-removal work already claimed by another pawn preparing its outfit.
+- Let blueprint-triggered floor removal resume after outfit preparation. Removed or replaced blueprints safely cancel the old continuation.
+
+Existing saves are supported; rule defaults are unchanged. An older save's already-pending floor job may be released for normal job selection because it lacks the new blueprint identity.

@@ -155,6 +155,20 @@ static class BoundaryAdmissionTests
             Check(result == PawnJobTracker_StartJob_Patch.BoundaryResumeResult.Invalid && p.jobs.Attempts == 0,
                 "disallowed paused haul cannot start boundary preparation");
 
+            p = Setup(out original, out rule);
+            var mini = new MinifiedThing { Spawned=true, stackCount=1, Map=p.Map };
+            var install = new Blueprint_Install { Spawned=true, Map=p.Map, MiniToInstallOrBuildingToReinstall=mini };
+            original.def=JobDefOf.HaulToContainer; original.targetA=mini; original.targetB=install; original.count=0;
+            ProtectedBoundaryRetryRegistry.ResetForLoadedGame();
+            ProtectedBoundaryRetryRegistry.Record(p,original,rule);
+            retained=Pending(p);
+            Check(BoundaryJobAdmission.TryBegin(p,retained,out var installAdmission), "installation boundary admission opens");
+            using(installAdmission)
+            {
+                Check(installAdmission.Job.count==1 && retained.count==0 && original.count==0,
+                    "installation replay repairs only its detached working copy");
+            }
+
             Console.WriteLine(passed + " boundary admission contracts passed (native-shaped fixture; manual game replay still required).");
             return 0;
         }
@@ -168,7 +182,7 @@ namespace Verse
     public class TickManager { public int TicksGame; }
     public static class Find { public static TickManager TickManager = new TickManager(); }
     public class JobDef { public string defName; }
-    public class Thing { public bool Destroyed; }
+    public class Thing { public bool Destroyed, Spawned; public int stackCount=1; public Map Map; }
     public class ThingCountClass { }
     public struct IntVec3
     {
@@ -198,7 +212,7 @@ namespace Verse.AI
     public class ThinkNode { } public class ThinkTreeDef { } public enum JobTag { Misc } public enum JobCondition { InterruptForced }
     public class Job
     {
-        static int nextId; public int loadID = ++nextId; public JobDef def; public bool playerForced;
+        static int nextId; public int loadID = ++nextId; public JobDef def; public bool playerForced; public int count;
         public ThinkNode jobGiver; public ThinkTreeDef jobGiverThinkTree;
         public LocalTargetInfo targetA = new LocalTargetInfo { Cell = -1 }, targetB = new LocalTargetInfo { Cell = -1 }, targetC = new LocalTargetInfo { Cell = -1 };
         public List<LocalTargetInfo> targetQueueA, targetQueueB; public List<int> countQueue; public List<ThingCountClass> placedThings;
@@ -239,9 +253,11 @@ namespace Verse.AI
 }
 namespace RimWorld
 {
+    public class MinifiedThing : Thing { }
+    public class Blueprint_Install : Thing { public Thing MiniToInstallOrBuildingToReinstall; }
     public static class JobDefOf
     {
-        public static JobDef HaulToCell = new JobDef { defName = "HaulToCell" }, Wait = new JobDef { defName = "Wait" },
+        public static JobDef HaulToContainer = new JobDef { defName = "HaulToContainer" }, HaulToCell = new JobDef { defName = "HaulToCell" }, Wait = new JobDef { defName = "Wait" },
             Wait_MaintainPosture = new JobDef { defName = "Wait_MaintainPosture" }, LayDown = new JobDef { defName = "LayDown" },
             Wear = new JobDef { defName = "Wear" }, Child = new JobDef { defName = "OptionalChild" };
     }

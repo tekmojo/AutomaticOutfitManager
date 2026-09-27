@@ -5,8 +5,9 @@ Choose outfits and access permissions for map areas. Equip pawns for work, then 
 
 [b]RimWorld 1.6 | Harmony required | Vanilla and modded apparel and primary weapons[/b]
 
-[quote][b]Latest update - 0.4.5[/b]
-Clear stale borrowed-item tags and improve interrupted furniture installation. Floor replacement now respects other builders' prepared tasks and resumes correctly after outfit changes.
+[quote][b]Latest update - 0.4.4[/b]
+Improved repair selection when another pawn is changing outfits. Repairs choose available components without taking materials reserved for that pawn's prepared work.
+Permitted mechs, other nonhuman robots and animals avoid unnecessary outfit-related detours through Work and Non-Work Areas. Access and pause rules still apply.
 [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788]Full change notes[/url][/quote]
 
 [h1]Outfits by area[/h1]

@@ -81,6 +81,7 @@ namespace AutomaticOutfitManager.State
         public bool DraftedTransitionSuspended;
         public bool DraftedLockerReturnRequired;
         public Job PendingWorkJob;
+        public int PendingFloorBlueprintId = -1;
         public bool PendingWorkIsManagedWork;
         public List<string> PendingBoundaryRuleIds = new List<string>();
         public int PendingBoundaryWorkJobLoadId = -1;
@@ -205,6 +206,7 @@ namespace AutomaticOutfitManager.State
             Scribe_Values.Look(ref DraftedLockerReturnRequired,
                 "draftedLockerReturnRequired", false);
             Scribe_Deep.Look(ref PendingWorkJob, "pendingWorkJob");
+            Scribe_Values.Look(ref PendingFloorBlueprintId, "pendingFloorBlueprintId", -1);
             Scribe_Values.Look(ref PendingWorkIsManagedWork, "pendingWorkIsManagedWork", false);
             Scribe_Collections.Look(ref PendingBoundaryRuleIds,
                 "pendingBoundaryRuleIds", LookMode.Value);

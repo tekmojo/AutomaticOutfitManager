@@ -66,7 +66,7 @@ public static void Prefix(Pawn_JobTracker __instance, ref Job newJob, ref ThinkN
     $harmony = Join-Path $testDir '0Harmony.dll'
     Copy-Item -LiteralPath 'F:/Steam/steamapps/workshop/content/294100/2009463077/Current/Assemblies/0Harmony.dll' -Destination $harmony
     $exe = Join-Path $testDir 'tests.exe'
-    & $compiler /nologo /target:exe /langversion:latest /warn:0 "/out:$exe" "/reference:$harmony" $fixtureFile (Join-Path $PSScriptRoot 'BoundaryAdmissionTests.cs') (Join-Path $rcRoot 'Source/Detection/ProtectedBoundaryRetryRegistry.cs') (Join-Path $rcRoot 'Source/Detection/BoundaryJobAdmission.cs')
+    & $compiler /nologo /target:exe /langversion:latest /warn:0 "/out:$exe" "/reference:$harmony" $fixtureFile (Join-Path $PSScriptRoot 'BoundaryAdmissionTests.cs') (Join-Path $rcRoot 'Source/Detection/ProtectedBoundaryRetryRegistry.cs') (Join-Path $rcRoot 'Source/Detection/BoundaryJobAdmission.cs') (Join-Path $rcRoot 'Source/Detection/PreparedInstallHaul.cs')
     if ($LASTEXITCODE -ne 0) { throw 'Boundary admission fixture compilation failed' }
     $output = & $exe 2>&1
     $result = $LASTEXITCODE

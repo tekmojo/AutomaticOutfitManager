@@ -1,6 +1,8 @@
 # Testing and audit records
 
-Current release: [0.4.4 readiness](NEXT-UPDATE-READINESS.md), [repair-component validation](REPAIR-COMPONENT-CLAIMS-0.4.4.md), [nonhuman transit validation](NONHUMAN-TRANSIT-0.4.4.md), [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.4.md), [GitHub closeout](GITHUB-CLOSEOUT-0.4.4.md), and [release checklist](../docs/releases/CHECKLIST.md). Run `run-repair-component-claims.ps1` for production ownership decisions and `run-repair-component-native-probe.ps1` for installed native component selection. Add `-PreviousDecision` to the native runner for the expected-failing old-search control.
+Current Workshop release: [0.4.5 readiness](NEXT-UPDATE-READINESS.md), [release checklist](../docs/releases/CHECKLIST.md), [borrowed-gear cleanup](BORROWED-GEAR-CLEANUP-2026-09-26.md), [installation pickup](PREPARED-INSTALL-COUNT-2026-09-26.md), [floor claims](CONSTRUCTION-FLOOR-CLAIMS-2026-09-27.md) and [floor continuation](PREPARED-FLOOR-CONTINUATION-2026-09-27.md). Native floor and installation runners include explicit previous-decision negative controls.
+
+Published 0.4.4: [readiness](READINESS-0.4.4.md), [repair-component validation](REPAIR-COMPONENT-CLAIMS-0.4.4.md), [nonhuman transit validation](NONHUMAN-TRANSIT-0.4.4.md), [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.4.md) and [GitHub closeout](GITHUB-CLOSEOUT-0.4.4.md).
 
 ## Published 0.4.3 evidence
 

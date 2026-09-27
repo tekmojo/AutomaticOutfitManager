@@ -902,7 +902,7 @@ namespace AutomaticOutfitManager.Patches
                 else if (IsDesignationSensitiveWork(pendingWork))
                 {
                     if (TryRefreshDesignationSensitiveWork(
-                            pawn, pendingWork, out Job refreshedWork,
+                            pawn, pendingWork, state.PendingFloorBlueprintId, out Job refreshedWork,
                             out string refreshReason,
                             out bool targetRejected))
                     {
@@ -956,6 +956,7 @@ namespace AutomaticOutfitManager.Patches
                 else
                 {
                     Job resumedJob = state.PendingWorkJob;
+                    PreparedInstallHaul.RepairPickupCount(resumedJob);
                     __instance.ClearQueuedJobs(false);
                     AutomaticOutfitManagerGameComponent.ReleaseNativeReservations(
                         pawn, newJob);
@@ -4082,7 +4083,7 @@ namespace AutomaticOutfitManager.Patches
         }
 
         private static bool TryRefreshDesignationSensitiveWork(
-            Pawn pawn, Job pendingWork, out Job refreshedWork, out string reason,
+            Pawn pawn, Job pendingWork, int floorBlueprintId, out Job refreshedWork, out string reason,
             out bool targetRejected)
         {
             refreshedWork = null;
@@ -4105,7 +4106,16 @@ namespace AutomaticOutfitManager.Patches
             bool forced = pendingWork.playerForced;
             try
             {
-                if (pendingWork.targetA.HasThing)
+                if (PreparedFloorWork.UsesBlueprintScanner(pendingWork))
+                {
+                    if (!PreparedFloorWork.TryRefresh(pawn, pendingWork, floorBlueprintId,
+                            out refreshedWork, out reason))
+                    {
+                        targetRejected = true;
+                        return false;
+                    }
+                }
+                else if (pendingWork.targetA.HasThing)
                 {
                     Thing target = pendingWork.targetA.Thing;
                     if (target == null || target.Destroyed || target.MapHeld != pawn.Map)

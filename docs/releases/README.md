@@ -1,8 +1,12 @@
 # Release documentation
 
-Start with the [current release checklist](CHECKLIST.md) and [remaining gameplay checks](../../Tests/NEXT-UPDATE-READINESS.md). The latest published version is **0.4.4** on Steam Workshop and GitHub.
+Start with the [current release checklist](CHECKLIST.md) and [remaining gameplay checks](../../Tests/NEXT-UPDATE-READINESS.md). The latest published version is **0.4.5** on Steam Workshop; GitHub remains at **0.4.4**.
 
 ## Current release
+
+Version **0.4.5** is published on Steam Workshop, with public copy and subscriber files verified; see [closeout](../../Tests/WORKSHOP-CLOSEOUT-0.4.5.md). Its corrected change-note formatting is verified on Steam. See [upload preparation](../../Tests/UPLOAD-PREP-0.4.5.md). See the current checklist and readiness above. The following 0.4.4 package/closeout records remain published history.
+
+## Release records
 
 - [Workshop upload text and instructions](../workshop/README.md)
 - [0.4.4 package preparation](../../Tests/UPLOAD-PREP-0.4.4.md)
@@ -17,6 +21,7 @@ These are dated records, not the current checklist. Their validation limits and 
 
 | Release | Records |
 | --- | --- |
+| 0.4.4 | [Release record](history/RELEASE-HISTORY-0.4.4.md), [readiness](../../Tests/READINESS-0.4.4.md) |
 | 0.4.3 | [Initial release](history/RELEASE-HISTORY-0.4.3.md), [text maintenance](history/RELEASE-HISTORY-0.4.3-TEXT-MAINTENANCE.md), [final bug-fix update](history/RELEASE-HISTORY-0.4.3-FINAL-BUGFIX.md) |
 | 0.4.2 | [Release record](history/RELEASE-HISTORY-0.4.2.md) |
 | 0.4.1 | [Release record](history/RELEASE-HISTORY-0.4.1.md) |

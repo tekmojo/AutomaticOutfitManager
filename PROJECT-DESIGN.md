@@ -1,6 +1,15 @@
 # Automatic Outfit Manager — Project Design
 
-## 0.4.4 candidate — repair selection and nonhuman transit
+## 0.4.5 candidate — borrowed gear and construction continuation
+
+Exact managed-item IDs now represent outstanding transitions/returns instead of a permanent catalog. Cleanup at transition completion, Forget and save/load preserves active snapshots, issued gear still held for return and meal-trip outfits. Selected/retained type catalogs and saved-personal storage classification remain independent.
+
+Automatic installation replay repairs count only for a live, spawned, single minified building dropped for its exact live same-map install blueprint. Native floor-prerequisite eligibility checks competing prepared cell claims before promising a blueprint job. Blueprint-generated cell-targeted RemoveFloor retains its original terrain blueprint's numeric identity in optional `pendingFloorBlueprintId` (default -1), then refreshes through native Thing-based methods. Missing/replaced/ambiguous sources and changed work reject replay safely. The original Job remains the sole queued continuation; the saved numeric identity adds no destroyed-Thing reference. Older pending jobs lacking the identity return to normal selection.
+
+See [current readiness](Tests/NEXT-UPDATE-READINESS.md) and the linked implementation/native test records. Version-bump preparation changes no gameplay decisions; live save/reload during floor preparation and the exact dropped-installation branch remain manual limits.
+
+
+## 0.4.4 published — repair selection and nonhuman transit
 
 Automatic native breakdown-repair acceptance and job generation share a component search. Its native candidate validator is wrapped with exact AOM prepared-work claim eligibility, inside the search so an unclaimed alternative remains discoverable. A per-thread, per-pawn scope carries automatic versus forced context across both calls and restores prior context in a Harmony finalizer, including exceptions and nesting. No claim changes or persistent data are introduced; no-claim searches retain the native predicate. The complete job rejection guard remains as a fallback. See [candidate validation](Tests/REPAIR-COMPONENT-CLAIMS-0.4.4.md).
 

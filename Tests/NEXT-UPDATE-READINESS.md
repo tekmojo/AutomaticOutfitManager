@@ -1,36 +1,34 @@
-# 0.4.4 release validation
+# 0.4.5 release validation
 
-The repair and nonhuman transit update is published on Steam Workshop. Public description/change note and all twelve downloaded files match the audited 0.4.4 package; the development junction is restored with the tested DLL. **Normal-play and Void provocation completion/restoration passed; focused route/access, repair/save-reload and subscriber-only gameplay checks remain open.** See [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.4.md).
+Four fixes follow the published 0.4.4 release: borrowed-gear identity cleanup, interrupted installation pickup, floor selection under competing claims and prepared blueprint-floor continuation. The release build changes version metadata to 0.4.5 without changing the tested gameplay logic.
 
-DLL SHA-256: `ED72D9E73C80344960E1090FE3E46BD20973FB4D5B7E733B500A013974784609`. Source base: `6139388` plus uncommitted 0.4.4 changes. [Nonhuman routing implementation and tests](NONHUMAN-TRANSIT-0.4.4.md); [earlier repair implementation](REPAIR-COMPONENT-CLAIMS-0.4.4.md).
+Gameplay-tested pre-version-bump DLL: `35E9D0097762005F37709C6EE41827CD1C09F58E56613880E91138B19E50D8D4`. RC base: `9ff91a34fa047f582e5c9a9f12f0c51c4dfab2ae` plus preserved changes. Final candidate and package hashes belong in the upload preparation record.
 
-## Next focused gameplay tests
+## Implementation evidence
 
-1. Startup has been observed on the routing build with no new patch-installation failure. Continue with the focused cases below.
-2. Check a permitted mech's outside-to-outside route through an outfit-configured Work Area, then both selected-outfit and saved-personal Non-Work Areas. Repeat with an animal. Denied permissions, overlapping restrictions and applicable pause behavior must remain effective.
-3. Confirm human outfit boundaries and direct bot construction deliveries remain correct.
-4. Exercise contested breakdown repair with only a claimed component, then an eligible unclaimed alternative. Verify owner progress, forced repair, immediate claim release and fresh save/reload during preparation.
+- [Borrowed-gear cleanup](BORROWED-GEAR-CLEANUP-2026-09-26.md): obsolete exact tracking IDs pruned while active returns and saved/selected/retained storage semantics remain intact. Follow-up startup removed 87 obsolete records and the maintainer reported the tags fixed.
+- [Interrupted installation](PREPARED-INSTALL-COUNT-2026-09-26.md): narrowly repair automatic zero-count pickup of the exact single dropped minified building for its live installation blueprint. Native fixture covers the defect; ordinary relocation passed, but the exact dropped-item branch still needs gameplay coverage.
+- [Floor claims](CONSTRUCTION-FLOOR-CLAIMS-2026-09-27.md): native blueprint eligibility and generated floor jobs agree on competing cell claims.
+- [Prepared floor continuation](PREPARED-FLOOR-CONTINUATION-2026-09-27.md): retain a numeric blueprint identity, validate using the original native Thing scanner and preserve the original queued job. Legacy missing identity safely falls back to normal selection. Native tests cover capture, refresh, claim ownership and lifecycle; they are not a running-game persistence test.
 
-## Current evidence
+## Latest gameplay evidence
 
-This routing build passes 1,032 automated checks and an expected-failing previous-routing control: 153 routing/session checks, 650 category-access/pause/restoration checks, 214 native-control checks and 15 installed-native repair checks. Full limitations and manual cases are in [routing validation](NONHUMAN-TRANSIT-0.4.4.md).
+Floor retest `7df8ceae` plus `6FUb8cMPpp.mp4`: all three prepared floor jobs refresh and become native current jobs; the recording shows floor removal and subsequent building. No earlier refresh rejection or blueprint no-job warning recurs. Thirty apparel and one weapon step succeed; four restorations complete. [Full local audit](C:/GitHub/AutomaticOutfitManager/.codex-audit/floor-7df8ceae/AUDIT.md).
 
-Earlier repair-only build `7D7E9670FC84953BCE6C6FEE13A2A452DBC78D9420E8A69149D6C57F40CC1F61` loaded as 0.4.4 in the supplied sessions, with successful outfit transitions and no repeat of the repair-selection warning. That absence did not establish a focused contested-component pass. The subsequent mech audit reproduced excess nonhuman routing cost and motivated this build.
+Small-map regression `0ca0fa74`: 162 apparel and 18 weapon successes, zero failed gear steps, 24 completed restorations, five meal handoffs with native current Ingest, and successful tattered-personal-apparel replacement. No exception or rapid-job warning. Jonah's brief repeated idle handoff resolves without renewed dressing. This excerpt contains no floor work and no matching end save. [Full local audit](C:/GitHub/AutomaticOutfitManager/.codex-audit/small-map-0ca0fa74/AUDIT.md).
 
-## First routing-build session
+## Remaining focused checks
 
-The bNdwQw6HUb recording and 5f506e1a attachment match this deployed build. Bots have 21 successful construction-delivery endings and five saved-weapon haul completions; humans have 50 successful gear-step endings, six completed restorations and no failed gear endings. Both locker-return rebuilds complete. Schmurda prepares for the actual void-monolith StudyInteract job, resumes it and later restores personal gear for Dining Room 1. The observed activity rows support permitted nonhuman access/transit; a controlled selected-mech shortest-route comparison and separate Non-Work mode tests remain pending. Thirteen recurring Arakis crib warnings remain.
+1. Load/UI smoke for the version-bumped candidate during the maintainer's upload session.
+2. Save/reload while preparing blueprint-triggered floor removal; verify exact native admission, progress and eventual restoration.
+3. Reproduce the dropped-minified-building installation interruption, then verify the same install completes.
 
-[Full audit](C:/GitHub/AutomaticOutfitManager/.codex-audit/nonhuman-retest-5f506e1a/AUDIT.md). No new code or deployment resulted from this audit.
+No blanket fix is claimed for crib/guest sleep loops, background sidearm/idle waits or other mods' reference errors. Older controlled route/access, contested repair and broader save/load limits remain in [0.4.4 readiness](READINESS-0.4.4.md). Publication and subscriber validation remain separate from local packaging.
 
-## Void provocation ritual session
+## Release preflight completed
 
-The OqjNMFy6BA recording and 22402f69 attachment establish an Anomaly psychic-ritual completion on the deployed routing build. Zendaya, Lodewijk, Fausto, MJ and JL prepare, visibly participate, and complete saved-outfit restoration. The success letter confirms Void provocation finished. Staring remains at buffer 0/1 without premature returns; subsequent eligible jobs or Non-Work entry trigger normal cleanup. The whole excerpt has 47 successful gear endings, zero failed gear endings and eight completed restorations, including background pawns.
+The 0.4.5 candidate builds and passes 592 focused checks (42 native floor, 24 native installation, 33 gear tracking, 134 preparation handoff, 47 boundary admission and 312 saved-gear recovery), plus three expected-failing old-decision controls. Source/XML/compiled string encoding, six XML/project files, asset constraints and maintained-document links pass. All twelve staged and installed files match. [Upload preparation](UPLOAD-PREP-0.4.5.md) records exact identities and the pending UI/gameplay limits.
 
-Nine save-reference warnings map to relationship/social records, VEF storyteller tracking, Vanilla Traits Expanded tracking and an unfinished sculpture; the matched missing IDs are absent from AOM state. Gonzalez's separate repeated idle waits after rejected automatic sidearm proposals remain a focused compatibility concern, with later work progress observed. The locker-storage warning does not block the five observed returns.
+## Workshop publication
 
-This is a normal-completion psychic-ritual pass, not Ideology ceremony, child attendance, cancellation, fresh save/reload or later entity-encounter coverage. [Full ritual audit](C:/GitHub/AutomaticOutfitManager/.codex-audit/ritual-22402f69/AUDIT.md). No source change or deployment resulted from this audit.
-
-## Retained limits
-
-Further Anomaly testing and fixes remain open for the next update. Monolith StudyInteract preparation/admission and later restoration, plus five-adult Void provocation completion and restoration, have now been observed. Other Anomaly jobs, fresh save/reload, broader ceremony/meal/mental-state/gravship cases and real route timings remain open. The Arakis crib loop, later Hospitality guest sleep loops and other mods' save-reference errors are not fixed here. Historical evidence remains in [0.4.3 final readiness](READINESS-0.4.3-FINAL-BUGFIX.md).
+The maintainer uploaded 0.4.5 on 2026-09-27. Public description and all twelve subscriber files match the audited stage; the closed-game development junction is restored. [Closeout](WORKSHOP-CLOSEOUT-0.4.5.md) records exact identities. This does not close pending gameplay checks. The corrected bold heading and BBCode list are verified on the public latest note.

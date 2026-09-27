@@ -2669,6 +2669,7 @@ namespace AutomaticOutfitManager.Core
                 ReleaseUnserializableRestoringSavedWeaponsBeforeSave();
                 DiscardUnserializableSnapshotsBeforeSave();
                 DiscardInvalidPendingWorkBeforeSave();
+                PruneUnusedManagedGearIds();
                 NonWorkOutfitBuffers.RemoveAll(item => item?.Pawn == null ||
                     (item.PendingWork != null && !Patches.PawnJobTracker_StartJob_Patch.PendingWorkJobIsViable(
                         item.Pawn, item.PendingWork, out _)));
@@ -2848,6 +2849,12 @@ namespace AutomaticOutfitManager.Core
                 state.ActiveIdleTicks = System.Math.Max(state.ActiveIdleTicks, 240);
             }
             int restoredClaims = RebuildPendingWorkClaims();
+            int unusedGearIds = PruneUnusedManagedGearIds();
+            if (AomLog.BasicEnabled && unusedGearIds > 0)
+            {
+                AomLog.Basic($"[AutomaticOutfitManager] Released {unusedGearIds} " +
+                    "unused borrowed-gear tracking record(s) after load.");
+            }
             if (AomLog.DetailedEnabled && restoredClaims > 0)
             {
                 AomLog.Detailed($"[AutomaticOutfitManager] Restored {restoredClaims} pending work claim(s) after load.");
@@ -4218,6 +4225,19 @@ namespace AutomaticOutfitManager.Core
                 managedWeaponDefIndexDirty = true;
             }
 
+            PruneUnusedManagedGearIds();
+            return removed;
+        }
+
+        private int PruneUnusedManagedGearIds()
+        {
+            int removed = Storage.ManagedGearTracking.Prune(ManagedApparelIds,
+                ManagedWeaponIds, PawnStates, SavedNonWorkOutfits, NonWorkMealTrips, HeldByPawn);
+            if (removed > 0)
+            {
+                indexedManagedApparelCount = -1;
+                indexedManagedWeaponCount = -1;
+            }
             return removed;
         }
 
@@ -4945,6 +4965,7 @@ namespace AutomaticOutfitManager.Core
             InvalidateWeaponStateIndex();
             if (completedNonWorkRule != null)
                 Patches.NonWorkBufferTracker.Begin(pawn, completedNonWorkRule);
+            PruneUnusedManagedGearIds();
             if (AomLog.DetailedEnabled)
             {
                 if (!string.IsNullOrEmpty(releaseReason))
@@ -5050,11 +5071,15 @@ namespace AutomaticOutfitManager.Core
             if (state == null)
                 return;
 
-            bool recapturingSameBoundaryWork =
+            bool recapturingSameWork =
                 state.PendingWorkJob != null && job != null &&
-                state.PendingBoundaryRuleIds?.Count > 0 &&
                 (ReferenceEquals(state.PendingWorkJob, job) ||
                  state.PendingWorkJob.loadID == job.loadID);
+            int floorBlueprintId = recapturingSameWork
+                ? state.PendingFloorBlueprintId
+                : PreparedFloorWork.CaptureBlueprintId(state.Pawn, job);
+            bool recapturingSameBoundaryWork = recapturingSameWork &&
+                state.PendingBoundaryRuleIds?.Count > 0;
             if (recapturingSameBoundaryWork)
             {
                 // Re-running the preparation planner for the exact staged repair
@@ -5068,6 +5093,7 @@ namespace AutomaticOutfitManager.Core
                 ClearPendingWork(state);
             }
             state.PendingWorkJob = job;
+            state.PendingFloorBlueprintId = floorBlueprintId;
             state.PendingWorkIsManagedWork = managedWork;
 
             // Some native job givers reserve a target before StartJob (beds are
@@ -5088,6 +5114,7 @@ namespace AutomaticOutfitManager.Core
             ProtectedBoundaryRetryRegistry.Clear(
                 state.Pawn, state.PendingWorkJob);
             state.PendingWorkJob = null;
+            state.PendingFloorBlueprintId = -1;
             state.PendingWorkIsManagedWork = false;
             state.PendingBoundaryRuleIds?.Clear();
             state.PendingBoundaryWorkJobLoadId = -1;
@@ -5106,6 +5133,7 @@ namespace AutomaticOutfitManager.Core
             state.PendingBoundaryWorkJobLoadId = state.PendingWorkJob.loadID;
             ReleaseNativeReservations(state.Pawn, state.PendingWorkJob);
             state.PendingWorkJob = null;
+            state.PendingFloorBlueprintId = -1;
             state.PendingWorkIsManagedWork = false;
         }
 

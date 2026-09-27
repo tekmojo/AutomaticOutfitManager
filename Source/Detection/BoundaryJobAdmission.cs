@@ -51,6 +51,7 @@ namespace AutomaticOutfitManager.Detection
             Job job = proposedJob != null && !ReferenceEquals(proposedJob, snapshot)
                 ? proposedJob : ProtectedBoundaryRetryRegistry.DetachedClone(snapshot);
             if (job?.def == null) return false;
+            PreparedInstallHaul.RepairPickupCount(job);
             admission = new BoundaryJobAdmission(pawn, snapshot, job);
             Active.Add(pawn, admission);
             return true;
