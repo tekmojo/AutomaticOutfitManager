@@ -1,6 +1,6 @@
 # Release documentation
 
-Start with the [current release checklist](CHECKLIST.md) and [remaining gameplay checks](../../Tests/NEXT-UPDATE-READINESS.md). The latest published version is **0.4.5** on Steam Workshop; GitHub remains at **0.4.4**.
+Start with the [current release checklist](CHECKLIST.md) and [remaining gameplay checks](../../Tests/NEXT-UPDATE-READINESS.md). The latest published version is **0.4.5** on Steam Workshop and GitHub. See [GitHub closeout](../../Tests/GITHUB-CLOSEOUT-0.4.5.md) for the source tag and verified downloads.
 
 ## Current release
 

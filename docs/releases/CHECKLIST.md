@@ -21,7 +21,7 @@
 - [x] Verify public description, original change-note wording and refreshed subscriber package against the stage.
 - [x] Apply and verify the prepared BBCode formatting correction to the existing 0.4.5 change note.
 - [ ] Subscriber-only gameplay smoke.
-- [ ] Source-control release and matching GitHub release; authorized and in progress.
+- [x] Source-control release and matching GitHub release published; ZIP/checksum digests verified. [GitHub closeout](../../Tests/GITHUB-CLOSEOUT-0.4.5.md).
 - [x] After upload and game closure, restore the temporary junction to the live repository and verify its DLL.
 
 Earlier controlled nonhuman route/access, contested repair, ceremony and other save/load limits remain in [0.4.4 readiness](../../Tests/READINESS-0.4.4.md). Crib loops and background sidearm waits are not claimed fixed. See [upload instructions](../workshop/README.md).

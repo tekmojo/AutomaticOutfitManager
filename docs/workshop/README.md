@@ -18,3 +18,5 @@ The package was created with `package-workshop.ps1`; [preparation](../../Tests/U
 ## File layout
 
 `DESCRIPTION.txt` is the current draft or published full description. Separate upload notes belong in `change-notes/`; dated published descriptions and copy records belong in `history/`. Detailed package and verification evidence belongs in `Tests/`. Documentation is not part of the Workshop package.
+
+The matching [GitHub release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.5) is published with the verified ZIP and checksum; see [GitHub closeout](../../Tests/GITHUB-CLOSEOUT-0.4.5.md).

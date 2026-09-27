@@ -22,6 +22,6 @@ The [original 0.4.5 note](../docs/workshop/history/WORKSHOP-PUBLISHED-0.4.5-INIT
 
 ## Remaining limits
 
-Subscriber-only gameplay, live save/reload during floor preparation, the exact dropped-installation scenario and independent in-game About capture remain unverified. The upload report alone does not close them. GitHub/source-control closeout is now authorized and in progress; its final record will distinguish publication from the remaining gameplay checks. The live checkout's older metadata remains separate from its verified 0.4.5 DLL; future uploads must use a reviewed stage.
+Subscriber-only gameplay, live save/reload during floor preparation, the exact dropped-installation scenario and independent in-game About capture remain unverified. The upload report alone does not close them. The matching GitHub release and source tag are published; [GitHub closeout](GITHUB-CLOSEOUT-0.4.5.md) records the verified assets. Gameplay checks remain separate. The live checkout's older metadata remains separate from its verified 0.4.5 DLL; future uploads must use a reviewed stage.
 
 [Preparation](UPLOAD-PREP-0.4.5.md) and [readiness](NEXT-UPDATE-READINESS.md) preserve build/gameplay evidence. Raw public HTML/API responses, subscriber manifest, per-file hashes, restored junction and skill backups are in `C:/GitHub/AutomaticOutfitManager/.codex-audit/closeout-0.4.5/`.

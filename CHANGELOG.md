@@ -9,7 +9,7 @@
 
 Existing saves remain supported. A new optional saved blueprint identity defaults safely for older saves; an already-pending legacy floor job without that identity is released for normal job selection. Rule defaults and Workshop identity are unchanged.
 
-Published through RimWorld's Mods menu; public description and all twelve downloaded files match the audited package. [Closeout](Tests/WORKSHOP-CLOSEOUT-0.4.5.md) records verification and the completed change-note formatting correction. Normal floor work and small-map outfit/meal restoration passed on the gameplay-equivalent pre-version-bump DLL. Fresh save/reload during floor preparation and the exact dropped-installation scenario remain manual test limits. See [release status](docs/releases/CHECKLIST.md) and [readiness](Tests/NEXT-UPDATE-READINESS.md).
+Published through RimWorld's Mods menu; public description and all twelve downloaded files match the audited package. [Closeout](Tests/WORKSHOP-CLOSEOUT-0.4.5.md) records verification and the completed change-note formatting correction. The matching [GitHub release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.5) and [verified downloads](Tests/GITHUB-CLOSEOUT-0.4.5.md) are published. Normal floor work and small-map outfit/meal restoration passed on the gameplay-equivalent pre-version-bump DLL. Fresh save/reload during floor preparation and the exact dropped-installation scenario remain manual test limits. See [release status](docs/releases/CHECKLIST.md) and [readiness](Tests/NEXT-UPDATE-READINESS.md).
 
 ## 0.4.4 — 2026-09-26
 

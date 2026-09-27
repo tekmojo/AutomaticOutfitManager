@@ -32,3 +32,5 @@ The 0.4.5 candidate builds and passes 592 focused checks (42 native floor, 24 na
 ## Workshop publication
 
 The maintainer uploaded 0.4.5 on 2026-09-27. Public description and all twelve subscriber files match the audited stage; the closed-game development junction is restored. [Closeout](WORKSHOP-CLOSEOUT-0.4.5.md) records exact identities. This does not close pending gameplay checks. The corrected bold heading and BBCode list are verified on the public latest note.
+
+The matching [GitHub release and source tag](GITHUB-CLOSEOUT-0.4.5.md) are published with verified ZIP/checksum digests. This completes distribution closeout, not the manual gameplay checks above.
