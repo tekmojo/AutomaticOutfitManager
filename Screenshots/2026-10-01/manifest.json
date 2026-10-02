@@ -1,0 +1,23 @@
+{
+  "received_date": "2026-10-01",
+  "status": "Prepared locally; publication pending",
+  "title": "Anomaly study activity",
+  "caption": "Track colonists studying a devourer, chimera and void monolith, with priest robe and ceremonial hood requirements shown alongside separate worker, hauler and wandering-animal lists.",
+  "original_filename": "codex-clipboard-cb932649-d61d-4e9d-a599-0859c35b2f66.png",
+  "original": {
+    "file": "anomaly-study-activity-original.png",
+    "bytes": 5775525,
+    "sha256": "840F70EEA0619551ED5AF6B6DAB73EDD86E9AC9BC626E6C2C82B71FCF952AD91"
+  },
+  "upload": {
+    "file": "anomaly-study-activity.jpg",
+    "bytes": 992250,
+    "sha256": "2CEF61F25C8DF1A09C459C90F80A0A903FF97BFEFA1B406B503079EA93DA2B54",
+    "jpeg_quality": 82,
+    "target_under_bytes": 1000000
+  },
+  "width": 3710,
+  "height": 1521,
+  "processing": "Original PNG preserved byte-for-byte; JPEG encoding only. No crop, resize, annotation or generated content.",
+  "evidence_limit": "Visible interface and activity only; screenshot does not establish runtime version, completed outfit changes or test coverage."
+}

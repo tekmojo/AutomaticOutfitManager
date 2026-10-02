@@ -1,0 +1,10 @@
+[b]0.4.6 - Keep saved outfits together[/b]
+[list]
+[*]Keep saved personal gear in its original locker room while a pawn uses a managed outfit. Prefer accepting storage, then suitable floor space in that room, while respecting storage filters and access.
+[*]Allow saved gear to use compatible pass-through lockers and shelves instead of remaining on the floor beside available storage.
+[*]Update existing saved outfits after successful ordinary clothing changes, so newly acquired personal garments are kept during later Non-Work visits. Shared and borrowed work gear remain separate.
+[*]Add Forget retained apparel and Forget retained weapon to selected items. These perform the same type-wide Forget action as the selectors, without confirmation.
+[*]Move Saved outfits to the top toolbar, clarify Release apparel and Release weapon labels, and use the same icon for releasing and forgetting gear.
+[*]Explain locker storage preferences and show when restoration is paused because a pawn is downed.
+[/list]
+Existing saves remain supported. Locker associations are saved per item; older saves start without those associations and resolve them where the source is unambiguous. Rule defaults and Workshop identity are unchanged.

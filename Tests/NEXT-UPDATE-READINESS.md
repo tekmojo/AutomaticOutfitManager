@@ -1,36 +1,27 @@
-# 0.4.5 release validation
+# 0.4.6 validation and deferred follow-up
 
-Four fixes follow the published 0.4.4 release: borrowed-gear identity cleanup, interrupted installation pickup, floor selection under competing claims and prepared blueprint-floor continuation. The release build changes version metadata to 0.4.5 without changing the tested gameplay logic.
+Closeout decision, 2026-10-02: the maintainer requested completion and deferred troubleshooting to a later patch. The prior investigation hold is lifted by that explicit decision. Public Workshop copy and all twelve refreshed subscriber files are verified; the temporary junction is restored. [Closeout](RELEASE-CLOSEOUT-0.4.6.md) records distribution evidence, and [patch follow-up](PATCH-FOLLOWUP-0.4.6.md) retains unresolved findings without marking them passed.
 
-Gameplay-tested pre-version-bump DLL: `35E9D0097762005F37709C6EE41827CD1C09F58E56613880E91138B19E50D8D4`. RC base: `9ff91a34fa047f582e5c9a9f12f0c51c4dfab2ae` plus preserved changes. Final candidate and package hashes belong in the upload preparation record.
+[Small-map retest](SMALL-MAP-RETEST-AUDIT-2026-10-02.md): no persistent Standing fault; 26 completed restorations, including five for Ocag, and all seven pawns reach rest at the video endpoint. The maintainer freed Kitchen locker space, but Ocag also retained the 51% sash while Bowman adopted the former problem vest. This is a normal-flow pass, not a reproduction or closure of the blocked-item recovery case. Revised saved-outfit text and locker tooltip are visible; About/downed wording and changed-state reload remain unverified.
 
-## Implementation evidence
+Published as an update to existing Workshop item 3792731788. Previous 0.4.5 [readiness](READINESS-0.4.5.md) and [release record](../docs/releases/history/RELEASE-HISTORY-0.4.5.md) are preserved.
 
-- [Borrowed-gear cleanup](BORROWED-GEAR-CLEANUP-2026-09-26.md): obsolete exact tracking IDs pruned while active returns and saved/selected/retained storage semantics remain intact. Follow-up startup removed 87 obsolete records and the maintainer reported the tags fixed.
-- [Interrupted installation](PREPARED-INSTALL-COUNT-2026-09-26.md): narrowly repair automatic zero-count pickup of the exact single dropped minified building for its live installation blueprint. Native fixture covers the defect; ordinary relocation passed, but the exact dropped-item branch still needs gameplay coverage.
-- [Floor claims](CONSTRUCTION-FLOOR-CLAIMS-2026-09-27.md): native blueprint eligibility and generated floor jobs agree on competing cell claims.
-- [Prepared floor continuation](PREPARED-FLOOR-CONTINUATION-2026-09-27.md): retain a numeric blueprint identity, validate using the original native Thing scanner and preserve the original queued job. Legacy missing identity safely falls back to normal selection. Native tests cover capture, refresh, claim ownership and lifecycle; they are not a running-game persistence test.
+## Included changes
 
-## Latest gameplay evidence
+- [Saved-gear locker locality](SAVED-GEAR-LOCKER-LOCALITY-2026-10-01.md) and [pass-through storage correction](SAVED-GEAR-LOCKER-STORAGE-2026-10-01.md).
+- [Retained-item controls](RETAINED-GEAR-GUEST-AUDIT-2026-10-01.md), Saved outfits toolbar placement and type-specific Release labels/icons.
+- [Successful ordinary personal Wear correction](MOTO-PANTS-AUDIT-2026-10-01.md).
+- Release preparation clarifies locker/saved-outfit text and displays downed restoration suspension before generic missing-item or Non-Work return text. No transition decisions change in this preparation.
 
-Floor retest `7df8ceae` plus `6FUb8cMPpp.mp4`: all three prepared floor jobs refresh and become native current jobs; the recording shows floor removal and subsequent building. No earlier refresh rejection or blueprint no-job warning recurs. Thirty apparel and one weapon step succeed; four restorations complete. [Full local audit](C:/GitHub/AutomaticOutfitManager/.codex-audit/floor-7df8ceae/AUDIT.md).
+## Gameplay evidence
 
-Small-map regression `0ca0fa74`: 162 apparel and 18 weapon successes, zero failed gear steps, 24 completed restorations, five meal handoffs with native current Ingest, and successful tattered-personal-apparel replacement. No exception or rapid-job warning. Jonah's brief repeated idle handoff resolves without renewed dressing. This excerpt contains no floor work and no matching end save. [Full local audit](C:/GitHub/AutomaticOutfitManager/.codex-audit/small-map-0ca0fa74/AUDIT.md).
+[October 2 full audit](FULL-SESSION-AUDIT-2026-10-02.md) covers DLL `74C5192A1AB2B70A3F3886A82261D877BE7CA16A22E7D8869EDA70EBF8A2B6D8`: Moto's Normal/90% pants are adopted and retained through later work/return/dining; Gonzo restores all original clothing and weapon. Ten restorations, 65 apparel endings and seven weapon endings succeed with none failed. Void provocation completes, Jumper rescues Arakis and restoration finishes after natural recovery. These passes carry forward across the version/display-only release preparation; the final 0.4.6 small-map retest supplies normal load/gameplay and visible saved-outfit/locker-text evidence. Independent About and downed-text captures remain deferred.
 
-## Remaining focused checks
+## Remaining focused checks and known limits
 
-1. Load/UI smoke for the version-bumped candidate during the maintainer's upload session.
-2. Save/reload while preparing blueprint-triggered floor removal; verify exact native admission, progress and eventual restoration.
-3. Reproduce the dropped-minified-building installation interruption, then verify the same install completes.
+1. Confirm 0.4.6 About card and the revised status/tooltips in the upload session.
+2. Load a copy of the preserved autosave: Arakis is suspended while downed and MJ is restoring. Two native family relationships reference an absent pawn; no missing AOM item references were found, but no reload result exists. Cause is unknown and no fix is claimed.
+3. Reproduce the older Hospitality arrival interruption: the new guest group did not exercise it. No guest continuation fix ships here.
+4. Retain capacity/access/floor fallback and save/load checks for local lockers; configuration warnings for the two Anomaly rifles are expected because local storage excludes them.
 
-No blanket fix is claimed for crib/guest sleep loops, background sidearm/idle waits or other mods' reference errors. Older controlled route/access, contested repair and broader save/load limits remain in [0.4.4 readiness](READINESS-0.4.4.md). Publication and subscriber validation remain separate from local packaging.
-
-## Release preflight completed
-
-The 0.4.5 candidate builds and passes 592 focused checks (42 native floor, 24 native installation, 33 gear tracking, 134 preparation handoff, 47 boundary admission and 312 saved-gear recovery), plus three expected-failing old-decision controls. Source/XML/compiled string encoding, six XML/project files, asset constraints and maintained-document links pass. All twelve staged and installed files match. [Upload preparation](UPLOAD-PREP-0.4.5.md) records exact identities and the pending UI/gameplay limits.
-
-## Workshop publication
-
-The maintainer uploaded 0.4.5 on 2026-09-27. Public description and all twelve subscriber files match the audited stage; the closed-game development junction is restored. [Closeout](WORKSHOP-CLOSEOUT-0.4.5.md) records exact identities. This does not close pending gameplay checks. The corrected bold heading and BBCode list are verified on the public latest note.
-
-The matching [GitHub release and source tag](GITHUB-CLOSEOUT-0.4.5.md) are published with verified ZIP/checksum digests. This completes distribution closeout, not the manual gameplay checks above.
+Earlier dropped-installation, floor-preparation reload and broader route/compatibility limits remain in the frozen 0.4.5 and 0.4.4 records. No performance claim follows from log volume. See [upload preparation](UPLOAD-PREP-0.4.6.md) for final build/package evidence and [closeout](RELEASE-CLOSEOUT-0.4.6.md) for publication. Subscriber-only gameplay remains deferred despite verified downloaded files.

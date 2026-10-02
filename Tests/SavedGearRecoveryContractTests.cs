@@ -354,6 +354,14 @@ namespace AutomaticOutfitManager.Core
 }
 namespace AutomaticOutfitManager.Storage
 {
+    // This fixture isolates restoration recovery. Active locker locality is
+    // exercised against the candidate DLL by SavedLockerNativeProbe.
+    internal static class SavedGearLockerPolicy
+    {
+        internal static bool TryMakeJob(Pawn pawn, Thing gear, bool forced, out Job job)
+        { job = null; return false; }
+        internal static IEnumerable<Thing> WeaponsOnMap(Map map) => Enumerable.Empty<Thing>();
+    }
     public static class ManagedWeaponClassifier { public static bool Matches(ThingDef d) => false; }
     public static class ManagedApparelClassifier { public static bool Matches(ThingDef d) => false; }
 }

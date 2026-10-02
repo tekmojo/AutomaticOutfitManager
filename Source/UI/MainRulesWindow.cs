@@ -102,6 +102,11 @@ namespace AutomaticOutfitManager.UI
             }
             TooltipHandler.TipRegion(newNonWorkRect,
                 "Change out of work outfits before entering a dining room, lounge or bedroom. Prefer each pawn's saved personal outfit, or choose an outfit for this area.");
+            Rect viewOutfitsRect = new Rect(newNonWorkRect.xMax + 10f, y, 145f, 30f);
+            if (Widgets.ButtonText(viewOutfitsRect, "Saved outfits..."))
+                ShowSavedNonWorkOutfits(component);
+            TooltipHandler.TipRegion(viewOutfitsRect,
+                "View each pawn's personal outfit saved before Work gear was issued, including whether they were unarmed. Viewing does not save or change an outfit.");
             Rect manageAreasRect = new Rect(inRect.xMax - 150f, y, 150f, 30f);
             if (Widgets.ButtonText(manageAreasRect, "Edit map areas"))
                 ShowManageAreas();
@@ -412,6 +417,7 @@ namespace AutomaticOutfitManager.UI
                 (rule.IsNonWork
                     ? "Prefer this room when collecting or returning the selected Non-Work outfit. Saved personal items are retrieved from wherever they are stored. Borrowed Work outfits return through their own rule's locker. "
                     : "Prefer gear stored here when outfitting. Pawns return here to put away borrowed gear and restore their saved personal outfit. Other reachable map stock can also be used. ") +
+                "Saved personal gear prefers accepting storage in its original locker, then suitable floor space there. Storage filters still apply. " +
                 "With no locker selected, pawns change back after reaching a safe cell outside the area.";
             TooltipHandler.TipRegion(lockerLabelRect, lockerHelp);
             string changingAreaLabel = rule.ChangingArea?.Label ?? "No locker room";
@@ -456,7 +462,7 @@ namespace AutomaticOutfitManager.UI
             {
                 y += 34f;
                 const string outfitSourceLabel = "Default to Saved Personal Outfit:";
-                float outfitSourceWidth = Mathf.Min(width - 150f,
+                float outfitSourceWidth = Mathf.Min(width,
                     Text.CalcSize(outfitSourceLabel).x + 36f);
                 Rect outfitSourceRect = new Rect(x, y, outfitSourceWidth, 28f);
                 bool previousSavedPreference = rule.DefaultToSavedPersonalOutfit;
@@ -471,11 +477,6 @@ namespace AutomaticOutfitManager.UI
                                  Enumerable.Empty<Pawn>())
                         UnavailableWorkRegistry.Clear(pawn, new[] { rule });
                 }
-                Rect viewOutfitsRect = new Rect(rect.xMax - 155f, y - 2f, 145f, 28f);
-                if (Widgets.ButtonText(viewOutfitsRect, "View saved outfits..."))
-                    ShowSavedNonWorkOutfits(component);
-                TooltipHandler.TipRegion(viewOutfitsRect,
-                    "View each pawn's personal outfit saved before Work gear was issued, including whether they were unarmed. Viewing does not save or change an outfit.");
                 TooltipHandler.TipRegion(outfitSourceRect,
                     "Checked: use the saved personal outfit, including an unarmed weapon slot. Selections below apply only when no outfit is saved; missing saved items do not activate fallback.\n\nUnchecked: adults equip the selections before entry. If a change leaves an adult inside without the required outfit, they leave safely before changing. Unavailable or unwearable gear keeps them outside; other reachable tasks can continue. Children use Allow Children.\n\nEmpty categories add no requirement. Remove Work Outfits controls which borrowed gear is returned. This option does not save a new outfit.");
                 y += 34f;
@@ -954,7 +955,8 @@ namespace AutomaticOutfitManager.UI
             Find.WindowStack.Add(new Dialog_MessageBox(
                 $"Saved non-work outfit for {pawn.LabelShortCap}.\n\n" +
                 $"Apparel: {apparel}\nPrimary weapon: {weapon}\n\n" +
-                "Saved automatically before Work gear was issued. Rule-selected and retained shared apparel and weapons are excluded, regardless of condition or quality. " +
+                "Saved automatically before Work gear was issued. Successful ordinary clothing changes also update an existing saved outfit. " +
+                "Rule-selected and retained shared apparel and weapons are excluded, regardless of condition or quality. " +
                 "Non-Work rules prefer this outfit when Default to Saved Personal Outfit is checked."));
         }
 

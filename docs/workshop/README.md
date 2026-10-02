@@ -1,22 +1,26 @@
-# Steam Workshop copy — 0.4.5 published
+# Steam Workshop copy — 0.4.6
 
-Published by the maintainer through RimWorld's Mods menu on 2026-09-27. Public description and all twelve subscriber files match the audited package; title, creator, Harmony dependency and public visibility are retained. The development junction is restored. See [closeout](../../Tests/WORKSHOP-CLOSEOUT-0.4.5.md).
+Published through the maintainer's in-game Mods-menu update of **Automatic Outfit Manager**, existing public item **3792731788** by **tekmojo**. Public description, rendered change note and all twelve subscriber files are verified. See [closeout](../../Tests/RELEASE-CLOSEOUT-0.4.6.md).
 
-[DESCRIPTION.txt](DESCRIPTION.txt) matches the published full description. [0.4.5.txt](change-notes/0.4.5.txt) matches the corrected public note, verified with the same bold-heading/list style as 0.4.4 and unchanged wording. The [original published note](history/WORKSHOP-PUBLISHED-0.4.5-INITIAL-NOTE.txt) is preserved. Follow [FORMATTING.md](FORMATTING.md) for all future Workshop fields. The compact Latest update block summarizes the fixes; keep the About/loading text concise and feature-focused.
+## Upload fields
 
-The package was created with `package-workshop.ps1`; [preparation](../../Tests/UPLOAD-PREP-0.4.5.md) preserves its hashes and checks. Formatting corrections need no DLL rebuild, mod upload or duplicate change-note entry. The [release checklist](../releases/CHECKLIST.md) and [readiness](../../Tests/NEXT-UPDATE-READINESS.md) retain pending gameplay checks.
+- [Full description](DESCRIPTION.txt): Steam BBCode, including the compact Latest update block.
+- [Separate 0.4.6 change note](change-notes/0.4.6.txt): paste in the change-note field, not the About description.
+- [Formatting contract](FORMATTING.md): established bold heading, actual BBCode list and optional save note.
+- [Upload preparation](../../Tests/UPLOAD-PREP-0.4.6.md): staged/installed package identity and checks.
+
+The temporary upload-stage junction is restored to the live repository, with RimWorld closed and the release DLL hash verified. The stage is preserved as immutable publication evidence. Subscriber-only gameplay and independent About-card capture remain deferred; no reupload is needed for closeout documentation.
+
+The [new Anomaly gallery image](../../Screenshots/2026-10-01/anomaly-study-activity.jpg) is separately prepared for optional gallery upload; gameplay screenshots are not part of the runtime package. That capture predates the new Saved outfits toolbar position. Existing preview/icons are retained.
 
 ## Published copy archive
 
 | Release | Published copy |
 | --- | --- |
-| 0.4.4 | [Publication record](history/WORKSHOP-PUBLISHED-0.4.4.md), [full description](history/WORKSHOP-PUBLISHED-0.4.4-DESCRIPTION.txt), [change note](change-notes/0.4.4.txt) |
-| 0.4.3 | [Initial release](history/WORKSHOP-PUBLISHED-0.4.3.md), [text maintenance](history/WORKSHOP-PUBLISHED-0.4.3-TEXT-MAINTENANCE.md), [final bug-fix notes](history/WORKSHOP-PUBLISHED-0.4.3-FINAL-BUGFIX.md), [final description](history/WORKSHOP-PUBLISHED-0.4.3-FINAL-DESCRIPTION.txt) |
-| 0.4.2 | [Published copy](history/WORKSHOP-PUBLISHED-0.4.2.md) |
-| 0.4.1 | [Published copy](history/WORKSHOP-PUBLISHED-0.4.1.md) |
+| 0.4.5 | [Full description](history/WORKSHOP-PUBLISHED-0.4.5-DESCRIPTION.txt), [corrected note](change-notes/0.4.5.txt), [original note](history/WORKSHOP-PUBLISHED-0.4.5-INITIAL-NOTE.txt), [closeout](../../Tests/WORKSHOP-CLOSEOUT-0.4.5.md) |
+| 0.4.4 | [Record](history/WORKSHOP-PUBLISHED-0.4.4.md), [description](history/WORKSHOP-PUBLISHED-0.4.4-DESCRIPTION.txt), [note](change-notes/0.4.4.txt) |
+| 0.4.3 | [Initial](history/WORKSHOP-PUBLISHED-0.4.3.md), [maintenance](history/WORKSHOP-PUBLISHED-0.4.3-TEXT-MAINTENANCE.md), [final fixes](history/WORKSHOP-PUBLISHED-0.4.3-FINAL-BUGFIX.md), [final description](history/WORKSHOP-PUBLISHED-0.4.3-FINAL-DESCRIPTION.txt) |
+| 0.4.2 | [Record](history/WORKSHOP-PUBLISHED-0.4.2.md) |
+| 0.4.1 | [Record](history/WORKSHOP-PUBLISHED-0.4.1.md) |
 
-## File layout
-
-`DESCRIPTION.txt` is the current draft or published full description. Separate upload notes belong in `change-notes/`; dated published descriptions and copy records belong in `history/`. Detailed package and verification evidence belongs in `Tests/`. Documentation is not part of the Workshop package.
-
-The matching [GitHub release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.5) is published with the verified ZIP and checksum; see [GitHub closeout](../../Tests/GITHUB-CLOSEOUT-0.4.5.md).
+Current text belongs here, change notes in `change-notes/`, and previous published descriptions in `history/`. See the [release checklist](../releases/CHECKLIST.md). Public upload, refreshed subscriber verification and GitHub release remain separate operations.

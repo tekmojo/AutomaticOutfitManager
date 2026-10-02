@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.6 — 2026-10-02
+
+- Keep exact saved personal gear in its originating locker during managed work: prefer accepting local storage, then suitable local ground. Respect native filters, owner access, explicit orders and restoration recovery; rules without lockers retain ordinary hauling.
+- Accept compatible pass-through lockers and shelves for saved gear without requiring their storage cells to be standable floor.
+- Update existing saved personal outfits after successful ordinary clothing changes, preventing later Non-Work visits from removing newly acquired personal garments solely to match an older snapshot.
+- Add immediate type-wide Forget retained apparel/weapon actions to item selection. Keep exact-item Release apparel/weapon separate and use matching icons.
+- Move Saved outfits to the top toolbar and clarify locker/saved-outfit guidance.
+- Show downed restoration suspension accurately in activity and inspection text.
+
+Existing saves remain supported. A new optional per-item locker association starts empty in older saves and resolves only where the source can be identified; rule defaults and Workshop identity are unchanged. Published through RimWorld's Mods menu; public copy and all twelve subscriber files match the audited package. The tested pants and normal-return paths pass. Blocked-item recovery, fresh save/reload, Hospitality arrival continuation and separate compatibility findings are deferred, not claimed fixed. See [closeout](Tests/RELEASE-CLOSEOUT-0.4.6.md), [follow-up scope](Tests/PATCH-FOLLOWUP-0.4.6.md) and [release checklist](docs/releases/CHECKLIST.md).
+
 ## 0.4.5 — 2026-09-27
 
 - Clear obsolete borrowed-item tracking so returned gear does not remain incorrectly tagged as borrowed. Preserve active returns, saved personal gear and selected or retained locker stock.

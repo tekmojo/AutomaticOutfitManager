@@ -1,6 +1,16 @@
-# 0.4.0 replacement screenshot gallery
+# Screenshot gallery
 
-This completed 0.4.0 gallery was retained unchanged for 0.4.1 at the maintainer’s request. It remains a legacy gallery for the 0.4.5 candidate: labels have since changed, including Pause activities and Automatic saved apparel/weapons. The [current capture suggestions](CAPTURE-PLAN-0.4.3.md) describe useful replacements; no new images are claimed complete.
+## Anomaly study activity — received 2026-10-01
+
+Track colonists studying a devourer, chimera and void monolith, with priest robe and ceremonial hood requirements shown alongside separate worker, hauler and wandering-animal lists.
+
+![Anomaly study activity](2026-10-01/anomaly-study-activity.jpg)
+
+Prepared locally; Workshop and GitHub publication is pending. The [upload JPEG](2026-10-01/anomaly-study-activity.jpg) retains the full 3710×1521 resolution and original framing at 992,250 bytes, below the project's 1,000,000-byte target. The [original PNG](2026-10-01/anomaly-study-activity-original.png) is preserved byte-for-byte. Only JPEG encoding was applied; there was no cropping, resizing, annotation or generated content. The [manifest](2026-10-01/manifest.json) records both hashes and export settings. This capture predates the top-toolbar Saved outfits button. It shows activity and interface labels; it does not establish the runtime version or certify completed outfit transitions.
+
+## Legacy 0.4.0 replacement gallery
+
+This completed 0.4.0 gallery was retained unchanged for 0.4.1 at the maintainer’s request. It remains a legacy gallery for 0.4.6: labels have since changed, including Pause activities and Automatic saved apparel/weapons. The [capture suggestions](CAPTURE-PLAN-0.4.3.md) describe further useful replacements; the new Anomaly study capture above is prepared locally.
 
 Eight new screenshots supplied by the maintainer are saved below at their original resolution and encoding. No cropping, resizing, recompression or visual editing was applied. The published Workshop order starts with Work and Non-Work setup, then shows the supporting controls and pawn status.
 

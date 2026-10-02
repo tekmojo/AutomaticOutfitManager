@@ -1,37 +1,16 @@
 # Release documentation
 
-Start with the [current release checklist](CHECKLIST.md) and [remaining gameplay checks](../../Tests/NEXT-UPDATE-READINESS.md). The latest published version is **0.4.5** on Steam Workshop and GitHub. See [GitHub closeout](../../Tests/GITHUB-CLOSEOUT-0.4.5.md) for the source tag and verified downloads.
+Current release is **0.4.6**. Start with [closeout](../../Tests/RELEASE-CLOSEOUT-0.4.6.md), the [checklist](CHECKLIST.md) and [deferred follow-up](../../Tests/PATCH-FOLLOWUP-0.4.6.md).
 
 ## Current release
 
-Version **0.4.5** is published on Steam Workshop, with public copy and subscriber files verified; see [closeout](../../Tests/WORKSHOP-CLOSEOUT-0.4.5.md). Its corrected change-note formatting is verified on Steam. See [upload preparation](../../Tests/UPLOAD-PREP-0.4.5.md). See the current checklist and readiness above. The following 0.4.4 package/closeout records remain published history.
+0.4.6 adds saved-gear locker locality, compatible storage handling, ordinary personal-clothing adoption, retained-item commands and interface clarification. See the [changelog](../../CHANGELOG.md) and [Workshop fields](../workshop/README.md). Public Workshop copy and all twelve subscriber files are verified. Gameplay and compatibility limits are intentionally deferred by the maintainer.
 
-## Release records
+## Published records
 
-- [Workshop upload text and instructions](../workshop/README.md)
-- [0.4.4 package preparation](../../Tests/UPLOAD-PREP-0.4.4.md)
-- [0.4.4 Workshop verification](../../Tests/WORKSHOP-CLOSEOUT-0.4.4.md)
-- [0.4.4 GitHub verification](../../Tests/GITHUB-CLOSEOUT-0.4.4.md)
-- [Player changelog](../../CHANGELOG.md)
-- [Test and audit index](../../Tests/README.md)
+- 0.4.5: [release record](history/RELEASE-HISTORY-0.4.5.md), [readiness](../../Tests/READINESS-0.4.5.md), [Workshop closeout](../../Tests/WORKSHOP-CLOSEOUT-0.4.5.md), [GitHub closeout](../../Tests/GITHUB-CLOSEOUT-0.4.5.md).
+- 0.4.4: [release record](history/RELEASE-HISTORY-0.4.4.md), [readiness](../../Tests/READINESS-0.4.4.md).
+- 0.4.3: [initial release](history/RELEASE-HISTORY-0.4.3.md), [text maintenance](history/RELEASE-HISTORY-0.4.3-TEXT-MAINTENANCE.md), [final fixes](history/RELEASE-HISTORY-0.4.3-FINAL-BUGFIX.md).
+- [0.4.2](history/RELEASE-HISTORY-0.4.2.md), [0.4.1](history/RELEASE-HISTORY-0.4.1.md), [0.4.0](history/RELEASE-HISTORY-0.4.0.md), [0.3.x](history/RELEASE-HISTORY-0.3.x.md).
 
-## Earlier release records
-
-These are dated records, not the current checklist. Their validation limits and publication claims remain historical evidence.
-
-| Release | Records |
-| --- | --- |
-| 0.4.4 | [Release record](history/RELEASE-HISTORY-0.4.4.md), [readiness](../../Tests/READINESS-0.4.4.md) |
-| 0.4.3 | [Initial release](history/RELEASE-HISTORY-0.4.3.md), [text maintenance](history/RELEASE-HISTORY-0.4.3-TEXT-MAINTENANCE.md), [final bug-fix update](history/RELEASE-HISTORY-0.4.3-FINAL-BUGFIX.md) |
-| 0.4.2 | [Release record](history/RELEASE-HISTORY-0.4.2.md) |
-| 0.4.1 | [Release record](history/RELEASE-HISTORY-0.4.1.md) |
-| 0.4.0 | [Release record](history/RELEASE-HISTORY-0.4.0.md) |
-| 0.3.x | [Release records](history/RELEASE-HISTORY-0.3.x.md) |
-
-Published Workshop copy is indexed in the [Workshop archive](../workshop/README.md#published-copy-archive).
-
-## Keeping this organized
-
-Keep one current `CHECKLIST.md`. When starting the next candidate, preserve the completed checklist in `history/` and update this index. Keep player-facing changes in the root changelog, upload text in `docs/workshop/`, and detailed test, preparation and closeout evidence in `Tests/`. Link to the existing records instead of copying their contents into new summaries.
-
-Documentation maintenance after publication does not require rebuilding the mod or moving an existing release tag.
+Keep one current checklist; archive completed records before preparing another release. Preserve original publication evidence and tags. [Test index](../../Tests/README.md) and [Workshop archive](../workshop/README.md#published-copy-archive) retain detailed evidence.

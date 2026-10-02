@@ -4587,12 +4587,20 @@ namespace AutomaticOutfitManager.Core
             Pawn pawn, RimWorld.Apparel replacement)
         {
             PawnApparelState state = StateFor(pawn);
-            if (state?.ApparelInterventionActive != true ||
+            SavedNonWorkOutfit nonWorkOutfit = NonWorkOutfitFor(pawn);
+            bool activeSnapshot = state?.ApparelInterventionActive == true;
+            // Successful ordinary Wear also updates an existing inactive
+            // preference. Otherwise the next Non-Work visit strips new personal
+            // clothing solely because it was acquired between work sessions.
+            // Do not create a preference or reinterpret a non-apparel transition.
+            if ((!activeSnapshot && (state != null || nonWorkOutfit == null)) ||
                 pawn?.apparel?.WornApparel?.Contains(replacement) != true ||
                 replacement == null ||
-                state.OriginalApparel?.Contains(replacement) == true ||
-                state.IsPreparationApparel(replacement) ||
+                (activeSnapshot ? state.OriginalApparel : nonWorkOutfit.Apparel)
+                    ?.Contains(replacement) == true ||
+                state?.IsPreparationApparel(replacement) == true ||
                 NonWorkOutfitPolicy.IsIssued(pawn, replacement) ||
+                nonWorkOutfit?.PendingSharedReturns.Contains(replacement) == true ||
                 AutomaticOutfitManager.Storage.ManagedApparelClassifier
                     .Matches(replacement.def) ||
                 IsSavedForOtherPawn(replacement, pawn) ||
@@ -4603,22 +4611,27 @@ namespace AutomaticOutfitManager.Core
 
             List<RimWorld.Apparel> displaced =
                 Patches.SavedApparelReplacementPolicy
-                    .ConflictingSavedApparel(pawn, state, replacement);
+                    .ConflictingSavedApparel(pawn,
+                        activeSnapshot ? state.OriginalApparel : nonWorkOutfit.Apparel,
+                        replacement);
+            // Remove inactive references before pruning exact-item ownership.
+            nonWorkOutfit?.Apparel.RemoveAll(displaced.Contains);
             foreach (RimWorld.Apparel saved in displaced.ToList())
                 ForgetSavedApparel(saved, preserveReusedAsManaged: true);
 
-            state.OriginalApparel ??= new List<RimWorld.Apparel>();
-            if (!state.OriginalApparel.Contains(replacement))
-                state.OriginalApparel.Add(replacement);
-            SavedNonWorkOutfit nonWorkOutfit = NonWorkOutfitFor(pawn);
+            if (activeSnapshot)
+            {
+                state.OriginalApparel ??= new List<RimWorld.Apparel>();
+                if (!state.OriginalApparel.Contains(replacement))
+                    state.OriginalApparel.Add(replacement);
+            }
             if (nonWorkOutfit != null)
             {
-                nonWorkOutfit.Apparel.RemoveAll(displaced.Contains);
                 if (!nonWorkOutfit.Apparel.Contains(replacement))
                     nonWorkOutfit.Apparel.Add(replacement);
             }
             RegisterManagedApparel(
-                new[] { replacement }, pawn);
+                new[] { replacement }, activeSnapshot ? pawn : null);
             WakeRestoringSavedGearOwner(pawn);
 
             if (AomLog.DetailedEnabled)

@@ -5,15 +5,15 @@ Choose outfits and access permissions for map areas. Equip pawns for work, then 
 
 [b]RimWorld 1.6 | Harmony required | Vanilla and modded apparel and primary weapons[/b]
 
-[quote][b]Latest update - 0.4.6[/b]
-Keep saved outfits together with local locker storage and floor fallback, and remember successful ordinary clothing changes. New retained-item controls and clearer outfit status make gear easier to manage.
+[quote][b]Latest update - 0.4.5[/b]
+Clear stale borrowed-item tags and improve interrupted furniture installation. Floor replacement now respects other builders' prepared tasks and resumes correctly after outfit changes.
 [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788]Full change notes[/url][/quote]
 
 [h1]Outfits by area[/h1]
 [list]
 [*][b]Work Areas:[/b] Require every selected garment and one of the selected primary weapons. Requirements apply during work, meals, recreation, sleep and necessary transit. Leave both categories empty for access control without outfit changes.
 [*][b]Non-Work Areas:[/b] Return all Work outfits or selected rules' gear. Prefer saved personal outfits, use selected fallback gear when no outfit is saved, or require a selected outfit for adults. Missing saved items do not trigger fallback.
-[*][b]Personal gear:[/b] Normally restore the same items, including the previous weapon or unarmed state. Suitable replacements for tattered clothing become personal gear only after successful wear. Successful ordinary clothing changes also update an existing saved outfit. Shared outfit stock stays separate from personal snapshots.
+[*][b]Personal gear:[/b] Normally restore the same items, including the previous weapon or unarmed state. Suitable replacements for tattered clothing become personal gear only after successful wear. Shared outfit stock stays separate from personal snapshots.
 [*][b]Gear standards:[/b] Set condition and quality for selected gear. These limits do not filter saved personal restoration.
 [*][b]Task buffers:[/b] Keep an outfit for up to 20 compatible follow-up tasks. Only successful tasks count; interrupted or failed jobs do not. A task requiring another outfit can end the buffer early.
 [/list]
@@ -32,7 +32,7 @@ Activities, Hauling and Wandering have separate permissions for colonists, guest
 [*]Add Non-Work Areas for downtime. Start with Default to Saved Personal Outfit and All Work Outfits.
 [/olist]
 
-For dedicated lockers, use the Automatic outfit apparel/weapons filters. Storage's own item, condition and quality limits still apply, including to saved gear. Keep changing space and personal-gear storage outside Work Areas. Warnings help identify overlap and storage problems. During managed work, saved personal items prefer accepting storage in their original locker room, then suitable ground there; other lockers do not pull them away while that room remains usable. Rules without lockers retain ordinary hauling. Use Forget retained apparel/weapon on an item to release its unused stock type, or inspect personal outfits with Saved outfits in the top toolbar.
+For dedicated lockers, use the Automatic outfit apparel/weapons filters. Storage's own item, condition and quality limits still apply, including to saved gear. Keep changing space and personal-gear storage outside Work Areas. Warnings help identify overlap and storage problems.
 
 [h1]Ideology ceremonies[/h1]
 In AOM-designated areas, eligible participants finish available, reachable outfit changes before ceremony progress begins. A ready leader does not bypass that wait, and dressing earns no ritual progress. Impossible outfits do not hold the ceremony indefinitely; native participation, cancellation and safety remain authoritative. Ideology is optional.

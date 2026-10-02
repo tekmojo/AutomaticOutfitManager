@@ -1,6 +1,18 @@
 # Testing and audit records
 
-Current Steam Workshop and GitHub release: [0.4.5 readiness](NEXT-UPDATE-READINESS.md), [release checklist](../docs/releases/CHECKLIST.md), [borrowed-gear cleanup](BORROWED-GEAR-CLEANUP-2026-09-26.md), [installation pickup](PREPARED-INSTALL-COUNT-2026-09-26.md), [floor claims](CONSTRUCTION-FLOOR-CLAIMS-2026-09-27.md) and [floor continuation](PREPARED-FLOOR-CONTINUATION-2026-09-27.md). Native floor and installation runners include explicit previous-decision negative controls. [GitHub closeout](GITHUB-CLOSEOUT-0.4.5.md) records the source tag and verified downloads.
+Current release: [0.4.6 closeout](RELEASE-CLOSEOUT-0.4.6.md). The maintainer chose to finish closeout and [defer remaining troubleshooting](PATCH-FOLLOWUP-0.4.6.md) to a later patch. Public Workshop copy and subscriber files are verified.
+
+Latest audit: [small-map retest](SMALL-MAP-RETEST-AUDIT-2026-10-02.md) finds no persistent Standing fault, 26 completed restorations and all seven pawns resting at the endpoint. Ocag kept the 51% sash while Bowman acquired the former problem vest, so freed locker space does not isolate the cause. [Ocag's earlier blocked saved vest](OCAG-BLOCKED-VEST-AUDIT-2026-10-02.md) remains a deferred recovery case.
+
+Current validation: [0.4.6 readiness](NEXT-UPDATE-READINESS.md), [release checklist](../docs/releases/CHECKLIST.md) and [upload preparation](UPLOAD-PREP-0.4.6.md).
+
+Latest gameplay evidence: [full session audit, October 2](FULL-SESSION-AUDIT-2026-10-02.md) verifies Moto's ordinary pants adoption through later work/return/dining, Gonzo's original outfit return, and ritual/rescue restoration. It records a native missing-pawn autosave warning, misleading downed status text and configuration-based Anomaly weapon-storage warnings; save/reload and the earlier guest continuation case remain open.
+
+Latest local follow-up: [Moto pants removal correction and item command polish](MOTO-PANTS-AUDIT-2026-10-01.md) updates inactive saved outfits after successful ordinary Wear and includes the requested icon/type-specific release labels. Native regression and related contracts pass; the specific pants gameplay regression now passes in the audit above.
+
+Included in 0.4.6: [retained-item control and Hospitality guest audit](RETAINED-GEAR-GUEST-AUDIT-2026-10-01.md) adds Forget retained apparel/weapon to item selection; guest continuation compatibility remains an audit finding. The locally deployed [pass-through locker storage correction](SAVED-GEAR-LOCKER-STORAGE-2026-10-01.md) follows the [saved gear locker locality](SAVED-GEAR-LOCKER-LOCALITY-2026-10-01.md) deployment and fixes saved gear remaining on the floor beside available lockers.
+
+Previous 0.4.5 release: [0.4.5 readiness](READINESS-0.4.5.md), [release checklist](../docs/releases/CHECKLIST.md), [borrowed-gear cleanup](BORROWED-GEAR-CLEANUP-2026-09-26.md), [installation pickup](PREPARED-INSTALL-COUNT-2026-09-26.md), [floor claims](CONSTRUCTION-FLOOR-CLAIMS-2026-09-27.md) and [floor continuation](PREPARED-FLOOR-CONTINUATION-2026-09-27.md). Native floor and installation runners include explicit previous-decision negative controls. [GitHub closeout](GITHUB-CLOSEOUT-0.4.5.md) records the source tag and verified downloads.
 
 Published 0.4.4: [readiness](READINESS-0.4.4.md), [repair-component validation](REPAIR-COMPONENT-CLAIMS-0.4.4.md), [nonhuman transit validation](NONHUMAN-TRANSIT-0.4.4.md), [Workshop closeout](WORKSHOP-CLOSEOUT-0.4.4.md) and [GitHub closeout](GITHUB-CLOSEOUT-0.4.4.md).
 

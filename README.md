@@ -4,7 +4,7 @@
 
 Automatic Outfit Manager lets you choose outfits and access permissions for RimWorld map areas. Use **Work Area Rules** for protective clothing, uniforms or primary weapons. Use **Non-Work Area Rules** to return work outfits before entering a dining room, lounge or bedroom.
 
-**0.4.5 published on Steam Workshop and GitHub** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [Download 0.4.5](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.5) · [Changelog](CHANGELOG.md) · [Release status](docs/releases/CHECKLIST.md)
+**Version 0.4.6** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [Download 0.4.6](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.6) · [Changelog](CHANGELOG.md) · [Release status](docs/releases/CHECKLIST.md)
 
 Requires **RimWorld 1.6** and **Harmony**. Vanilla and modded apparel and primary weapons are supported. Radiation equipment inspired the original mod, but Rimatomics is not required. You choose the areas and gear; AOM does not create rules from detected hazards.
 
@@ -31,7 +31,7 @@ Use **Add Non-Work Area Rule** for a dining room, recreation room or another pla
 | **Default to Saved Personal Outfit** — checked by default | Prefer the personal outfit saved before Work gear was issued. Selected apparel and weapons are a fallback only when no personal outfit has been saved. |
 | **Default to Saved Personal Outfit** — unchecked | Equip this rule's selected apparel and weapons before entry, after returning the chosen Work outfits. |
 | **Remove Work Outfits** | Defaults to **All Work Outfits**. Choose individual Work rules to keep gear from other rules. |
-| **View saved outfits…** | Inspect saved apparel and the primary weapon, including an unarmed outfit. Viewing does not capture or change an outfit. |
+| **Saved outfits...** (top toolbar) | Inspect saved apparel and the primary weapon, including an unarmed outfit. Viewing does not capture or change an outfit. |
 
 Missing or unreachable saved items **do not activate fallback**. A saved unarmed outfit stays unarmed. An empty fallback category adds no requirement and does not choose random items. When saved-outfit preference is off, empty slots may stay empty and compatible personal gear already worn may remain.
 
@@ -81,7 +81,11 @@ AOM prefers suitable locker stock, then reachable map stock. For weapons, higher
 
 Pawns normally restore the same physical personal items, including their previous primary weapon or unarmed state. Nearby saved gear is restored before optional distant improvements. A personal garment below 50% condition may be replaced by a compatible, outfit-allowed, healthier and better-scoring item; the saved outfit changes only after the replacement is successfully worn.
 
+Successful ordinary clothing changes between work sessions also update an existing saved outfit. Non-Work areas therefore keep newly acquired personal garments instead of removing them to match an older outfit. Shared work stock and borrowed items remain excluded.
+
 With a **Locker Room**, pawns return borrowed gear there. Without one, they change back at a safe cell outside the applicable area. Gear borrowed from another rule follows its source locker; a Non-Work rule's locker supplies its selected outfit rather than replacing saved personal items with arbitrary stock.
+
+While a pawn uses a managed outfit, their saved personal gear prefers accepting storage in its originating locker room, then suitable ground in that same room. Higher-priority storage in another locker does not pull it away while the original room remains usable. Both stored and loose items retain their exact saved identity, and the locker association is saved for later loads. Storage filters still apply. Removing the locker, losing access or running out of usable local space releases this preference; restoration recovery and explicit player haul orders retain priority. Rules without a locker keep ordinary hauling behavior.
 
 Locker warnings appear below **Locker Room**, and remain visible when the rule is collapsed. Amber flags partial overlap with enabled Work Areas; red means no standable changing space remains outside those areas. Overlapping Work and Non-Work cells remain highlighted while the mod tab is open. Hover the overlap warning, Locker Room button or rule badge to focus that locker; click the warning to center the map there. Non-Work overlap is advisory because compatible outfit and access settings can allow shared use. Keep personal-outfit storage outside Work Areas as well. A separate warning identifies missing storage or rejecting filters; it does not guarantee a free, reachable destination. These warnings leave your painted areas and rules unchanged.
 
@@ -95,6 +99,8 @@ Selected gear appears first in the selectors. Entries and rule references use th
 - **[Retained]** means remembered locker stock that no rule selects. It does not mean a copy is currently available.
 - **Remove / Clear** change the rule's selections while keeping those types in automatic outfit storage.
 - **Forget** returns unused stock of that type to ordinary storage. It is unavailable while a rule selects the type or a current outfit change uses it. Individual saved or borrowed items remain protected.
+
+Select a retained apparel item or weapon on the map to use **Forget retained apparel** or **Forget retained weapon**. It immediately performs the same type-wide Forget action as the selector, without a confirmation prompt, affecting all items of that type while preserving exact saved and borrowed gear. Personal apparel upgrades release the replaced item's saved ownership automatically; they do not add its type to retained stock. **Release apparel** and **Release weapon** instead release one exact saved item, with confirmation; they do not forget an entire retained type.
 
 The paired storage filters are **Automatic outfit apparel / Non-automatic outfit apparel** and **Automatic outfit weapons / Non-automatic outfit weapons**. Automatic outfit storage includes selected types, retained stock, borrowed gear and exact saved personal items, including inactive saved Non-Work outfit preferences. Both Work and Non-Work selections count. For a dedicated locker, enable the automatic outfit category and disable its non-automatic counterpart. Normal item, quality and condition storage filters still apply. Enabling an automatic outfit filter also enables currently known saved and borrowed item types. Tags **Automatic saved apparel** and **Automatic saved weapons** identify the exact saved items; ordinary copies remain non-automatic unless their type is selected or retained. Storage membership does not create a permanent pawn reservation. A **borrowed** tag tracks an outstanding outfit change or return; obsolete tags are cleared when a transition ends, during save/load, or when unused stock is forgotten. Selected and retained stock can still belong in automatic outfit storage after that individual tag clears. Use **Forget** to release an unused stock type; active borrowed and saved items stay protected.
 
@@ -157,7 +163,11 @@ Native Ideology participation, cancellation and safety decisions still apply. Pa
 
 ## Screenshots
 
-The existing eight-image gallery was retained through the published 0.4.3 release. These captures show the 0.4.0 interface and remain legacy examples; labels have since changed, including Pause activities and automatic saved item tags. The [0.4.3 capture plan](Screenshots/CAPTURE-PLAN-0.4.3.md) covers child-access and ceremony examples; no new captures are claimed.
+Anomaly study activity, supplied 2026-10-01: outfit requirements alongside colonists studying entities and separate worker, hauler and wandering-animal lists.
+
+![Anomaly study activity](Screenshots/2026-10-01/anomaly-study-activity.jpg)
+
+This new capture is prepared locally; publication is pending. The existing eight-image gallery shows the 0.4.0 interface and remains a set of legacy examples; labels have since changed, including Pause activities and automatic saved item tags. The [0.4.3 capture plan](Screenshots/CAPTURE-PLAN-0.4.3.md) covers further child-access and ceremony examples.
 
 Work Area outfit requirements and access controls:
 
@@ -167,7 +177,7 @@ Non-Work Areas for saved personal or selected outfits:
 
 ![Non-Work Area setup](Screenshots/0.4.0/02-non-work-area.jpg)
 
-[See all eight screenshots and captions](Screenshots/README.md), including outfit removal, selections, activity tracking and saved-item ownership.
+[See the screenshot gallery and captions](Screenshots/README.md), including the new Anomaly study capture and legacy examples of outfit removal, selections, activity tracking and saved-item ownership.
 
 ## Development and local installation
 

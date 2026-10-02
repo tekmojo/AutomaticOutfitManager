@@ -28,6 +28,9 @@ namespace AutomaticOutfitManager.State
         public List<string> CurrentRuleIds = new List<string>();
         // Source areas visited by this outfit session may own exact saved gear.
         public List<string> RestorationSourceRuleIds = new List<string>();
+        // Exact personal items stay with their originating locker during this
+        // outfit session. Rule IDs follow existing gravship area remapping.
+        public Dictionary<string, string> SavedGearLockerRuleIds = new Dictionary<string, string>();
         public List<Apparel> OriginalApparel = new List<Apparel>();
         public List<Apparel> ManagedApparel = new List<Apparel>();
         public List<Apparel> ReusedOriginalApparel = new List<Apparel>();
@@ -116,6 +119,9 @@ namespace AutomaticOutfitManager.State
             Scribe_References.Look(ref Pawn, "pawn");
             Scribe_Collections.Look(ref RestorationSourceRuleIds, "restorationSourceRuleIds", LookMode.Value);
             RestorationSourceRuleIds ??= new List<string>();
+            Scribe_Collections.Look(ref SavedGearLockerRuleIds, "savedGearLockerRuleIds",
+                LookMode.Value, LookMode.Value);
+            SavedGearLockerRuleIds ??= new Dictionary<string, string>();
             Scribe_Values.Look(ref ActiveRuleId, "activeRuleId");
             Scribe_Values.Look(ref ReturnReason, "outfitReturnReason");
             Scribe_Values.Look(ref NonWorkRestorationRuleId, "nonWorkRestorationRuleId");

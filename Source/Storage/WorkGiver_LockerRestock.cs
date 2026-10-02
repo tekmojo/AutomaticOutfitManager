@@ -37,6 +37,8 @@ namespace AutomaticOutfitManager.Storage
             }
 
             AutomaticOutfitManagerGameComponent component = AutomaticOutfitManagerGameComponent.Current;
+            if (SavedGearLockerPolicy.TryMakeJob(pawn, apparel, forced, out job))
+                return job != null;
             if (!forced && ManagedWorkClaimRegistry.IsClaimedByOther(
                     pawn, pawn.Map, apparel, apparel.Position)) return false;
 
@@ -131,7 +133,8 @@ namespace AutomaticOutfitManager.Storage
                 AutomaticOutfitManagerGameComponent.Current;
             return pawn?.Map == null || (component?.Rules?.Any(rule =>
                 rule?.Enabled == true && rule.ChangingArea?.Map == pawn.Map &&
-                rule.UsesExactWeapons) != true && !SavedGearRecovery.SavedWeaponsOnMap(pawn.Map).Any());
+                rule.UsesExactWeapons) != true && !SavedGearRecovery.SavedWeaponsOnMap(pawn.Map).Any() &&
+                !SavedGearLockerPolicy.WeaponsOnMap(pawn.Map).Any());
         }
 
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
@@ -144,6 +147,8 @@ namespace AutomaticOutfitManager.Storage
             var visitedDefs = new HashSet<ThingDef>();
             var visitedThings = new HashSet<Thing>();
             foreach (Thing weapon in SavedGearRecovery.SavedWeaponsOnMap(pawn.Map))
+                if (visitedThings.Add(weapon)) yield return weapon;
+            foreach (Thing weapon in SavedGearLockerPolicy.WeaponsOnMap(pawn.Map))
                 if (visitedThings.Add(weapon)) yield return weapon;
             foreach (ApparelRule rule in component.Rules.Where(rule =>
                          rule?.Enabled == true &&
@@ -177,6 +182,8 @@ namespace AutomaticOutfitManager.Storage
 
             AutomaticOutfitManagerGameComponent component =
                 AutomaticOutfitManagerGameComponent.Current;
+            if (SavedGearLockerPolicy.TryMakeJob(pawn, weapon, forced, out job))
+                return job != null;
             if (!forced && ManagedWorkClaimRegistry.IsClaimedByOther(
                     pawn, pawn.Map, weapon, weapon.Position)) return false;
             if (component?.RestoringOwnerForSavedGear(weapon) != null)

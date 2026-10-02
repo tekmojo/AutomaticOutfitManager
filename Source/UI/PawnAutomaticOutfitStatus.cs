@@ -114,7 +114,8 @@ namespace AutomaticOutfitManager.UI
                 bool changingForThisRule = state.NonWorkRestorationRuleId == context.Id &&
                     state.ActiveRuleId != context.Id;
                 var rules = new List<ApparelRule> { context };
-                headline = changingForThisRule ? "Changing into Non-Work outfit"
+                headline = RestorationPausedDowned(pawn, state) ? "Restoration paused — downed"
+                    : changingForThisRule ? "Changing into Non-Work outfit"
                     : state.RecallInterruptPending ? "Recall pending"
                     : state.Transition == ApparelTransition.Active
                         ? RuleEvaluator.HasMissingRequiredGear(pawn, context) ? "Required outfit item missing"
@@ -190,11 +191,13 @@ namespace AutomaticOutfitManager.UI
                 .GroupBy(candidate => candidate.Id)
                 .Select(group => group.First())
                 .ToList();
-            string transition = state.RecallInterruptPending
+            string transition = RestorationPausedDowned(pawn, state)
+                ? "Restoration paused — downed"
+                : state.RecallInterruptPending
                 ? "Recall pending"
                 : TransitionLabel(
                     pawn, state, requiredSessionRules, returnTaskBuffer);
-            if (state.NonWorkGearReturnOnly)
+            if (state.NonWorkGearReturnOnly && !RestorationPausedDowned(pawn, state))
             {
                 if (state.Transition == ApparelTransition.Restoring)
                     transition = "Returning work outfits";
@@ -289,6 +292,10 @@ namespace AutomaticOutfitManager.UI
             return text;
         }
 
+        private static bool RestorationPausedDowned(Pawn pawn, PawnApparelState state) =>
+            state?.Transition == ApparelTransition.Restoring &&
+            (pawn?.Downed == true || state.DownedTransitionSuspended);
+
         private static string TransitionLabel(
             Pawn pawn,
             PawnApparelState state,
@@ -299,6 +306,9 @@ namespace AutomaticOutfitManager.UI
             Job currentJob = pawn?.CurJob;
             if (transition == ApparelTransition.Restoring)
             {
+                if (RestorationPausedDowned(pawn, state))
+                    return "Restoration paused — downed";
+
                 if (pawn?.Drafted == true)
                     return "Restoration paused — drafted";
 
@@ -492,6 +502,9 @@ namespace AutomaticOutfitManager.UI
 
             if (state.Transition != ApparelTransition.Restoring)
                 return null;
+
+            if (RestorationPausedDowned(pawn, state))
+                return "Saved outfit restoration will resume when this pawn can move again.";
 
             AutomaticOutfitManagerGameComponent component =
                 AutomaticOutfitManagerGameComponent.Current;

@@ -264,10 +264,14 @@ namespace AutomaticOutfitManager.Patches
 
         internal static List<Apparel> ConflictingSavedApparel(
             Pawn pawn, PawnApparelState state, Apparel replacement)
+            => ConflictingSavedApparel(pawn, state?.OriginalApparel, replacement);
+
+        internal static List<Apparel> ConflictingSavedApparel(
+            Pawn pawn, IEnumerable<Apparel> originals, Apparel replacement)
         {
             var result = new List<Apparel>();
             BodyDef body = pawn?.RaceProps?.body ?? BodyDefOf.Human;
-            foreach (Apparel saved in state?.OriginalApparel ??
+            foreach (Apparel saved in originals ??
                          Enumerable.Empty<Apparel>())
             {
                 if (saved != null && saved != replacement &&
@@ -320,6 +324,10 @@ namespace AutomaticOutfitManager.Patches
         {
             foreach (Gizmo gizmo in __result)
                 yield return gizmo;
+
+            Command_Action clearRetained = UI.RetainedStockCommands.ClearRetained(__instance);
+            if (clearRetained != null)
+                yield return clearRetained;
 
             AutomaticOutfitManagerGameComponent component = AutomaticOutfitManagerGameComponent.Current;
             if (__instance?.def?.IsWeapon == true && component != null)
@@ -403,7 +411,7 @@ namespace AutomaticOutfitManager.Patches
 
             return new Command_Action
             {
-                defaultLabel = "Release item",
+                defaultLabel = weapon ? "Release weapon" : "Release apparel",
                 defaultDesc = $"Permanently remove this exact {itemKind} from {ownerName}'s saved outfit and release it for normal use. A confirmation is required.",
                 icon = TexCommand.ForbidOn,
                 action = () => Find.WindowStack.Add(
