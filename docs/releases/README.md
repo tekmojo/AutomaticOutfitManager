@@ -4,7 +4,7 @@ Current release is **0.4.6**. Start with [closeout](../../Tests/RELEASE-CLOSEOUT
 
 ## Current release
 
-0.4.6 adds saved-gear locker locality, compatible storage handling, ordinary personal-clothing adoption, retained-item commands and interface clarification. See the [changelog](../../CHANGELOG.md) and [Workshop fields](../workshop/README.md). Public Workshop copy and all twelve subscriber files are verified. Gameplay and compatibility limits are intentionally deferred by the maintainer.
+0.4.6 adds saved-gear locker locality, compatible storage handling, ordinary personal-clothing adoption, retained-item commands and interface clarification. See the [changelog](../../CHANGELOG.md) and [Workshop fields](../workshop/README.md). Public Workshop copy, all twelve subscriber files and [GitHub downloads](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.6) are verified. Gameplay and compatibility limits are intentionally deferred by the maintainer.
 
 ## Published records
 

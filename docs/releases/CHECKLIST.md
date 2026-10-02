@@ -20,7 +20,7 @@ Published through the maintainer's RimWorld Mods-menu update of existing public 
 - [x] Verify all twelve refreshed subscriber files against the audited stage.
 - [x] Confirm RimWorld is closed and restore the temporary junction to the live repository.
 - [x] Record the maintainer's decision to defer remaining investigation and manual checks.
-- [ ] Complete authorized commit/tag/push and matching GitHub release; record remote digests.
+- [x] Commit/tag/push and publish matching GitHub release; verify both remote asset sizes/digests and latest-public status.
 
 ## Explicitly deferred
 

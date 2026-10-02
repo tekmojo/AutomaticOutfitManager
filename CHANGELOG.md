@@ -11,6 +11,8 @@
 
 Existing saves remain supported. A new optional per-item locker association starts empty in older saves and resolves only where the source can be identified; rule defaults and Workshop identity are unchanged. Published through RimWorld's Mods menu; public copy and all twelve subscriber files match the audited package. The tested pants and normal-return paths pass. Blocked-item recovery, fresh save/reload, Hospitality arrival continuation and separate compatibility findings are deferred, not claimed fixed. See [closeout](Tests/RELEASE-CLOSEOUT-0.4.6.md), [follow-up scope](Tests/PATCH-FOLLOWUP-0.4.6.md) and [release checklist](docs/releases/CHECKLIST.md).
 
+The matching [GitHub release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.6) is published with the verified Workshop-stage ZIP and checksum. The version tag is fixed on the release-content commit; later closeout documentation does not change the runtime.
+
 ## 0.4.5 — 2026-09-27
 
 - Clear obsolete borrowed-item tracking so returned gear does not remain incorrectly tagged as borrowed. Preserve active returns, saved personal gear and selected or retained locker stock.
