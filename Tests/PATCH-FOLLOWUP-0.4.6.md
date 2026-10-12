@@ -9,4 +9,6 @@ On 2026-10-02 the maintainer requested release closeout and chose to troubleshoo
 5. **Distribution/UI checks.** Subscriber files match the stage; subscriber-only gameplay, independent 0.4.6 About-card capture and revised downed wording during live suspension remain unverified.
 6. **Inherited limits.** Retain dropped-installation recovery, save/reload during floor preparation and older route/access/repair cases from [0.4.5 readiness](READINESS-0.4.5.md). Normal work does not close those cases.
 
+Follow-up evidence, October 2: the [unattended reproduction audit](UNATTENDED-TWO-DAY-AUDIT-2026-10-02.md) records 47 completed restorations and automatic recovery from Hanh/Bowman jacket contention. No persistent Standing fault appears. Ocag keeps her sash through 49%, and Lumi owns the original problem vest; the unrelated protected-route/full-storage recovery case is still untested. The matching full log also records 43 Research Reinvented Autoloom unlock warnings, in addition to the existing mod-load errors. No implementation change follows from this audit.
+
 No further broad session is needed merely to repeat normal-flow passes. Choose an exact outstanding scenario and preserve a copy before changing its conditions.

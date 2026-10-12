@@ -51,6 +51,6 @@ Launch RimWorld manually and select Automatic Outfit Manager in Mods. Confirm ve
 
 After uploading, close RimWorld before restoring the junction to the live repository. Preserve the stage for public/subscriber comparison. Do not run the ordinary DLL-deploy helper while the junction targets this stage. Public upload, rendered copy, subscriber refresh/gameplay and GitHub closeout remain pending.
 
-The [readiness record](NEXT-UPDATE-READINESS.md) retains the recommended preserved-autosave load check, native missing-pawn relationship warning, earlier Hospitality arrival continuation and inherited manual limits. This update does not claim to fix those findings. Deployment does not certify save/reload.
+The [readiness record](READINESS-0.4.6.md) retains the recommended preserved-autosave load check, native missing-pawn relationship warning, earlier Hospitality arrival continuation and inherited manual limits. This update does not claim to fix those findings. Deployment does not certify save/reload.
 
 Local evidence: `C:/GitHub/AutomaticOutfitManager/.codex-audit/upload-prep-0.4.6/` contains the previous live DLL, Workshop ID backup, public-page snapshot, individual test logs, encoding/static reports, skill backups and installed per-file hashes.

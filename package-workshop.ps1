@@ -45,6 +45,7 @@ $requiredFiles = @(
 )
 
 $requiredRootFiles = @(
+    "LoadFolders.xml",
     "LICENSE",
     "NOTICE.md"
 )
@@ -109,6 +110,23 @@ if ($aboutXml.ModMetaData.modVersion -ne $expectedVersion) {
 }
 
 $stagedAssembly = Join-Path $stagedAssemblyDirectory "AutomaticOutfitManager.dll"
+$supportedVersions = @($aboutXml.ModMetaData.supportedVersions.li | ForEach-Object { [string]$_ })
+if (($supportedVersions -join ',') -ne '1.6,1.7') {
+    throw "About.xml must declare supported versions 1.6 and 1.7."
+}
+$loadFolders = [xml](Get-Content -LiteralPath (Join-Path $resolvedStageDirectory 'LoadFolders.xml') -Raw)
+foreach ($gameVersion in $supportedVersions) {
+    $versionNode = $loadFolders.loadFolders.SelectSingleNode("v$gameVersion")
+    $folders = @($versionNode.li | ForEach-Object { [string]$_ })
+    if (($folders -join ',') -ne '/,1.6') {
+        throw "LoadFolders.xml must load the root and shared 1.6 folder exactly once for $gameVersion."
+    }
+}
+$packagedAssemblies = @(Get-ChildItem -LiteralPath $resolvedStageDirectory -Recurse -File -Filter '*.dll')
+if ($packagedAssemblies.Count -ne 1 -or $packagedAssemblies[0].FullName -ne $stagedAssembly) {
+    throw "The shared package must contain exactly one AOM assembly and no bundled dependencies."
+}
+
 $assemblyVersion = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($stagedAssembly).ProductVersion
 if ($assemblyVersion -ne $expectedVersion) {
     throw "Release assembly ProductVersion must be $expectedVersion. Current value: $assemblyVersion"

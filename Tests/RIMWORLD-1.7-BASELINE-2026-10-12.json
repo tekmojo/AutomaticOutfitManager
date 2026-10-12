@@ -1,0 +1,103 @@
+{
+  "CapturedUtc": "2026-10-12T17:53:57.7547354Z",
+  "Scope": "File inventory only; no build, deployment, patch execution or gameplay validation.",
+  "RimWorldDir": "F:\\Steam\\steamapps\\common\\RimWorld",
+  "GameVersion": "1.6.4871 rev590",
+  "SteamBuildId": "23969874",
+  "GameRootEntries": [
+    "AOM-release-upload-backup",
+    "Data",
+    "EULA.txt",
+    "Licenses.txt",
+    "Mods",
+    "ModUpdating.txt",
+    "MonoBleedingEdge",
+    "Readme.txt",
+    "RimWorldWin64_Data",
+    "RimWorldWin64.exe",
+    "ScenarioPreview.jpg",
+    "Source",
+    "steam_appid.txt",
+    "SteamInputDefaultConfiguration_SteamDeck.vdf",
+    "SteamInputDefaultConfiguration_SteamFrame.vdf",
+    "SteamInputDefaultConfiguration.vdf",
+    "UnityCrashHandler64.exe",
+    "UnityPlayer.dll",
+    "Version.txt"
+  ],
+  "ManagedDir": "F:\\Steam\\steamapps\\common\\RimWorld\\RimWorldWin64_Data\\Managed",
+  "ReferenceLayoutNote": "Default paths are the existing 1.6 build inputs. Supply explicit paths after inspecting a newer installation; missing files do not prove incompatibility.",
+  "References": [
+    {
+      "Path": "F:\\Steam\\steamapps\\common\\RimWorld\\RimWorldWin64_Data\\Managed\\netstandard.dll",
+      "Exists": true,
+      "Bytes": 90112,
+      "SHA256": "6AE62E082DC494A2433984177F60CA4DB5FAE69B1F360A8B33754172B310B8C5",
+      "FileVersion": "2.1.0.0"
+    },
+    {
+      "Path": "F:\\Steam\\steamapps\\common\\RimWorld\\RimWorldWin64_Data\\Managed\\Assembly-CSharp.dll",
+      "Exists": true,
+      "Bytes": 15777280,
+      "SHA256": "5CF1B5BE399D5B1C9C56CA72C9D35B4ECF307FEACF5859D04AC5A1AA5926356A",
+      "FileVersion": "1.6.9676.17735"
+    },
+    {
+      "Path": "F:\\Steam\\steamapps\\common\\RimWorld\\RimWorldWin64_Data\\Managed\\UnityEngine.CoreModule.dll",
+      "Exists": true,
+      "Bytes": 1386688,
+      "SHA256": "C5C58EA254834291780A1D6C388C241443D07167B4A4B890A23C9494F626DDBA",
+      "FileVersion": "0.0.0.0"
+    },
+    {
+      "Path": "F:\\Steam\\steamapps\\common\\RimWorld\\RimWorldWin64_Data\\Managed\\UnityEngine.IMGUIModule.dll",
+      "Exists": true,
+      "Bytes": 188608,
+      "SHA256": "C6C39327211BE8299E2E9FFDEE7A979F228736C99B84FD54BC73F563456865D9",
+      "FileVersion": "0.0.0.0"
+    },
+    {
+      "Path": "F:\\Steam\\steamapps\\common\\RimWorld\\RimWorldWin64_Data\\Managed\\UnityEngine.TextRenderingModule.dll",
+      "Exists": true,
+      "Bytes": 37568,
+      "SHA256": "B63769AD71C7FC79034CF6C3A1EBFCF79D4591F0B1F5CD4A9823E6ED7B5816F8",
+      "FileVersion": "0.0.0.0"
+    },
+    {
+      "Path": "F:\\Steam\\steamapps\\common\\RimWorld\\RimWorldWin64_Data\\Managed\\Unity.Collections.dll",
+      "Exists": true,
+      "Bytes": 452096,
+      "SHA256": "DD3D7121936C8E20C1B41618C7FC3111657B79E9E11A6A4E94FB28AD555651BE",
+      "FileVersion": "0.0.0.0"
+    }
+  ],
+  "Harmony": {
+    "Path": "F:\\Steam\\steamapps\\workshop\\content\\294100\\2009463077\\Current\\Assemblies\\0Harmony.dll",
+    "Exists": true,
+    "Bytes": 2456064,
+    "SHA256": "353DAAFEC180BB8E7BBE4DA78F2A7CDC78067392E3A4E79DC8E7AF295F2371E6",
+    "FileVersion": "2.4.1.0"
+  },
+  "AomVersion": "0.4.6",
+  "DeclaredGameVersions": [
+    "1.6"
+  ],
+  "AomAssembly": {
+    "Path": "C:\\GitHub\\AutomaticOutfitManager\\work\\radiation-any-weapon\\1.6\\Assemblies\\AutomaticOutfitManager.dll",
+    "Exists": true,
+    "Bytes": 691200,
+    "SHA256": "A25B40980BBC58D419227DD1ECA4B8F855A8A8552F115E4688CA41D091FA98EE",
+    "FileVersion": "0.4.6.0"
+  },
+  "About": {
+    "Path": "C:\\GitHub\\AutomaticOutfitManager\\work\\radiation-any-weapon\\About\\About.xml",
+    "Exists": true,
+    "Bytes": 1010,
+    "SHA256": "5E7AC32DC2399CC8F469387E0EF086FBD880976A00F13C50D0C50D8F8938142D",
+    "FileVersion": null
+  },
+  "LoadFolders": {
+    "Path": "C:\\GitHub\\AutomaticOutfitManager\\work\\radiation-any-weapon\\LoadFolders.xml",
+    "Exists": false
+  }
+}

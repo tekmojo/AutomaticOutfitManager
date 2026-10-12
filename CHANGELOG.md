@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.6 — RimWorld 1.7 compatibility update — 2026-10-12
+
+- Add RimWorld 1.7 to supported versions while retaining 1.6 support.
+- Explicitly load the same shared assembly and assets on both versions.
+
+This maintenance update keeps the tested 0.4.6 DLL unchanged. It changes no gameplay logic, save format or rule defaults. Outfit preparation, restoration, active-outfit save/reload and ordinary Dining/recreation were exercised on 1.7.4976 rev1043 unstable. The maintainer accepted this coverage and deferred the remaining focused cases; they are not counted as passes. Package identity distinguishes this update from the October 2 release. Published on Steam Workshop; all thirteen downloaded files match the audited package, and the public description/change note are verified. The original GitHub package and tag remain unchanged. See the [closeout](Tests/RELEASE-CLOSEOUT-0.4.6-RIMWORLD-1.7.md), [current checklist](docs/releases/CHECKLIST.md) and [compatibility preparation](docs/releases/RIMWORLD-1.7-PREPARATION.md).
+
 ## 0.4.6 — 2026-10-02
 
 - Keep exact saved personal gear in its originating locker during managed work: prefer accepting local storage, then suitable local ground. Respect native filters, owner access, explicit orders and restoration recovery; rules without lockers retain ordinary hauling.
@@ -9,7 +16,7 @@
 - Move Saved outfits to the top toolbar and clarify locker/saved-outfit guidance.
 - Show downed restoration suspension accurately in activity and inspection text.
 
-Existing saves remain supported. A new optional per-item locker association starts empty in older saves and resolves only where the source can be identified; rule defaults and Workshop identity are unchanged. Published through RimWorld's Mods menu; public copy and all twelve subscriber files match the audited package. The tested pants and normal-return paths pass. Blocked-item recovery, fresh save/reload, Hospitality arrival continuation and separate compatibility findings are deferred, not claimed fixed. See [closeout](Tests/RELEASE-CLOSEOUT-0.4.6.md), [follow-up scope](Tests/PATCH-FOLLOWUP-0.4.6.md) and [release checklist](docs/releases/CHECKLIST.md).
+Existing saves remain supported. A new optional per-item locker association starts empty in older saves and resolves only where the source can be identified; rule defaults and Workshop identity are unchanged. Published through RimWorld's Mods menu; public copy and all twelve subscriber files match the audited package. The tested pants and normal-return paths pass. Blocked-item recovery, fresh save/reload, Hospitality arrival continuation and separate compatibility findings are deferred, not claimed fixed. See [closeout](Tests/RELEASE-CLOSEOUT-0.4.6.md), [follow-up scope](Tests/PATCH-FOLLOWUP-0.4.6.md) and [release checklist](docs/releases/history/RELEASE-HISTORY-0.4.6.md).
 
 The matching [GitHub release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.6) is published with the verified Workshop-stage ZIP and checksum. The version tag is fixed on the release-content commit; later closeout documentation does not change the runtime.
 

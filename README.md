@@ -4,9 +4,9 @@
 
 Automatic Outfit Manager lets you choose outfits and access permissions for RimWorld map areas. Use **Work Area Rules** for protective clothing, uniforms or primary weapons. Use **Non-Work Area Rules** to return work outfits before entering a dining room, lounge or bedroom.
 
-**Version 0.4.6** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [Download 0.4.6](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.6) · [Changelog](CHANGELOG.md) · [Release status](docs/releases/CHECKLIST.md)
+**Version 0.4.6 — 1.7 compatibility update** · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) · [Download compatibility update](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.6-rimworld-1.7) · [Changelog](CHANGELOG.md) · [Release status](docs/releases/CHECKLIST.md)
 
-Requires **RimWorld 1.6** and **Harmony**. Vanilla and modded apparel and primary weapons are supported. Radiation equipment inspired the original mod, but Rimatomics is not required. You choose the areas and gear; AOM does not create rules from detected hazards.
+Supports **RimWorld 1.6 and 1.7** and requires **Harmony** for your game version. The 1.7 compatibility update was tested on unstable build 1.7.4976 rev1043 and is published on Steam Workshop. Vanilla and modded apparel and primary weapons are supported. Radiation equipment inspired the original mod, but Rimatomics is not required. You choose the areas and gear; AOM does not create rules from detected hazards.
 
 ## Start with a Work Area
 
@@ -183,7 +183,9 @@ Non-Work Areas for saved personal or selected outfits:
 
 With RimWorld 1.6 and Harmony installed, run `build.ps1`; use `-RimWorldDir "D:\SteamLibrary\steamapps\common\RimWorld"` for another install location. The DLL is written to `1.6/Assemblies/AutomaticOutfitManager.dll`.
 
-`package-workshop.ps1` builds an allowlisted local package under `work/workshop-staging`; it does not publish it. Enable Harmony before AOM when installing the mod folder in RimWorld's Mods directory. See [project design](PROJECT-DESIGN.md), [release documentation](docs/releases/README.md), [Workshop copy](docs/workshop/README.md) and the [screenshot gallery](Screenshots/README.md).
+`LoadFolders.xml` loads the root assets and that single shared DLL on both 1.6 and 1.7. This compatibility maintenance package preserves the tested 0.4.6 binary and changes no gameplay or saved data. Building still requires the 1.6 managed references and a compatible Harmony assembly; the 1.7 Waylith installation is not a replacement build-reference layout.
+
+`package-workshop.ps1` builds an allowlisted local package under `work/workshop-staging`; it does not publish it. Use `-SkipBuild` only with the verified release DLL already present. Enable Harmony before AOM when installing the mod folder in RimWorld's Mods directory. See [project design](PROJECT-DESIGN.md), [release documentation](docs/releases/README.md), [Workshop copy](docs/workshop/README.md) and the [screenshot gallery](Screenshots/README.md).
 
 ## License and notices
 

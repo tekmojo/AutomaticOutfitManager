@@ -1,8 +1,14 @@
 # Testing and audit records
 
+Published Workshop maintenance: [closeout](RELEASE-CLOSEOUT-0.4.6-RIMWORLD-1.7.md), [0.4.6 RimWorld 1.7 maintenance readiness](NEXT-UPDATE-READINESS.md) and [package record](UPLOAD-PREP-0.4.6-RIMWORLD-1.7.md). The maintainer accepted current gameplay coverage; remaining focused tests are deferred. The original [0.4.6 readiness](READINESS-0.4.6.md) is archived.
+
+Latest 1.7 test: [saved-personal Non-Work video follow-up](RIMWORLD-1.7-NON-WORK-2026-10-12.md#video-follow-up--october-12) shows ordinary eating followed by further activity, billiards and restored personal gear. Its log adds six complete restorations with no failed clothing/weapon steps. Precise boundary ordering and the earlier hauling-conflict cause remain open; selected-outfit Non-Work is deferred by the maintainer. The earlier [weapon-only, combined swaps and combined save/reload](RIMWORLD-1.7-WEAPONS-2026-10-12.md) remain healthy within their observed scope.
+
+Upcoming game compatibility: [RimWorld 1.7 preparation](../docs/releases/RIMWORLD-1.7-PREPARATION.md), [October 12 baseline](RIMWORLD-1.7-BASELINE-2026-10-12.json) and read-only inventory helper `Get-CompatibilityBaseline.ps1`. The [new-colony apparel/locker audit and save/reload follow-up](RIMWORLD-1.7-NEW-COLONY-2026-10-12.md) are healthy within their tested scope; broader 1.7 compatibility remains pending.
+
 Current release: [0.4.6 closeout](RELEASE-CLOSEOUT-0.4.6.md). The maintainer chose to finish closeout and [defer remaining troubleshooting](PATCH-FOLLOWUP-0.4.6.md) to a later patch. Public Workshop copy and subscriber files are verified.
 
-Latest audit: [small-map retest](SMALL-MAP-RETEST-AUDIT-2026-10-02.md) finds no persistent Standing fault, 26 completed restorations and all seven pawns resting at the endpoint. Ocag kept the 51% sash while Bowman acquired the former problem vest, so freed locker space does not isolate the cause. [Ocag's earlier blocked saved vest](OCAG-BLOCKED-VEST-AUDIT-2026-10-02.md) remains a deferred recovery case.
+Latest audit: [unattended Standing reproduction run](UNATTENDED-TWO-DAY-AUDIT-2026-10-02.md) finds no persistent Standing fault: 47 restorations, 317 successful apparel endings and 32 successful weapon endings, with all seven pawns resting at the endpoint. Hanh's jacket contention recovers automatically. Ocag keeps her sash through 49% while Lumi owns the former problem vest, so [Ocag's earlier blocked saved vest](OCAG-BLOCKED-VEST-AUDIT-2026-10-02.md) remains unresolved. The matching log anchors about 1.64 in-game days and retains separate mod-load/Research Reinvented warnings. The [earlier small-map retest](SMALL-MAP-RETEST-AUDIT-2026-10-02.md) remains separate evidence.
 
 Current validation: [0.4.6 readiness](NEXT-UPDATE-READINESS.md), [release checklist](../docs/releases/CHECKLIST.md) and [upload preparation](UPLOAD-PREP-0.4.6.md).
 

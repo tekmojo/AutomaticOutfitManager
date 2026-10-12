@@ -1,0 +1,6 @@
+[b]0.4.6 - RimWorld 1.7 compatibility[/b]
+[list]
+[*]Add support for RimWorld 1.7 while retaining RimWorld 1.6 support.
+[*]Load the same shared mod assembly and assets on both game versions.
+[/list]
+Tested on RimWorld 1.7.4976 unstable. This compatibility update keeps the 0.4.6 gameplay code, saved-data format and rule defaults unchanged. Harmony is required for your game version.

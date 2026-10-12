@@ -1,0 +1,57 @@
+[h1]Automatic Outfit Manager[/h1]
+[b]Outfits for work. Personal clothes for downtime.[/b]
+
+Choose outfits and access permissions for map areas. Equip pawns for work, then return borrowed gear and restore their personal outfits for downtime.
+
+[b]RimWorld 1.6 | Harmony required | Vanilla and modded apparel and primary weapons[/b]
+
+[quote][b]Latest update - 0.4.6[/b]
+Keep saved outfits together with local locker storage and floor fallback, and remember successful ordinary clothing changes. New retained-item controls and clearer outfit status make gear easier to manage.
+[url=https://steamcommunity.com/sharedfiles/filedetails/changelog/3792731788]Full change notes[/url][/quote]
+
+[h1]Outfits by area[/h1]
+[list]
+[*][b]Work Areas:[/b] Require every selected garment and one of the selected primary weapons. Requirements apply during work, meals, recreation, sleep and necessary transit. Leave both categories empty for access control without outfit changes.
+[*][b]Non-Work Areas:[/b] Return all Work outfits or selected rules' gear. Prefer saved personal outfits, use selected fallback gear when no outfit is saved, or require a selected outfit for adults. Missing saved items do not trigger fallback.
+[*][b]Personal gear:[/b] Normally restore the same items, including the previous weapon or unarmed state. Suitable replacements for tattered clothing become personal gear only after successful wear. Successful ordinary clothing changes also update an existing saved outfit. Shared outfit stock stays separate from personal snapshots.
+[*][b]Gear standards:[/b] Set condition and quality for selected gear. These limits do not filter saved personal restoration.
+[*][b]Task buffers:[/b] Keep an outfit for up to 20 compatible follow-up tasks. Only successful tasks count; interrupted or failed jobs do not. A task requiring another outfit can end the buffer early.
+[/list]
+
+[h1]Access and control[/h1]
+Activities, Hauling and Wandering have separate permissions for colonists, guests, slaves, prisoners, animals and robots. Animals, mechs and other nonhuman robots follow access rules without changing outfits. Humanlike robots follow the normal outfit requirements. Activity lists show what pawns are doing; hover for details or click to find them.
+
+[b]Allow Children[/b] directly controls ordinary child access. Allowed children keep their clothes and bypass adult outfit requirements, buffers, group permissions and pause. Every overlapping area must allow them. Turning it off lets children already inside leave safely. Native age and job eligibility still apply; babies and carried pawns are unaffected.
+
+[b]Pause activities[/b] stops ordinary work, meals, recreation and learning. Allowed hauling, wandering, sleep, bed rest and animal nursing continue with access and outfit checks. Supplies may be hauled out of paused Work Areas, but processing and construction stay paused. Recall returns an individual pawn's borrowed outfit when applicable.
+
+[h1]Getting started[/h1]
+[olist]
+[*]Paint a Work Area, add a rule and choose its gear and access settings.
+[*]Provide reachable gear. Optionally assign a locker area with accepting storage and capable haulers.
+[*]Add Non-Work Areas for downtime. Start with Default to Saved Personal Outfit and All Work Outfits.
+[/olist]
+
+For dedicated lockers, use the Automatic outfit apparel/weapons filters. Storage's own item, condition and quality limits still apply, including to saved gear. Keep changing space and personal-gear storage outside Work Areas. Warnings help identify overlap and storage problems. During managed work, saved personal items prefer accepting storage in their original locker room, then suitable ground there; other lockers do not pull them away while that room remains usable. Rules without lockers retain ordinary hauling. Use Forget retained apparel/weapon on an item to release its unused stock type, or inspect personal outfits with Saved outfits in the top toolbar.
+
+[h1]Ideology ceremonies[/h1]
+In AOM-designated areas, eligible participants finish available, reachable outfit changes before ceremony progress begins. A ready leader does not bypass that wait, and dressing earns no ritual progress. Impossible outfits do not hold the ceremony indefinitely; native participation, cancellation and safety remain authoritative. Ideology is optional.
+
+[h1]Compatibility and limits[/h1]
+[list]
+[*]You choose the areas and gear. AOM does not create rules from hazards; it retains already-managed protection while removing it would expose a pawn or route to danger.
+[*]Overlapping areas need compatible requirements. A Work Area entirely inside a Non-Work Area is disabled until the conflict is corrected.
+[*]Mental breaks, incapacitation and native emergencies suspend outfit intervention. Drafting and direct player orders retain their normal exceptions.
+[*]Simple Sidearms memories are preserved. Gravship rules follow copied areas; hosted visitors return borrowed gear before natural departure.
+[*]Normal equipment eligibility applies; persona weapons are excluded. No ammunition, inventory-sidearm, offhand or drafted weapon-switching management. English interface only.
+[/list]
+
+[h1]Help and source[/h1]
+For persistent stalls or repeated outfit changes, enable Detailed logging in mod settings and include the affected pawn, rule and log with your report.
+
+[url=https://github.com/tekmojo/AutomaticOutfitManager]Player guide and source[/url] | [url=https://github.com/tekmojo/AutomaticOutfitManager/issues]Report an issue[/url]
+
+[h1]License and legal notice[/h1]
+Original source and documentation use the MIT License. Third-party materials retain their rights; see LICENSE and NOTICE.md.
+
+Portions of the materials used to create this content/mod are trademarks and/or copyrighted works of Ludeon Studios Inc. All rights reserved by Ludeon. This content/mod is not official and is not endorsed by Ludeon.
