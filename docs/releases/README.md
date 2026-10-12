@@ -4,7 +4,7 @@ Current Workshop update: **0.4.6 RimWorld 1.7 compatibility maintenance**. The m
 
 Start with the [checklist](CHECKLIST.md), [readiness](../../Tests/NEXT-UPDATE-READINESS.md), [package record](../../Tests/UPLOAD-PREP-0.4.6-RIMWORLD-1.7.md) and [Workshop fields](../workshop/README.md). [Compatibility preparation](RIMWORLD-1.7-PREPARATION.md) preserves test chronology and remaining evidence limits; deferred tests are not passes.
 
-The original October 2 package remains on GitHub, with previously verified [GitHub downloads](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.6). Its source tag, assets and dated publication records are preserved.
+The [GitHub compatibility release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.6-rimworld-1.7) is published with verified ZIP and checksum assets. Its separate tag identifies the maintenance package while retaining mod version 0.4.6. The original October 2 tag, assets and dated publication records are preserved.
 
 ## Published records
 

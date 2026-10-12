@@ -19,7 +19,7 @@ Workshop maintenance update completed October 12, 2026. Public description/chang
 - [x] Verify public metadata and Steam-generated HTML formatting/text for the description and separate change note.
 - [x] Compare all thirteen refreshed subscriber files with the audited stage; manifest 6503806276562891881.
 - [x] Restore the temporary junction to the live repository while RimWorld is closed and verify the DLL hash.
-Source-control and GitHub distribution updates remain separate, unperformed operations. The published v0.4.6 tag and original assets are preserved; they do not include this metadata maintenance update.
+- [x] Commit/tag/push the compatibility content and publish [verified GitHub downloads](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.6-rimworld-1.7). New tag `v0.4.6-rimworld-1.7` points to `0a558bb`; original `v0.4.6` tag/assets are preserved.
 
 Additional gameplay tests and final packaged-load smoke are deferred by the maintainer's decision, not represented as passed. Static package validation is separate from gameplay. No new runtime build is needed for unchanged binary content. See [readiness](../../Tests/NEXT-UPDATE-READINESS.md), [package record](../../Tests/UPLOAD-PREP-0.4.6-RIMWORLD-1.7.md) and [Workshop fields](../workshop/README.md).
 

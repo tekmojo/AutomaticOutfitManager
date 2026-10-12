@@ -1,6 +1,6 @@
 # 0.4.6 RimWorld 1.7 compatibility maintenance — Workshop closeout
 
-Completed October 12, 2026. The maintainer updated the existing [Automatic Outfit Manager Workshop item](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) through RimWorld's Mods menu and saved the prepared description and change note. The Workshop update is complete within the accepted testing scope. GitHub/source-control operations are separate and were not performed.
+Completed October 12, 2026. The maintainer updated the existing [Automatic Outfit Manager Workshop item](https://steamcommunity.com/sharedfiles/filedetails/?id=3792731788) through RimWorld's Mods menu and saved the prepared description and change note. The Workshop update is complete within the accepted testing scope. The matching [GitHub maintenance release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.6-rimworld-1.7) is now published and verified; the separate source-control/publication phase is recorded below.
 
 ## Published content
 
@@ -24,7 +24,7 @@ The public [description](https://steamcommunity.com/sharedfiles/filedetails/?id=
 
 The temporary upload junction was restored with RimWorld closed to `C:/GitHub/AutomaticOutfitManager`; the DLL hash through the installed path matches the tested binary. This restores the previous development checkout and does not copy candidate metadata or source into that separately dirty checkout. The Steam subscriber copy contains the new compatibility metadata.
 
-RC branch remains `codex/workshop-release-prep`, base `b618146`, with uncommitted release/audit work preserved. No commit, tag, push, merge, GitHub release or asset replacement was performed. The original published `v0.4.6` tag and GitHub downloads retain the October 2 package, and must not be described as containing this maintenance update.
+The compatibility release content is committed as `0a558bb1c425d156869e217a276c3b125f2a9551` on `codex/workshop-release-prep` and `main`, fast-forwarded from `b618146`. Tag `v0.4.6-rimworld-1.7` remains fixed on that release-content commit; later documentation closeout does not move it. Original tag `v0.4.6` remains on `5058262117e70ac0ef318321596b6940b3002747`, and its October 2 assets retain their prior digests.
 
 ## Accepted scope and deferred checks
 
@@ -35,3 +35,18 @@ See [package preparation](UPLOAD-PREP-0.4.6-RIMWORLD-1.7.md), [release checklist
 ## GitHub maintenance release preparation
 
 The maintainer subsequently authorized the remaining GitHub distribution steps. Publish a separate `v0.4.6-rimworld-1.7` release from the compatibility-content commit, retaining mod/DLL version 0.4.6 and the original `v0.4.6` tag/assets. Include the verified thirteen-file ZIP and its checksum. Record the resulting release commit and remote asset digests in a later closeout commit; do not move either published tag.
+
+## Verified GitHub publication — October 12, 23:02 UTC
+
+Published release: [v0.4.6-rimworld-1.7](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.6-rimworld-1.7), release-content commit `0a558bb1c425d156869e217a276c3b125f2a9551`. The release is public, non-draft and non-prerelease. The game branch used for testing remains 1.7 unstable; the GitHub release status does not claim that RimWorld 1.7 itself is stable.
+
+GitHub confirms both uploaded assets:
+
+| Asset | Bytes | GitHub SHA-256 |
+| --- | ---: | --- |
+| AutomaticOutfitManager-0.4.6-RimWorld-1.7.zip | 633,058 | `c5d37ac27ad6654ad730e065d78681d03ea19fb9d02ad51b7d31bdd09e3715a2` |
+| AutomaticOutfitManager-0.4.6-RimWorld-1.7.zip.sha256 | 113 | `e5afe1f243f21472d5d9a7494e69cfba47ad074292e4e85c9510c1ab4ef59cf3` |
+
+Both remote digests and sizes match the local files. The ZIP contains the exact thirteen-file audited stage. Original v0.4.6 ZIP and checksum digests remain `2b90cb1f3926394a9c9a2e900d4b3c128a4103a477e08cac1af0387d320cf60c` and `6da9b211b641eb8df7cbfc03e9ed147277f99f577dfbefdb1ca259b789fb2c67` respectively. No existing asset was replaced.
+
+Publication evidence is in `github-draft-verified.json` and `github-published.json` under the evidence directory above. The later documentation-only closeout commit is recorded in `github-closeout-state.json` there; both branches advance to that commit without moving the maintenance tag. The separately dirty live checkout remains untouched.

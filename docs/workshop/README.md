@@ -9,7 +9,7 @@
 - [Formatting contract](FORMATTING.md): existing heading/list/link conventions.
 - [Package record](../../Tests/UPLOAD-PREP-0.4.6-RIMWORLD-1.7.md): audited contents and hashes.
 
-The package, public full description and latest separate change note are verified. All thirteen subscriber files match the audited stage (manifest 6503806276562891881). The temporary junction is restored to the live repository with RimWorld closed and the DLL hash verified. Further gameplay testing remains deferred by the maintainer. No GitHub tag or asset was changed; see [Workshop closeout](../../Tests/RELEASE-CLOSEOUT-0.4.6-RIMWORLD-1.7.md).
+The package, public full description and latest separate change note are verified. All thirteen subscriber files match the audited stage (manifest 6503806276562891881). The temporary junction is restored to the live repository with RimWorld closed and the DLL hash verified. Further gameplay testing remains deferred by the maintainer. The matching [GitHub maintenance release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.6-rimworld-1.7) is published under a separate tag; the original tag/assets are unchanged. See [Workshop closeout](../../Tests/RELEASE-CLOSEOUT-0.4.6-RIMWORLD-1.7.md).
 
 ## Published copy archive
 

@@ -4,7 +4,7 @@
 
 The compatibility candidate adds 1.7 to About metadata and explicitly maps both 1.6 and 1.7 to the root assets plus the existing `1.6` assembly folder in `LoadFolders.xml`. There is one DLL, unchanged from the tested 0.4.6 release; no runtime logic, serialization or default changes are involved. Builds continue to target the 1.6 reference set. The installed 1.7 Waylith layout is not used to rebuild this shared binary.
 
-The maintainer accepted the October 12 unstable gameplay coverage and deferred further focused testing. Remaining cases retain their evidence limits in [compatibility readiness](Tests/NEXT-UPDATE-READINESS.md). Package hashes distinguish this maintenance candidate from the original 0.4.6 package. Workshop publication and downloaded-file verification are complete; the original GitHub tag/assets remain unchanged.
+The maintainer accepted the October 12 unstable gameplay coverage and deferred further focused testing. Remaining cases retain their evidence limits in [compatibility readiness](Tests/NEXT-UPDATE-READINESS.md). Package hashes distinguish this maintenance candidate from the original 0.4.6 package. Workshop publication and downloaded-file verification are complete. A separate [GitHub maintenance release](https://github.com/tekmojo/AutomaticOutfitManager/releases/tag/v0.4.6-rimworld-1.7) supplies the same package; the original GitHub tag/assets remain unchanged.
 
 ## 0.4.6 — personal gear locality and saved-outfit continuity
 
